@@ -1,15 +1,17 @@
 {
   "expo": {
-    "name": "mobile",
-    "slug": "mobile",
+    "name": "Harvest Guard",
+    "slug": "harvest-guard",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
-    "scheme": "myapp",
+    "icon": "./assets/images/icon.svg",
+    "scheme": "harvest-guard",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "package": "com.howard.harvest-guard",
+      "bundleIdentifier": "com.howard.harvest-guard"
     },
     "android": {
       "adaptiveIcon": {
