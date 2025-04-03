@@ -21,6 +21,7 @@ const FormField = ({
           onChangeText={handleTextChange}
           secureTextEntry={title.toLowerCase().includes("password") && !isShowPassword}
           autoCapitalize="none"
+          
           {...props}
         />
         {title.toLowerCase().includes("password") && (

@@ -7,7 +7,10 @@ const GlobalProvider = ({children}) => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isLoading, setisLoading] = useState(false);
 
-  useEffect(() => {}, []);
+  useEffect(() => {
+    // get Current User
+    // setIsLoggedIn(true);
+  }, []);
 
   return (
     <GlobalContext.Provider
