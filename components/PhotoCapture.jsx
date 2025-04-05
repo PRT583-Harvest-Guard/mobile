@@ -149,6 +149,7 @@ const PhotoCapture = ({ photos, setPhotos, title }) => {
                   </TouchableOpacity>
                 </View>
               )}
+              showsVerticalScrollIndicator={false}
               contentContainerStyle={{
                 backgroundColor: "#fff",
                 borderWidth: 2,

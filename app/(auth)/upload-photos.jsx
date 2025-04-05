@@ -40,7 +40,7 @@ const UploadPhotos = () => {
         </View>
         {/* Complete Button */}
         <CustomButton
-          title="Complete"
+          title={photos.length === requiredPhotoNum ? "Complete" : `(${photos.length}) / ${requiredPhotoNum}`}
           handlePress={submit}
           containerStyles="w-full mt-7"
           isLoading={isSubmitting}
