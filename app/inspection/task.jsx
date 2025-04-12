@@ -1,12 +1,25 @@
-import { CustomButton, Logo, PhotoCapture } from '@/components'
 import React, { useState } from 'react'
-import { Alert, View } from 'react-native'
+import { Alert, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
+import { CustomButton, PageHeader, PhotoCapture } from '@/components'
+import { router } from 'expo-router'
 
-const UploadPhotos = () => {
+const Task = () => {
   const requiredPhotoNum = 20;
   const [photos, setPhotos] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const save = async () => {
+      setIsSubmitting(true);
+      try {
+        router.replace("/(tabs)/history");
+      } catch (error) {
+        Alert.alert("Error", error.message);
+      } finally {
+        setIsSubmitting(false);
+      }
+    }
+  
 
   const submit = async () => {
     if (photos.length < requiredPhotoNum) {
@@ -25,17 +38,13 @@ const UploadPhotos = () => {
   }
 
   return (
-    <SafeAreaView className='bg-primary h-full'>
+    <SafeAreaView className='bg-white h-full'>
+      <PageHeader title="Inspection Task" />
       <View className='w-full h-full flex-col items-center justify-center gap-10 px-4'>
-        {/* Logo */}
-        <View className="w-full items-center justify-center">
-          <Logo containerStyles="w-48 h-48" />
-        </View>
-        {/* Photo Uploading Component */}
-        <View className='w-full flex-1'>
+        <View className='w-full flex-1 mt-7'>
           <PhotoCapture
             title={`Please Upload at least ${requiredPhotoNum} photos at the border of your property `}
-            titleStyles='text-white'
+            titleStyles='text-black'
             photos={photos}
             setPhotos={setPhotos} />
         </View>
@@ -43,9 +52,10 @@ const UploadPhotos = () => {
           {/* Save Button */}
           <CustomButton
             title="Save"
-            handlePress={() => { }}
+            handlePress={save}
             containerStyles="w-full mb-7"
             isLoading={isSubmitting}
+            theme="primary"
           />
           {/* Complete Button */}
           <CustomButton
@@ -53,6 +63,7 @@ const UploadPhotos = () => {
             handlePress={submit}
             containerStyles="w-full"
             isLoading={isSubmitting}
+            theme="primary"
           />
         </View>
       </View>
@@ -60,4 +71,4 @@ const UploadPhotos = () => {
   )
 }
 
-export default UploadPhotos;
+export default Task

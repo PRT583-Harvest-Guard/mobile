@@ -23,7 +23,10 @@ function App() {
 
   return (
     <SafeAreaView className="bg-primary h-full">
-      <ScrollView contentContainerStyle={{ height: "100%" }}>
+      <ScrollView 
+      contentContainerStyle={{ height: "100%" }}
+      showsVerticalScrollIndicator={false}
+      >
         <View className="w-full min-h-[85vh] items-center justify-center px-6">
           <Logo containerStyles="w-96 h-96" />
           <CustomButton

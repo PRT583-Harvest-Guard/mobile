@@ -1,8 +1,9 @@
 import React from 'react'
-import { View, Text, ScrollView, Image } from 'react-native'
+import { View, Text, Image } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context';
 import iconPrimary from '@/assets/images/icon-primary.png'
 import { CustomButton } from '@/components';
+import { router } from 'expo-router';
 
 const Home = () => {
   const user = {
@@ -11,8 +12,8 @@ const Home = () => {
   }
 
   return (
-    <SafeAreaView className='bg-white px-4 items-center justify-center'>
-      <View className='w-full h-full flex-col items-center justify-around'>
+    <SafeAreaView className='bg-white h-full'>
+      <View className='w-full h-full flex-col items-center justify-around px-4'>
         {/* Header */}
         <View className='w-full flex-row items-center justify-between'>
           {/* User */}
@@ -47,13 +48,13 @@ const Home = () => {
           </Text>
           <CustomButton
             title="Get an Inspection Suggestion"
-            handlePress={() => { }}
+            handlePress={() => { router.push("/inspection/submit-data") }}
             containerStyles="w-full h-[130px]"
             theme="primary"
           />
           <CustomButton
             title="Synchronise Inspections"
-            handlePress={() => { }}
+            handlePress={() => { router.push("/sync/sync-records") }}
             containerStyles="w-full h-[130px]"
             theme="primary"
           />

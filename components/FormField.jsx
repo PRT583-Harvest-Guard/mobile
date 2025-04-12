@@ -3,13 +3,13 @@ import { Text, TextInput, TouchableOpacity, View } from "react-native";
 import Feather from '@expo/vector-icons/Feather';
 
 const FormField = ({
-  title, value, placeholder, handleTextChange, otherStyles, ...props
+  title, value, placeholder, handleTextChange, otherStyles, titleStyles, placeholderStyles, ...props
 }) => {
   const [isShowPassword, setIsShowPassword] = useState(false);
 
   return (
     <View className={`space-y-2 ${otherStyles}`}>
-      <Text className="text-base text-gray-100 font-psemibold">
+      <Text className={`text-base font-psemibold mb-2 ${titleStyles}`}>
         {title}
       </Text>
       <View className="border-2 border-secondary w-full h-16 px-4 bg-white rounded-2xl focus:border-secondary-100 items-center flex-row">
@@ -18,10 +18,10 @@ const FormField = ({
           value={value}
           placeholder={placeholder}
           placeholderTextColor="#000"
+          placeholderClassName={placeholderStyles}
           onChangeText={handleTextChange}
           secureTextEntry={title.toLowerCase().includes("password") && !isShowPassword}
           autoCapitalize="none"
-          
           {...props}
         />
         {title.toLowerCase().includes("password") && (

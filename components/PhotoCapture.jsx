@@ -8,7 +8,7 @@ import FontAwesome from '@expo/vector-icons/FontAwesome';
 import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
 import LoadingIndicator from './LoadingIndicator'
 
-const PhotoCapture = ({ photos, setPhotos, title }) => {
+const PhotoCapture = ({ photos, setPhotos, title, titleStyles }) => {
   const [facing, setFacing] = useState('back');
   const [locationPermission, requestLocationPermission] = Location.useForegroundPermissions();
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
@@ -51,7 +51,7 @@ const PhotoCapture = ({ photos, setPhotos, title }) => {
     if (cameraRef.current) {
       try {
         const photo = await cameraRef.current.takePictureAsync({ quality: 0.5 });
-        const location = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+        const location = await Location.getLastKnownPositionAsync() || await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
         const newPhoto = {
           uri: photo.uri,
           location: {
@@ -123,7 +123,7 @@ const PhotoCapture = ({ photos, setPhotos, title }) => {
 
       {!isOpenCamera && (
         <View className='w-full h-full flex-col items-center justify-center'>
-          <Text className='w-full text-2xl text-white font-psemibold text-center mb-5'>{title}</Text>
+          <Text className={`w-full text-2xl font-psemibold text-center mb-5 ${titleStyles}`}>{title}</Text>
 
           <CustomButton
             title="Take Photo"
