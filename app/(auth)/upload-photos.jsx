@@ -1,4 +1,5 @@
 import { CustomButton, Logo, PhotoCapture } from '@/components'
+import { router } from 'expo-router'
 import React, { useState } from 'react'
 import { Alert, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
@@ -7,6 +8,17 @@ const UploadPhotos = () => {
   const requiredPhotoNum = 20;
   const [photos, setPhotos] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const save = async () => {
+    setIsSubmitting(true);
+    try {
+      router.replace("/(tabs)/home");
+    } catch (error) {
+      Alert.alert("Error", error.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
 
   const submit = async () => {
     if (photos.length < requiredPhotoNum) {
@@ -17,6 +29,7 @@ const UploadPhotos = () => {
     setIsSubmitting(true);
     try {
       Alert.alert("Success", "Photos uploaded successfully!");
+      router.replace("/(tabs)/home");
     } catch (error) {
       Alert.alert("Error", error.message);
     } finally {
@@ -43,7 +56,7 @@ const UploadPhotos = () => {
           {/* Save Button */}
           <CustomButton
             title="Save"
-            handlePress={() => { }}
+            handlePress={save}
             containerStyles="w-full mb-7"
             isLoading={isSubmitting}
           />

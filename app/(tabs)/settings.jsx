@@ -1,10 +1,18 @@
 import { CustomButton } from '@/components';
+import { useGlobalContext } from '@/context/GlobalProvider';
 import { router } from 'expo-router';
 import React from 'react'
 import { View, Text, TouchableOpacity, FlatList } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const Settings = () => {
+  const {setIsLoggedIn} = useGlobalContext();
+
+  const logOut = async () => {
+    setIsLoggedIn(false);
+    router.replace("/");
+  }
+
   return (
     <SafeAreaView className='w-full h-full'>
       <View className='w-full h-full px-4 flex-col items-center'>
@@ -20,19 +28,19 @@ const Settings = () => {
             title="Edit Profile"
             theme="primary"
             containerStyles="w-full"
-            handlePress={() => { }}
+            handlePress={() => { router.push("/profile/edit-profile") }}
           />
           <CustomButton
             title="Change Password"
             theme="primary"
             containerStyles="w-full"
-            handlePress={() => { }}
+            handlePress={() => { router.push("/profile/change-password") }}
           />
           <CustomButton
             title="Log Out"
             theme="error"
             containerStyles="w-full"
-            handlePress={() => { }}
+            handlePress={logOut}
           />
         </View>
       </View>

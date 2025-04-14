@@ -2,7 +2,7 @@ import React from 'react'
 import { View, Text, Image } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context';
 import iconPrimary from '@/assets/images/icon-primary.png'
-import { CustomButton } from '@/components';
+import { Avatar, CustomButton } from '@/components';
 import { router } from 'expo-router';
 
 const Home = () => {
@@ -19,11 +19,9 @@ const Home = () => {
           {/* User */}
           <View className='flex-row items-center gap-2'>
             {/* Avatar */}
-            <Image
-              source={{ uri: user?.avatar }}
-              className='w-[50px] h-[50px] rounded-full'
-              resizeMode='contain'
-            />
+            <View className='w-[50px] h-[50px] items-center justify-center rounded-full'>
+              <Avatar user={user}/>
+            </View>
             {/* User Name */}
             <View className='flex-col items-start gap-2'>
               <Text className='text-base font-pregular text-black'>
