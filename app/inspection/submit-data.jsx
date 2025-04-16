@@ -66,7 +66,7 @@ const SubmitData = () => {
         {/* Header */}
         <PageHeader title="Get An Inspection Suggestion" />
         <KeyboardAvoidingView
-          behavior={Platform === 'ios' ? 'padding' : 'height'}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           className='mt-16 mb-32'
         >
           <ScrollView

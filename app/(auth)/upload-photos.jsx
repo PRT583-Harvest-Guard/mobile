@@ -39,36 +39,36 @@ const UploadPhotos = () => {
 
   return (
     <SafeAreaView className='bg-primary h-full'>
-      <View className='w-full h-full flex-col items-center justify-center gap-10 px-4'>
-        {/* Logo */}
-        <View className="w-full items-center justify-center">
-          <Logo containerStyles="w-48 h-48" />
+        <View className='w-full h-full flex-col items-center justify-center gap-5 px-4'>
+          {/* Logo */}
+          <View className="w-full items-center justify-center">
+            <Logo containerStyles="w-32 h-32" />
+          </View>
+          {/* Photo Uploading Component */}
+          <View className='w-full flex-1'>
+            <PhotoCapture
+              title={`Please Upload at least ${requiredPhotoNum} photos at the border of your property `}
+              titleStyles='text-white'
+              photos={photos}
+              setPhotos={setPhotos} />
+          </View>
+          <View className='w-full pb-4 px-4'>
+            {/* Save Button */}
+            <CustomButton
+              title="Save"
+              handlePress={save}
+              containerStyles="w-full mb-7"
+              isLoading={isSubmitting}
+            />
+            {/* Complete Button */}
+            <CustomButton
+              title={photos.length === requiredPhotoNum ? "Complete" : `(${photos.length}) / ${requiredPhotoNum}`}
+              handlePress={submit}
+              containerStyles="w-full"
+              isLoading={isSubmitting}
+            />
+          </View>
         </View>
-        {/* Photo Uploading Component */}
-        <View className='w-full flex-1'>
-          <PhotoCapture
-            title={`Please Upload at least ${requiredPhotoNum} photos at the border of your property `}
-            titleStyles='text-white'
-            photos={photos}
-            setPhotos={setPhotos} />
-        </View>
-        <View className='w-full p-4'>
-          {/* Save Button */}
-          <CustomButton
-            title="Save"
-            handlePress={save}
-            containerStyles="w-full mb-7"
-            isLoading={isSubmitting}
-          />
-          {/* Complete Button */}
-          <CustomButton
-            title={photos.length === requiredPhotoNum ? "Complete" : `(${photos.length}) / ${requiredPhotoNum}`}
-            handlePress={submit}
-            containerStyles="w-full"
-            isLoading={isSubmitting}
-          />
-        </View>
-      </View>
     </SafeAreaView>
   )
 }

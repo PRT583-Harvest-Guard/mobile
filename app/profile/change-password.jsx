@@ -39,6 +39,7 @@ const ChangePassword = () => {
             value={form.name}
             handleTextChange={(e) => setForm({ ...form, oldPassword: e })}
             otherStyles="mb-10"
+            autoComplete="current-password"
           />
           {/* New Password */}
           <FormField
@@ -46,6 +47,7 @@ const ChangePassword = () => {
             titleStyles="text-black"
             value={form.name}
             handleTextChange={(e) => setForm({ ...form, newPassword: e })}
+            autoComplete="new-password"
           />
         </View>
         <CustomButton

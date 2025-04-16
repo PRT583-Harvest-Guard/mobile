@@ -32,7 +32,7 @@ const SignIn = () => {
   return (
     <SafeAreaView className="bg-primary h-full">
       <KeyboardAvoidingView
-        behavior={Platform === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={{ flex: 1 }}
       >
         <ScrollView
