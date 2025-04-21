@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { createFarm, getFarms, deleteFarm, updateFarm, updateFarmSize } from '@/services/BoundaryService';
-import { CustomButton, FormField } from '@/components';
+import { CustomButton, FormField, PageHeader } from '@/components';
 import { Feather } from '@expo/vector-icons';
 
 const FarmScreen = () => {
@@ -196,62 +196,77 @@ const FarmScreen = () => {
 
   return (
     <View style={styles.container}>
-      <View style={styles.formContainer}>
-        <Text style={styles.title}>
-          {editingFarm ? 'Edit Farm' : 'Create New Farm'}
-        </Text>
-        
-        <FormField
-          title="Farm Name"
-          titleStyles="text-black"
-          value={newFarm.name}
-          handleTextChange={(text) => setNewFarm({ ...newFarm, name: text })}
-        />
-        
-        <FormField
-          title="Size (acres)"
-          titleStyles="text-black"
-          value={newFarm.size}
-          handleTextChange={(text) => setNewFarm({ ...newFarm, size: text })}
-          keyboardType="numeric"
-        />
-        
-        <FormField
-          title="Type of Plants"
-          titleStyles="text-black"
-          value={newFarm.plant_type}
-          handleTextChange={(text) => setNewFarm({ ...newFarm, plant_type: text })}
-        />
-        
-        <View style={styles.buttonContainer}>
-          {editingFarm && (
-            <CustomButton
-              title="Cancel"
-              handlePress={() => {
-                setEditingFarm(null);
-                setNewFarm({ name: '', size: '', plant_type: '' });
-              }}
-              containerStyles={styles.cancelButton}
-              theme="secondary"
+      <PageHeader title="Farm Management" />
+      <View style={styles.contentContainer}>
+        <View style={styles.formContainer}>
+          <Text style={styles.title}>
+            {editingFarm ? 'Edit Farm' : 'Create New Farm'}
+          </Text>
+          
+          <View style={styles.fieldContainer}>
+            <Feather name="tag" size={20} color="#666" style={styles.fieldIcon} />
+            <FormField
+              title="Farm Name"
+              titleStyles="text-black"
+              value={newFarm.name}
+              handleTextChange={(text) => setNewFarm({ ...newFarm, name: text })}
+              otherStyles="flex-1"
             />
-          )}
-          <CustomButton
-            title={editingFarm ? "Update Farm" : "Create Farm"}
-            handlePress={editingFarm ? handleUpdateFarm : handleCreateFarm}
-            isLoading={isLoading}
-            containerStyles={styles.createButton}
+          </View>
+          
+          <View style={styles.fieldContainer}>
+            <Feather name="map-pin" size={20} color="#666" style={styles.fieldIcon} />
+            <FormField
+              title="Size (acres)"
+              titleStyles="text-black"
+              value={newFarm.size}
+              handleTextChange={(text) => setNewFarm({ ...newFarm, size: text })}
+              keyboardType="numeric"
+              otherStyles="flex-1"
+            />
+          </View>
+          
+          <View style={styles.fieldContainer}>
+            <Feather name="grid" size={20} color="#666" style={styles.fieldIcon} />
+            <FormField
+              title="Type of Plants"
+              titleStyles="text-black"
+              value={newFarm.plant_type}
+              handleTextChange={(text) => setNewFarm({ ...newFarm, plant_type: text })}
+              otherStyles="flex-1"
+            />
+          </View>
+          
+          <View style={styles.buttonContainer}>
+            {editingFarm && (
+              <CustomButton
+                title="Cancel"
+                handlePress={() => {
+                  setEditingFarm(null);
+                  setNewFarm({ name: '', size: '', plant_type: '' });
+                }}
+                containerStyles={styles.cancelButton}
+                theme="secondary"
+              />
+            )}
+            <CustomButton
+              title={editingFarm ? "Update Farm" : "Create Farm"}
+              handlePress={editingFarm ? handleUpdateFarm : handleCreateFarm}
+              isLoading={isLoading}
+              containerStyles={styles.createButton}
+            />
+          </View>
+        </View>
+
+        <View style={styles.listContainer}>
+          <Text style={styles.listTitle}>Your Farms</Text>
+          <FlatList
+            data={farms}
+            renderItem={renderFarmItem}
+            keyExtractor={(item) => item.id.toString()}
+            contentContainerStyle={styles.listContent}
           />
         </View>
-      </View>
-
-      <View style={styles.listContainer}>
-        <Text style={styles.listTitle}>Your Farms</Text>
-        <FlatList
-          data={farms}
-          renderItem={renderFarmItem}
-          keyExtractor={(item) => item.id.toString()}
-          contentContainerStyle={styles.listContent}
-        />
       </View>
     </View>
   );
@@ -263,19 +278,45 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
-    padding: 20,
+  },
+  contentContainer: {
+    flex: 1,
+    padding: 16,
+    paddingTop: 0,
+  },
+  fieldContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  fieldIcon: {
+    marginRight: 12,
+    marginTop: 12,
   },
   formContainer: {
+    backgroundColor: '#f9f9f9',
+    borderRadius: 12,
+    padding: 16,
     marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    marginBottom: 20,
+    color: '#333',
+    marginBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+    paddingBottom: 8,
   },
   buttonContainer: {
     flexDirection: 'row',
     gap: 10,
+    marginTop: 10,
   },
   createButton: {
     flex: 1,
@@ -287,23 +328,42 @@ const styles = StyleSheet.create({
   },
   listContainer: {
     flex: 1,
+    backgroundColor: '#f9f9f9',
+    borderRadius: 12,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   listTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    marginBottom: 10,
+    color: '#333',
+    marginBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+    paddingBottom: 8,
   },
   listContent: {
     paddingBottom: 20,
   },
   farmItem: {
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#fff',
     padding: 15,
     borderRadius: 10,
     marginBottom: 10,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+    borderWidth: 1,
+    borderColor: '#eee',
   },
   farmInfo: {
     flex: 1,
@@ -315,11 +375,12 @@ const styles = StyleSheet.create({
   actionButton: {
     padding: 8,
     borderRadius: 8,
-    backgroundColor: '#fff',
+    backgroundColor: '#f0f0f0',
   },
   farmName: {
     fontSize: 18,
     fontWeight: 'bold',
+    color: '#333',
     marginBottom: 5,
   },
   farmDetails: {
