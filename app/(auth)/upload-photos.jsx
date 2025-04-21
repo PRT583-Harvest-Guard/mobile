@@ -1,5 +1,5 @@
-import { CustomButton, Logo, PhotoCapture } from '@/components'
-import { router } from 'expo-router'
+import { CustomButton, Logo, PhotoCapture, PageHeader } from '@/components'
+import { router, useLocalSearchParams } from 'expo-router'
 import React, { useState } from 'react'
 import { Alert, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
@@ -7,6 +7,9 @@ import * as Location from 'expo-location'
 import { saveBoundaryData } from '@/services/BoundaryService'
 
 const UploadPhotos = () => {
+  const params = useLocalSearchParams();
+  const { farmId } = params;
+  
   const requiredPhotoNum = 20;
   const [photos, setPhotos] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -54,8 +57,13 @@ const UploadPhotos = () => {
   const save = async () => {
     setIsSubmitting(true);
     try {
-      await saveBoundaryData(boundaryPoints);
-      router.replace("/(tabs)/home");
+      if (farmId) {
+        await saveBoundaryData(farmId, boundaryPoints);
+        router.replace(`/farm-details/${farmId}`);
+      } else {
+        await saveBoundaryData(null, boundaryPoints);
+        router.replace("/(tabs)/home");
+      }
     } catch (error) {
       Alert.alert("Error", error.message);
     } finally {
@@ -71,9 +79,15 @@ const UploadPhotos = () => {
 
     setIsSubmitting(true);
     try {
-      await saveBoundaryData(boundaryPoints);
-      Alert.alert("Success", "Photos and boundary data uploaded successfully!");
-      router.replace("/(tabs)/farm-layout");
+      if (farmId) {
+        await saveBoundaryData(farmId, boundaryPoints);
+        Alert.alert("Success", "Photos and boundary data uploaded successfully!");
+        router.replace(`/farm-details/${farmId}`);
+      } else {
+        await saveBoundaryData(null, boundaryPoints);
+        Alert.alert("Success", "Photos and boundary data uploaded successfully!");
+        router.replace("/(tabs)/farm-layout");
+      }
     } catch (error) {
       Alert.alert("Error", error.message);
     } finally {
@@ -81,12 +95,26 @@ const UploadPhotos = () => {
     }
   }
 
+  const handleBack = () => {
+    if (farmId) {
+      router.back();
+    } else {
+      router.replace("/(tabs)/home");
+    }
+  };
+
   return (
     <SafeAreaView className='bg-primary h-full'>
-      <View className='w-full h-full flex-col items-center justify-center gap-5 px-4'>
+      <PageHeader 
+        title="Upload Boundary Photos" 
+        textColor="white"
+        showBackButton={true}
+        handleBackPress={handleBack}
+      />
+      <View className='w-full flex-1 flex-col items-center px-4 pt-4'>
         {/* Logo */}
-        <View className="w-full items-center justify-center">
-          <Logo containerStyles="w-32 h-32" />
+        <View className="w-full items-center justify-center mb-4">
+          <Logo containerStyles="w-24 h-24" />
         </View>
         
         {/* Photo Uploading Component */}

@@ -149,8 +149,10 @@ const FarmDetailsScreen = () => {
           <CustomButton
             title="Add Boundary Points"
             handlePress={() => {
-              // This would navigate to boundary point capture
-              Alert.alert('Boundary Points', 'Boundary point capture not implemented yet');
+              router.push({
+                pathname: "/(auth)/upload-photos",
+                params: { farmId: farm.id }
+              });
             }}
             containerStyles={styles.button}
             theme="secondary"
