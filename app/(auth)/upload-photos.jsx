@@ -1,7 +1,8 @@
 import { CustomButton, Logo, PhotoCapture, PageHeader } from '@/components'
 import { router, useLocalSearchParams } from 'expo-router'
 import React, { useState } from 'react'
-import { Alert, View, StyleSheet, Text } from 'react-native'
+import { Alert, View, StyleSheet, Text, TouchableOpacity, ScrollView, Modal } from 'react-native'
+import { Feather } from '@expo/vector-icons'
 // Temporarily remove map import until we resolve the compatibility issue
 // import MapView, { Marker, Polygon } from 'react-native-maps'
 import { SafeAreaView } from 'react-native-safe-area-context'
@@ -26,6 +27,9 @@ export default function UploadPhotos() {
     longitudeDelta: 0.0421,
   });
   const [mapReady, setMapReady] = useState(false);
+  const [showAllPoints, setShowAllPoints] = useState(false);
+  const [pointsToShow, setPointsToShow] = useState([]);
+  const [pointsTitle, setPointsTitle] = useState("");
 
   // Calculate required photos based on farm size
   const getRequiredPhotoCount = (farmSize) => {
@@ -93,6 +97,56 @@ export default function UploadPhotos() {
 
   const handleMapReady = () => {
     setMapReady(true);
+  };
+  
+  // Handle deletion of existing boundary points
+  const handleDeleteExistingPoints = (index) => {
+    Alert.alert(
+      "Delete Boundary Points",
+      "This will delete ALL existing boundary points for this farm. Are you sure you want to continue?",
+      [
+        {
+          text: "Cancel",
+          style: "cancel"
+        },
+        {
+          text: "Delete All",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              // Clear existing points in state
+              setExistingPoints([]);
+              
+              // Clear existing points in database
+              if (farmId) {
+                await saveBoundaryData(farmId, []);
+                Alert.alert(
+                  "Boundary Points Deleted",
+                  "All existing boundary points have been deleted. You can now create new boundary points."
+                );
+              }
+            } catch (error) {
+              console.error('Error deleting boundary points:', error);
+              Alert.alert(
+                "Error",
+                "Failed to delete boundary points. Please try again."
+              );
+              // Reload existing points
+              if (farmId) {
+                const points = await getBoundaryData(farmId);
+                if (points && points.length > 0) {
+                  const formattedPoints = points.map(point => ({
+                    latitude: point.latitude,
+                    longitude: point.longitude,
+                  }));
+                  setExistingPoints(formattedPoints);
+                }
+              }
+            }
+          }
+        }
+      ]
+    );
   };
 
   const handlePhotoCapture = async (newPhoto) => {
@@ -341,7 +395,12 @@ export default function UploadPhotos() {
         showBackButton={true}
         handleBackPress={handleBack}
       />
-      <View className='w-full flex-1 flex-col items-center px-4 pt-4'>
+      <ScrollView 
+        className='w-full flex-1'
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={true}
+      >
+        <View className='w-full flex-col items-center px-4 pt-4'>
         {/* Logo */}
         <View className="w-full items-center justify-center mb-4">
           <Logo containerStyles="w-24 h-24" />
@@ -365,23 +424,77 @@ export default function UploadPhotos() {
         {/* Boundary Points Info */}
         <View style={styles.boundaryInfoContainer}>
           <Text style={styles.boundaryInfoTitle}>Boundary Points</Text>
+          
+          {/* Existing Boundary Points Section */}
+          {existingPoints.length > 0 && (
+            <View style={styles.existingPointsSection}>
+              <Text style={styles.sectionLabel}>Existing Points:</Text>
+              <Text style={styles.boundaryInfoText}>
+                {existingPoints.length} existing boundary points
+              </Text>
+              <View style={styles.pointsList}>
+                {existingPoints.slice(0, 3).map((point, index) => (
+                  <View key={`existing-${index}`} style={styles.pointRow}>
+                    <Text style={styles.pointText}>
+                      Point {index + 1}: 
+                      {point.latitude.toFixed(6)}, {point.longitude.toFixed(6)}
+                    </Text>
+                    <TouchableOpacity 
+                      style={styles.deleteButton}
+                      onPress={() => handleDeleteExistingPoints(index)}
+                    >
+                      <Feather name="trash-2" size={16} color="#ff4444" />
+                    </TouchableOpacity>
+                  </View>
+                ))}
+                {existingPoints.length > 3 && (
+                  <TouchableOpacity 
+                    onPress={() => {
+                      setPointsToShow(existingPoints);
+                      setPointsTitle("All Existing Boundary Points");
+                      setShowAllPoints(true);
+                    }}
+                  >
+                    <Text style={styles.viewAllText}>
+                      View all {existingPoints.length} existing points
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            </View>
+          )}
+          
+          {/* Divider if both existing and new points */}
+          {existingPoints.length > 0 && boundaryPoints.length > 0 && (
+            <View style={styles.divider} />
+          )}
+          
+          {/* New Boundary Points Section */}
           <Text style={styles.boundaryInfoText}>
             {boundaryPoints.length === 0 
-              ? "No boundary points captured yet. Take photos to add points." 
-              : `${boundaryPoints.length} boundary points captured`}
+              ? "No new boundary points captured yet. Take photos to add points." 
+              : `${boundaryPoints.length} new boundary points captured`}
           </Text>
           {boundaryPoints.length > 0 && (
             <View style={styles.pointsList}>
               {boundaryPoints.slice(-3).map((point, index) => (
-                <Text key={index} style={styles.pointText}>
+                <Text key={`new-${index}`} style={styles.pointText}>
                   Point {boundaryPoints.length - 2 + index}: 
                   {point.latitude.toFixed(6)}, {point.longitude.toFixed(6)}
                 </Text>
               ))}
               {boundaryPoints.length > 3 && (
-                <Text style={styles.morePointsText}>
-                  ...and {boundaryPoints.length - 3} more points
-                </Text>
+                <TouchableOpacity 
+                  onPress={() => {
+                    setPointsToShow(boundaryPoints);
+                    setPointsTitle("All New Boundary Points");
+                    setShowAllPoints(true);
+                  }}
+                >
+                  <Text style={styles.viewAllText}>
+                    View all {boundaryPoints.length} new points
+                  </Text>
+                </TouchableOpacity>
               )}
             </View>
           )}
@@ -397,22 +510,63 @@ export default function UploadPhotos() {
           />
         </View>
 
-        {/* Buttons */}
-        <View className='w-full pb-4 px-4'>
-          <CustomButton
-            title="Save"
-            handlePress={save}
-            containerStyles="w-full mb-7"
-            isLoading={isSubmitting}
-          />
-          <CustomButton
-            title={photos.length === requiredPhotoNum ? "Complete" : `(${photos.length}) / ${requiredPhotoNum}`}
-            handlePress={submit}
-            containerStyles="w-full"
-            isLoading={isSubmitting}
-          />
+          {/* Buttons */}
+          <View className='w-full pb-4'>
+            <CustomButton
+              title="Save"
+              handlePress={save}
+              containerStyles="w-full mb-7"
+              isLoading={isSubmitting}
+            />
+            <CustomButton
+              title={photos.length === requiredPhotoNum ? "Complete" : `(${photos.length}) / ${requiredPhotoNum}`}
+              handlePress={submit}
+              containerStyles="w-full"
+              isLoading={isSubmitting}
+            />
+          </View>
         </View>
-      </View>
+      </ScrollView>
+
+      {/* Modal to show all boundary points */}
+      <Modal
+        visible={showAllPoints}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowAllPoints(false)}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>{pointsTitle}</Text>
+              <TouchableOpacity 
+                style={styles.closeButton}
+                onPress={() => setShowAllPoints(false)}
+              >
+                <Feather name="x" size={24} color="#333" />
+              </TouchableOpacity>
+            </View>
+            
+            <ScrollView style={styles.modalScrollView}>
+              {pointsToShow.map((point, index) => (
+                <View key={`modal-point-${index}`} style={styles.modalPointRow}>
+                  <Text style={styles.modalPointIndex}>{index + 1}</Text>
+                  <Text style={styles.modalPointText}>
+                    {point.latitude.toFixed(6)}, {point.longitude.toFixed(6)}
+                  </Text>
+                </View>
+              ))}
+            </ScrollView>
+            
+            <TouchableOpacity 
+              style={styles.doneButton}
+              onPress={() => setShowAllPoints(false)}
+            >
+              <Text style={styles.doneButtonText}>Done</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   )
 }
@@ -420,6 +574,10 @@ export default function UploadPhotos() {
 // No need for export at the bottom since we're using export default at the function declaration
 
 const styles = StyleSheet.create({
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: 20,
+  },
   farmInfoContainer: {
     width: '100%',
     backgroundColor: 'rgba(255, 255, 255, 0.15)',
@@ -456,18 +614,123 @@ const styles = StyleSheet.create({
     color: 'white',
     marginBottom: 8,
   },
+  existingPointsSection: {
+    marginBottom: 16,
+  },
+  sectionLabel: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: 'white',
+    marginBottom: 4,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    marginVertical: 12,
+  },
   pointsList: {
     marginTop: 8,
+  },
+  pointRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
   },
   pointText: {
     fontSize: 14,
     color: 'white',
     marginBottom: 4,
+    flex: 1,
+  },
+  deleteButton: {
+    padding: 6,
+    backgroundColor: 'rgba(255, 68, 68, 0.2)',
+    borderRadius: 4,
+    marginLeft: 8,
   },
   morePointsText: {
     fontSize: 14,
     color: 'rgba(255, 255, 255, 0.7)',
     fontStyle: 'italic',
     marginTop: 4,
+  },
+  viewAllText: {
+    fontSize: 14,
+    color: '#E9762B',
+    fontWeight: 'bold',
+    marginTop: 8,
+    textDecorationLine: 'underline',
+  },
+  modalContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    borderRadius: 12,
+    width: '100%',
+    maxHeight: '80%',
+    padding: 20,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+    paddingBottom: 8,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  closeButton: {
+    padding: 4,
+  },
+  modalScrollView: {
+    maxHeight: 400,
+  },
+  modalPointRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  modalPointIndex: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: '#E9762B',
+    color: 'white',
+    textAlign: 'center',
+    textAlignVertical: 'center',
+    fontWeight: 'bold',
+    marginRight: 12,
+    overflow: 'hidden',
+    lineHeight: 30,
+  },
+  modalPointText: {
+    fontSize: 14,
+    color: '#666',
+    flex: 1,
+  },
+  doneButton: {
+    backgroundColor: '#E9762B',
+    borderRadius: 8,
+    padding: 12,
+    alignItems: 'center',
+    marginTop: 16,
+  },
+  doneButtonText: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: 16,
   },
 });
