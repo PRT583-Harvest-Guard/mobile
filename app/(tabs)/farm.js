@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert } from 'react-native';
 import { router } from 'expo-router';
-import { createFarm, getFarms, deleteFarm, updateFarm } from '@/services/BoundaryService';
+import { createFarm, getFarms, deleteFarm, updateFarm, updateFarmSize } from '@/services/BoundaryService';
 import { CustomButton, FormField } from '@/components';
 import { Feather } from '@expo/vector-icons';
 
@@ -76,6 +76,8 @@ const FarmScreen = () => {
   };
 
   const handleEditFarm = (farm) => {
+    console.log('Editing farm:', farm);
+    console.log('Farm ID:', farm.id);
     setEditingFarm(farm);
     setNewFarm({
       name: farm.name,
@@ -90,19 +92,43 @@ const FarmScreen = () => {
       return;
     }
 
+    if (!editingFarm) {
+      Alert.alert('Error', 'No farm selected for editing');
+      return;
+    }
+
+    console.log('Editing farm object:', editingFarm);
+    
+    // Check if farm ID exists
+    if (!editingFarm.id) {
+      Alert.alert('Error', 'Farm ID is missing');
+      return;
+    }
+
     setIsLoading(true);
     try {
       console.log('Current form values:', newFarm);
       
       // Ensure we're passing the correct data types
+      const sizeValue = newFarm.size ? Number(newFarm.size) : null;
+      console.log('Size value in farm.js:', sizeValue, 'type:', typeof sizeValue);
+      
       const updateData = {
         name: newFarm.name.trim(),
-        size: newFarm.size ? Number(newFarm.size) : null,
+        size: sizeValue,
         plant_type: newFarm.plant_type ? newFarm.plant_type.trim() : null
       };
       
       console.log('Update data being sent:', updateData);
+      console.log('Farm ID being used for update:', editingFarm.id);
       
+      // First update the size separately
+      if (newFarm.size) {
+        console.log('Updating size separately first...');
+        await updateFarmSize(editingFarm.id, Number(newFarm.size));
+      }
+      
+      // Then update all fields together
       const updatedFarm = await updateFarm(editingFarm.id, updateData);
       console.log('Farm updated successfully:', updatedFarm);
       
@@ -288,4 +314,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default FarmScreen; 
+export default FarmScreen;

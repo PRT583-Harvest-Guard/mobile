@@ -100,6 +100,56 @@ export const getBoundaryData = async (farmId) => {
   }
 };
 
+export const deleteFarm = async (farmId) => {
+  if (!db) await initBoundaryTable();
+  
+  try {
+    // First, verify the farm exists
+    const existingFarm = await db.getAllAsync(
+      'SELECT * FROM farms WHERE id = ?',
+      [farmId]
+    );
+    
+    if (!existingFarm || existingFarm.length === 0) {
+      throw new Error('No farm found with the given ID');
+    }
+    
+    // Delete the farm
+    await db.execAsync('DELETE FROM farms WHERE id = ?', [farmId]);
+    
+    // Boundary points will be automatically deleted due to ON DELETE CASCADE
+    
+    return true;
+  } catch (error) {
+    console.error('Error deleting farm:', error);
+    throw new Error(`Failed to delete farm: ${error.message}`);
+  }
+};
+
+// Add a specific function just for updating size
+export const updateFarmSize = async (farmId, newSize) => {
+  if (!db) await initBoundaryTable();
+  
+  try {
+    console.log(`Updating farm ${farmId} size to ${newSize}`);
+    
+    // Convert to number explicitly
+    const sizeValue = Number(newSize);
+    
+    // Update using a direct SQL statement
+    await db.execAsync(`UPDATE farms SET size = ${sizeValue} WHERE id = ${farmId}`);
+    
+    // Verify the update
+    const updatedFarm = await db.getAllAsync('SELECT * FROM farms WHERE id = ?', [farmId]);
+    console.log('Farm after size update:', updatedFarm[0]);
+    
+    return updatedFarm[0];
+  } catch (error) {
+    console.error('Error updating farm size:', error);
+    throw new Error(`Failed to update farm size: ${error.message}`);
+  }
+};
+
 export const updateFarm = async (farmId, farmData) => {
   if (!db) {
     console.log('Database not initialized, initializing...');
@@ -109,6 +159,7 @@ export const updateFarm = async (farmId, farmData) => {
   try {
     const { name, size, plant_type } = farmData;
     console.log('Executing update query with:', { farmId, name, size, plant_type });
+    console.log('Size type:', typeof size);
     
     // First, verify the farm exists
     const existingFarm = await db.getAllAsync(
@@ -120,13 +171,28 @@ export const updateFarm = async (farmId, farmData) => {
       throw new Error('No farm found with the given ID');
     }
     
-    // Execute the update
-    await db.execAsync(
-      `UPDATE farms 
-       SET name = ?, size = ?, plant_type = ?
-       WHERE id = ?`,
-      [name, size, plant_type, farmId]
+    console.log('Farm before update:', existingFarm[0]);
+    
+    // Execute the update with explicit type conversion
+    const sizeValue = size !== null ? Number(size) : null;
+    console.log('Size value after conversion:', sizeValue, 'type:', typeof sizeValue);
+    
+    // Try a different approach using runAsync instead of execAsync
+    console.log('Attempting update with runAsync...');
+    
+    // First update just the size to isolate the issue
+    await db.runAsync(
+      'UPDATE farms SET size = ? WHERE id = ?',
+      [sizeValue, farmId]
     );
+    
+    // Then update the other fields
+    await db.runAsync(
+      'UPDATE farms SET name = ?, plant_type = ? WHERE id = ?',
+      [name, plant_type, farmId]
+    );
+    
+    console.log('Update completed with runAsync');
     
     // Fetch the updated farm with a fresh query
     const updatedFarm = await db.getAllAsync(
@@ -138,12 +204,18 @@ export const updateFarm = async (farmId, farmData) => {
       throw new Error('Failed to verify farm update');
     }
     
-    console.log('Farm before update:', existingFarm[0]);
     console.log('Farm after update:', updatedFarm[0]);
+    
+    // Verify the size value specifically
+    const sizeCheck = await db.getAllAsync(
+      'SELECT id, size, typeof(size) as size_type FROM farms WHERE id = ?',
+      [farmId]
+    );
+    console.log('Size check after update:', sizeCheck[0]);
     
     return updatedFarm[0];
   } catch (error) {
     console.error('Error in updateFarm:', error);
     throw new Error(`Failed to update farm: ${error.message}`);
   }
-}; 
+};
