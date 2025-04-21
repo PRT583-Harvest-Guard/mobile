@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert } from 'react-native';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { createFarm, getFarms, deleteFarm, updateFarm, updateFarmSize } from '@/services/BoundaryService';
 import { CustomButton, FormField } from '@/components';
 import { Feather } from '@expo/vector-icons';
@@ -15,9 +15,24 @@ const FarmScreen = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [editingFarm, setEditingFarm] = useState(null);
 
+  // Get route params
+  const params = useLocalSearchParams();
+  const { editFarmId } = params;
+
   useEffect(() => {
     loadFarms();
   }, []);
+
+  // Handle edit farm from details page
+  useEffect(() => {
+    if (editFarmId) {
+      const farmId = Number(editFarmId);
+      const farmToEdit = farms.find(farm => farm.id === farmId);
+      if (farmToEdit) {
+        handleEditFarm(farmToEdit);
+      }
+    }
+  }, [editFarmId, farms]);
 
   const loadFarms = async () => {
     try {
