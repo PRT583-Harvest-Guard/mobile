@@ -7,7 +7,7 @@ import { Feather } from '@expo/vector-icons'
 // import MapView, { Marker, Polygon } from 'react-native-maps'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import * as Location from 'expo-location'
-import { saveBoundaryData, getBoundaryData, getFarms } from '@/services/BoundaryService'
+import { saveBoundaryData, getBoundaryData, getFarms, deleteBoundaryPoints } from '@/services/BoundaryService'
 
 export default function UploadPhotos() {
   const params = useLocalSearchParams();
@@ -114,17 +114,45 @@ export default function UploadPhotos() {
           style: "destructive",
           onPress: async () => {
             try {
-              // Clear existing points in state
-              setExistingPoints([]);
+            // Clear existing points in state
+            setExistingPoints([]);
+            
+            // Clear existing points in database
+            if (farmId) {
+              console.log('Deleting boundary points for farm ID:', farmId);
               
-              // Clear existing points in database
-              if (farmId) {
-                await saveBoundaryData(farmId, []);
+              try {
+                // First verify the farm exists
+                const farms = await getFarms();
+                const farm = farms.find(f => f.id === Number(farmId));
+                
+                if (!farm) {
+                  throw new Error('Farm not found');
+                }
+                
+                console.log('Found farm:', farm);
+                
+                // Delete boundary points using the dedicated function
+                await deleteBoundaryPoints(farmId);
+                
+                // Verify deletion
+                const remainingPoints = await getBoundaryData(farmId);
+                console.log('Remaining points after deletion:', remainingPoints);
+                
+                if (remainingPoints && remainingPoints.length > 0) {
+                  console.warn('Boundary points were not fully deleted!');
+                  throw new Error('Failed to delete boundary points');
+                }
+                
                 Alert.alert(
                   "Boundary Points Deleted",
                   "All existing boundary points have been deleted. You can now create new boundary points."
                 );
+              } catch (error) {
+                console.error('Error in deletion process:', error);
+                throw error; // Re-throw to be caught by outer catch block
               }
+            }
             } catch (error) {
               console.error('Error deleting boundary points:', error);
               Alert.alert(

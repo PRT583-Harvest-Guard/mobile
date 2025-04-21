@@ -61,24 +61,147 @@ export const getFarms = async () => {
   }
 };
 
-export const saveBoundaryData = async (farmId, points) => {
-  if (!db) await initBoundaryTable();
+// New function specifically for deleting boundary points
+export const deleteBoundaryPoints = async (farmId) => {
+  console.log('deleteBoundaryPoints called with farmId:', farmId);
+  
+  if (!db) {
+    console.log('Database not initialized, initializing...');
+    await initBoundaryTable();
+  }
   
   try {
-    // Clear existing points for this farm
-    await db.execAsync('DELETE FROM boundary_points WHERE farm_id = ?', [farmId]);
+    // Ensure farmId is a number
+    const farmIdNum = Number(farmId);
+    console.log('Using farmId (as number):', farmIdNum);
     
-    if (points.length > 0) {
-      // Prepare the insert statement
-      const values = points.map(point => 
-        `(${farmId}, ${point.latitude}, ${point.longitude}, '${new Date().toISOString()}')`
-      ).join(',');
-      
-      await db.execAsync(`
-        INSERT INTO boundary_points (farm_id, latitude, longitude, timestamp)
-        VALUES ${values}
-      `);
+    // Verify the farm exists
+    const existingFarm = await db.getAllAsync(
+      'SELECT * FROM farms WHERE id = ?',
+      [farmIdNum]
+    );
+    
+    if (!existingFarm || existingFarm.length === 0) {
+      console.error('No farm found with ID:', farmIdNum);
+      throw new Error(`No farm found with ID: ${farmIdNum}`);
     }
+    
+    console.log('Found farm:', existingFarm[0]);
+    
+    // Get existing points count before deletion
+    const existingPoints = await db.getAllAsync(
+      'SELECT COUNT(*) as count FROM boundary_points WHERE farm_id = ?',
+      [farmIdNum]
+    );
+    console.log('Existing points count before deletion:', existingPoints[0]?.count || 0);
+    
+    // Try a different approach using a direct SQL DELETE statement
+    console.log('Attempting direct DELETE statement...');
+    
+    // Use runAsync instead of execAsync for the DELETE operation
+    const deleteResult = await db.runAsync(
+      'DELETE FROM boundary_points WHERE farm_id = ?',
+      [farmIdNum]
+    );
+    
+    console.log('Delete operation result:', deleteResult);
+    
+    // Verify deletion
+    const afterDeletePoints = await db.getAllAsync(
+      'SELECT COUNT(*) as count FROM boundary_points WHERE farm_id = ?',
+      [farmIdNum]
+    );
+    console.log('Points count after deletion:', afterDeletePoints[0]?.count || 0);
+    
+    if (afterDeletePoints[0]?.count > 0) {
+      console.error('Boundary points were not fully deleted!');
+      
+      // Try one more approach - direct SQL with no parameters
+      console.log('Attempting direct SQL with no parameters...');
+      await db.execAsync(`DELETE FROM boundary_points WHERE farm_id = ${farmIdNum}`);
+      
+      // Final verification
+      const finalCheck = await db.getAllAsync(
+        'SELECT COUNT(*) as count FROM boundary_points WHERE farm_id = ?',
+        [farmIdNum]
+      );
+      console.log('Final points count after second deletion attempt:', finalCheck[0]?.count || 0);
+      
+      if (finalCheck[0]?.count > 0) {
+        throw new Error('Failed to delete boundary points after multiple attempts');
+      }
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Error deleting boundary points:', error);
+    throw error;
+  }
+};
+
+export const saveBoundaryData = async (farmId, points) => {
+  console.log('saveBoundaryData called with farmId:', farmId, 'and points:', points);
+  
+  if (!db) {
+    console.log('Database not initialized, initializing...');
+    await initBoundaryTable();
+  }
+  
+  try {
+    // Ensure farmId is a number
+    const farmIdNum = Number(farmId);
+    console.log('Using farmId (as number):', farmIdNum);
+    
+    // Verify the farm exists
+    const existingFarm = await db.getAllAsync(
+      'SELECT * FROM farms WHERE id = ?',
+      [farmIdNum]
+    );
+    
+    if (!existingFarm || existingFarm.length === 0) {
+      console.error('No farm found with ID:', farmIdNum);
+      throw new Error(`No farm found with ID: ${farmIdNum}`);
+    }
+    
+    console.log('Found farm:', existingFarm[0]);
+    
+    // If points array is empty, just delete existing points
+    if (points.length === 0) {
+      console.log('No points to save, just deleting existing points');
+      return await deleteBoundaryPoints(farmIdNum);
+    }
+    
+    // Otherwise, delete existing points first
+    await deleteBoundaryPoints(farmIdNum);
+    
+    // Then insert new points
+    console.log('Inserting new boundary points...');
+    const values = points.map(point => 
+      `(${farmIdNum}, ${point.latitude}, ${point.longitude}, '${new Date().toISOString()}')`
+    ).join(',');
+    
+    console.log('Inserting new boundary points with SQL:', `INSERT INTO boundary_points (farm_id, latitude, longitude, timestamp) VALUES ${values}`);
+    
+    await db.execAsync(`
+      INSERT INTO boundary_points (farm_id, latitude, longitude, timestamp)
+      VALUES ${values}
+    `);
+    
+    // Verify insertion
+    const afterInsertPoints = await db.getAllAsync(
+      'SELECT COUNT(*) as count FROM boundary_points WHERE farm_id = ?',
+      [farmIdNum]
+    );
+    console.log('Points count after insertion:', afterInsertPoints[0]?.count || 0);
+    
+    // Final verification
+    const finalPoints = await db.getAllAsync(
+      'SELECT * FROM boundary_points WHERE farm_id = ?',
+      [farmIdNum]
+    );
+    console.log('Final boundary points:', finalPoints);
+    
+    return finalPoints;
   } catch (error) {
     console.error('Error saving boundary data:', error);
     throw error;
@@ -86,14 +209,42 @@ export const saveBoundaryData = async (farmId, points) => {
 };
 
 export const getBoundaryData = async (farmId) => {
-  if (!db) await initBoundaryTable();
+  console.log('getBoundaryData called with farmId:', farmId);
+  
+  if (!db) {
+    console.log('Database not initialized, initializing...');
+    await initBoundaryTable();
+  }
   
   try {
-    return await db.getAllAsync(`
+    // Ensure farmId is a number
+    const farmIdNum = Number(farmId);
+    console.log('Using farmId (as number):', farmIdNum);
+    
+    // Verify the farm exists
+    const existingFarm = await db.getAllAsync(
+      'SELECT * FROM farms WHERE id = ?',
+      [farmIdNum]
+    );
+    
+    if (!existingFarm || existingFarm.length === 0) {
+      console.warn('No farm found with ID:', farmIdNum);
+      // Don't throw an error, just return empty array
+      return [];
+    }
+    
+    console.log('Found farm:', existingFarm[0]);
+    
+    // Get boundary points
+    const points = await db.getAllAsync(`
       SELECT * FROM boundary_points 
       WHERE farm_id = ?
       ORDER BY timestamp
-    `, [farmId]);
+    `, [farmIdNum]);
+    
+    console.log(`Found ${points.length} boundary points for farm ID ${farmIdNum}`);
+    
+    return points;
   } catch (error) {
     console.error('Error getting boundary data:', error);
     throw error;
