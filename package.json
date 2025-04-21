@@ -29,6 +29,7 @@
     "expo-blur": "~14.0.3",
     "expo-camera": "~16.0.18",
     "expo-constants": "~17.0.8",
+    "expo-crypto": "~14.0.2",
     "expo-file-system": "~18.0.12",
     "expo-font": "~13.0.4",
     "expo-haptics": "~14.0.1",
@@ -48,6 +49,7 @@
     "react-dom": "18.3.1",
     "react-native": "^0.76.9",
     "react-native-bcrypt": "^2.4.0",
+    "react-native-chart-kit": "^6.12.0",
     "react-native-date-picker": "^5.0.12",
     "react-native-device-info": "^14.0.4",
     "react-native-gesture-handler": "~2.20.2",
@@ -58,8 +60,7 @@
     "react-native-sqlite-storage": "^6.0.1",
     "react-native-web": "~0.19.13",
     "react-native-webview": "13.12.5",
-    "tailwindcss": "^3.4.17",
-    "expo-crypto": "~14.0.2"
+    "tailwindcss": "^3.4.17"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
