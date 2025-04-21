@@ -5,7 +5,7 @@
 import { Platform } from 'react-native';
 import * as FileSystem from 'expo-file-system';
 import * as SQLite from 'expo-sqlite';
-import bcrypt from 'react-native-bcrypt';
+import bcrypt from '@/utils/bcryptSetup';
 import * as Crypto from 'expo-crypto';
 
 // Initialize database
@@ -170,4 +170,4 @@ class AuthService {
   }
 }
 
-export default AuthService; 
+export default AuthService;
