@@ -3,7 +3,8 @@ import { View, Text, Alert, ScrollView, KeyboardAvoidingView, Platform } from "r
 import { Logo, FormField, CustomButton } from "@/components";
 import { Link, router } from 'expo-router';
 import { SafeAreaView } from "react-native-safe-area-context";
-
+import AuthService from "@/services/AuthService";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const SignIn = () => {
   const [form, setForm] = useState({
@@ -18,9 +19,22 @@ const SignIn = () => {
       Alert.alert("Error", "Please fill in all the fields!");
       return;
     }
+
     setIsSubmitting(true);
     try {
-      Alert.alert("Success", "Sign in successfully")
+      // Convert mobile to username for authentication
+      const credentials = {
+        username: form.mobile,
+        password: form.password
+      };
+
+      const { user, sessionToken } = await AuthService.signIn(credentials);
+      
+      // Store session token and user data
+      await AsyncStorage.setItem('sessionToken', sessionToken);
+      await AsyncStorage.setItem('user', JSON.stringify(user));
+      
+      Alert.alert("Success", "Sign in successfully");
       router.replace("/(tabs)/home");
     } catch (error) {
       Alert.alert("Error", error.message);
@@ -84,6 +98,6 @@ const SignIn = () => {
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
-}
+};
 
 export default SignIn;

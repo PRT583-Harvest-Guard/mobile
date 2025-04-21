@@ -17,7 +17,14 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
+      ],
+      "package": "com.howard.harvestguard"
     },
     "web": {
       "bundler": "metro",
@@ -48,7 +55,21 @@
         {
           "photosPermission": "The app accesses your photos to let you change your avatar."
         }
-      ]
+      ],
+      [
+        "expo-sqlite",
+        {
+          "android": {
+            "enableFTS": true,
+            "useSQLCipher": false
+          },
+          "ios": {
+            "enableFTS": true,
+            "useSQLCipher": false
+          }
+        }
+      ],
+      "expo-asset"
     ],
     "experiments": {
       "typedRoutes": true
