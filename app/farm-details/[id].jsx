@@ -4,7 +4,7 @@ import { useLocalSearchParams, router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { getFarms, getBoundaryData } from '@/services/BoundaryService';
-import { CustomButton, PageHeader } from '@/components';
+import { CustomButton, PageHeader, BoundaryMap } from '@/components';
 
 const FarmDetailsScreen = () => {
   const { id } = useLocalSearchParams();
@@ -34,7 +34,22 @@ const FarmDetailsScreen = () => {
       
       // Load boundary points
       const points = await getBoundaryData(farmData.id);
-      setBoundaryPoints(points);
+      
+      // Validate boundary points
+      const validPoints = points.filter(point => 
+        point && 
+        typeof point.latitude === 'number' && !isNaN(point.latitude) && 
+        typeof point.longitude === 'number' && !isNaN(point.longitude)
+      );
+      
+      console.log('All boundary points:', points);
+      console.log('Valid boundary points:', validPoints);
+      
+      if (validPoints.length !== points.length) {
+        console.warn(`Found ${points.length - validPoints.length} invalid boundary points`);
+      }
+      
+      setBoundaryPoints(validPoints);
     } catch (error) {
       console.error('Error loading farm details:', error);
       Alert.alert('Error', 'Failed to load farm details');
@@ -117,7 +132,50 @@ const FarmDetailsScreen = () => {
             </Text>
           </View>
         </View>
+        
+        {/* Map Action Buttons */}
+        <View style={styles.buttonContainer}>
+          <CustomButton
+            title="View Farm on Map"
+            handlePress={() => {
+              router.push(`/farm-details/map-view?id=${farm.id}`);
+            }}
+            containerStyles={styles.actionButton}
+          />
+          
+          <CustomButton
+            title="Add Boundary Points"
+            handlePress={() => {
+              router.push({
+                pathname: "/(auth)/upload-photos",
+                params: { farmId: farm.id }
+              });
+            }}
+            containerStyles={styles.actionButton}
+            theme="secondary"
+          />
+        </View>
 
+        {/* Boundary Map */}
+        <View style={styles.card}>
+          <Text style={styles.sectionTitle}>Farm Boundary</Text>
+          {boundaryPoints.length > 0 ? (
+            <>
+              <BoundaryMap 
+                points={boundaryPoints}
+                style={styles.boundaryMap}
+                showPoints={true}
+              />
+              <Text style={styles.boundaryInfoText}>
+                {boundaryPoints.length} boundary points define this farm's perimeter
+              </Text>
+            </>
+          ) : (
+            <Text style={styles.emptyText}>No boundary points defined</Text>
+          )}
+        </View>
+
+        {/* Boundary Points List */}
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>Boundary Points</Text>
           {boundaryPoints.length > 0 ? (
@@ -134,29 +192,6 @@ const FarmDetailsScreen = () => {
           ) : (
             <Text style={styles.emptyText}>No boundary points defined</Text>
           )}
-        </View>
-
-        <View style={styles.buttonContainer}>
-          <CustomButton
-            title="View on Map"
-            handlePress={() => {
-              // This would navigate to a map view
-              Alert.alert('Map View', 'Map view not implemented yet');
-            }}
-            containerStyles={styles.button}
-          />
-          
-          <CustomButton
-            title="Add Boundary Points"
-            handlePress={() => {
-              router.push({
-                pathname: "/(auth)/upload-photos",
-                params: { farmId: farm.id }
-              });
-            }}
-            containerStyles={styles.button}
-            theme="secondary"
-          />
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -268,6 +303,16 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
   },
+  boundaryMap: {
+    width: '100%',
+    marginBottom: 12,
+  },
+  boundaryInfoText: {
+    fontSize: 14,
+    color: '#666',
+    fontStyle: 'italic',
+    textAlign: 'center',
+  },
   emptyText: {
     fontSize: 16,
     color: '#999',
@@ -276,10 +321,9 @@ const styles = StyleSheet.create({
     marginVertical: 16,
   },
   buttonContainer: {
-    marginTop: 16,
-    marginBottom: 32,
+    marginBottom: 16,
   },
-  button: {
+  actionButton: {
     marginBottom: 12,
   },
 });
