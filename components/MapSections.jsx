@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Dimensions } from 'react-native';
-import { FontAwesome } from '@expo/vector-icons';
-import Svg, { Polygon, Line, Circle, Rect } from 'react-native-svg';
+import Svg, { Polygon, Circle } from 'react-native-svg';
 
 const MapSections = ({ points = [] }) => {
   const [normalizedPoints, setNormalizedPoints] = useState([]);
@@ -10,6 +9,19 @@ const MapSections = ({ points = [] }) => {
     width: Dimensions.get('window').width - 64,
     height: 200
   });
+
+  const sectionColors = [
+    'rgba(233, 118, 43, 0.5)',
+    'rgba(76, 175, 80, 0.5)',
+    'rgba(33, 150, 243, 0.5)',
+    'rgba(156, 39, 176, 0.5)',
+    'rgba(255, 235, 59, 0.5)',
+    'rgba(0, 188, 212, 0.5)',
+    'rgba(255, 87, 34, 0.5)',
+    'rgba(121, 85, 72, 0.5)',
+    'rgba(63, 81, 181, 0.5)',
+    'rgba(139, 195, 74, 0.5)'
+  ];
 
   useEffect(() => {
     if (points.length < 3) return;
@@ -68,18 +80,30 @@ const MapSections = ({ points = [] }) => {
     return { normalized, width: mapWidth, height: mapHeight };
   };
 
-  const createPolygonPoints = (points) => {
-    return points.map(p => `${p.x},${p.y}`).join(' ');
+  const sortPointsClockwise = (points, center) => {
+    return [...points].sort((a, b) => {
+      const angleA = Math.atan2(a.y - center.y, a.x - center.x);
+      const angleB = Math.atan2(b.y - center.y, b.x - center.x);
+      return angleA - angleB;
+    });
   };
 
-  if (points.length < 3) {
-    return (
-      <View style={styles.errorContainer}>
-        <FontAwesome name="exclamation-circle" size={48} color="#ff4444" />
-        <Text style={styles.errorText}>At least 3 boundary points are required</Text>
-      </View>
-    );
-  }
+  const createFanSections = () => {
+    if (normalizedPoints.length < 3) return [];
+
+    const sorted = sortPointsClockwise(normalizedPoints, centerPoint);
+    const sections = [];
+
+    for (let i = 0; i < sorted.length; i++) {
+      const p1 = sorted[i];
+      const p2 = sorted[(i + 1) % sorted.length]; // wrap around
+      sections.push(`${centerPoint.x},${centerPoint.y} ${p1.x},${p1.y} ${p2.x},${p2.y}`);
+    }
+
+    return sections;
+  };
+
+  const sectionPolygons = createFanSections();
 
   return (
     <View style={styles.container}>
@@ -87,79 +111,25 @@ const MapSections = ({ points = [] }) => {
 
       <View style={[styles.mapContainer, { width: mapDimensions.width, height: mapDimensions.height }]}>
         <Svg width="100%" height="100%" viewBox={`0 0 ${mapDimensions.width} ${mapDimensions.height}`}>
-          {/* Full land polygon */}
-          <Polygon
-            points={createPolygonPoints(normalizedPoints)}
-            fill="rgba(100, 100, 100, 0.15)"
-            stroke="#000"
-            strokeWidth="1"
-          />
+          {sectionPolygons.map((points, index) => (
+            <Polygon
+              key={`section-${index}`}
+              points={points}
+              fill={sectionColors[index % sectionColors.length]}
+              stroke="#444"
+              strokeWidth="0.5"
+            />
+          ))}
 
-          {/* Quadrant overlays */}
-          <Rect
-            x="0"
-            y="0"
-            width={centerPoint.x}
-            height={centerPoint.y}
-            fill="rgba(233, 118, 43, 0.2)"
-          />
-          <Rect
-            x={centerPoint.x}
-            y="0"
-            width={mapDimensions.width - centerPoint.x}
-            height={centerPoint.y}
-            fill="rgba(76, 175, 80, 0.2)"
-          />
-          <Rect
-            x="0"
-            y={centerPoint.y}
-            width={centerPoint.x}
-            height={mapDimensions.height - centerPoint.y}
-            fill="rgba(33, 150, 243, 0.2)"
-          />
-          <Rect
-            x={centerPoint.x}
-            y={centerPoint.y}
-            width={mapDimensions.width - centerPoint.x}
-            height={mapDimensions.height - centerPoint.y}
-            fill="rgba(156, 39, 176, 0.2)"
-          />
-
-          {/* Cross lines */}
-          <Line
-            x1="0"
-            y1={centerPoint.y}
-            x2={mapDimensions.width}
-            y2={centerPoint.y}
-            stroke="rgba(0,0,0,0.5)"
-            strokeWidth="1"
-          />
-          <Line
-            x1={centerPoint.x}
-            y1="0"
-            x2={centerPoint.x}
-            y2={mapDimensions.height}
-            stroke="rgba(0,0,0,0.5)"
-            strokeWidth="1"
-          />
-
-          {/* Center dot */}
           <Circle cx={centerPoint.x} cy={centerPoint.y} r="4" fill="#E9762B" />
         </Svg>
       </View>
 
-      {/* Legend */}
       <View style={styles.sectionsContainer}>
-        {[
-          { name: 'Section 1', color: 'rgba(233, 118, 43, 0.2)', desc: 'Top-Left' },
-          { name: 'Section 2', color: 'rgba(76, 175, 80, 0.2)', desc: 'Top-Right' },
-          { name: 'Section 3', color: 'rgba(33, 150, 243, 0.2)', desc: 'Bottom-Left' },
-          { name: 'Section 4', color: 'rgba(156, 39, 176, 0.2)', desc: 'Bottom-Right' },
-        ].map((section, i) => (
+        {sectionPolygons.map((_, i) => (
           <View key={i} style={styles.sectionContainer}>
-            <View style={[styles.sectionColorBox, { backgroundColor: section.color }]} />
-            <Text style={styles.sectionLabel}>{section.name}</Text>
-            <Text style={styles.sectionText}>{section.desc} Quadrant</Text>
+            <View style={[styles.sectionColorBox, { backgroundColor: sectionColors[i % sectionColors.length] }]} />
+            <Text style={styles.sectionLabel}>Section {i + 1}</Text>
           </View>
         ))}
       </View>
@@ -170,57 +140,42 @@ const MapSections = ({ points = [] }) => {
 const styles = StyleSheet.create({
   container: {
     padding: 16,
-    backgroundColor: '#f9f9f9',
+    backgroundColor: '#fff',
     borderRadius: 12,
     marginBottom: 16,
+    elevation: 2,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
+    marginBottom: 12,
     color: '#333',
-    marginBottom: 16,
   },
   mapContainer: {
-    backgroundColor: '#f0f0f0',
     borderRadius: 8,
-    marginBottom: 16,
+    backgroundColor: '#eee',
     alignSelf: 'center',
     overflow: 'hidden',
+    marginBottom: 16,
   },
   sectionsContainer: {
-    marginTop: 8,
+    marginTop: 4,
   },
   sectionContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   sectionColorBox: {
     width: 16,
     height: 16,
-    borderRadius: 4,
     marginRight: 8,
+    borderRadius: 4,
   },
   sectionLabel: {
     fontSize: 14,
-    fontWeight: 'bold',
     color: '#333',
-    marginRight: 8,
-  },
-  sectionText: {
-    fontSize: 12,
-    color: '#666',
-  },
-  errorContainer: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  errorText: {
-    fontSize: 16,
-    color: '#ff4444',
-    marginTop: 10,
-    textAlign: 'center',
+    fontWeight: 'bold',
   },
 });
 
