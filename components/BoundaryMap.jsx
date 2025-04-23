@@ -1,18 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { View, StyleSheet, Text } from 'react-native';
 import MapView, { Polygon, Marker } from 'react-native-maps';
 
 /**
  * BoundaryMap component displays a zoomable map with boundary points and polygons.
- * 
- * @param {Object} props
- * @param {Array} props.points - Array of boundary points with latitude and longitude
- * @param {Object} props.style - Additional styles for the container
- * @param {boolean} props.showPoints - Whether to show the boundary points as markers
- * @param {string} props.lineColor - Color of the boundary line
- * @param {string} props.pointColor - Color of the boundary points
- * @param {number} props.lineWidth - Width of the boundary line
- * @param {number} props.pointRadius - Radius of the boundary points
  */
 const BoundaryMap = ({
   points = [],
@@ -23,21 +14,13 @@ const BoundaryMap = ({
   lineWidth = 2,
   pointRadius = 4
 }) => {
-  const [region, setRegion] = useState(null);
+  const mapRef = useRef(null);
 
   useEffect(() => {
-    if (points.length > 0) {
-      const minLat = Math.min(...points.map(p => p.latitude));
-      const maxLat = Math.max(...points.map(p => p.latitude));
-      const minLng = Math.min(...points.map(p => p.longitude));
-      const maxLng = Math.max(...points.map(p => p.longitude));
-
-      // Calculate region to fit all points with a slight margin
-      setRegion({
-        latitude: (maxLat + minLat) / 2,
-        longitude: (maxLng + minLng) / 2,
-        latitudeDelta: maxLat - minLat + 0.1,
-        longitudeDelta: maxLng - minLng + 0.1
+    if (points.length >= 2 && mapRef.current) {
+      mapRef.current.fitToCoordinates(points, {
+        edgePadding: { top: 50, right: 50, bottom: 50, left: 50 },
+        animated: true,
       });
     }
   }, [points]);
@@ -53,8 +36,8 @@ const BoundaryMap = ({
   return (
     <View style={[styles.container, style]}>
       <MapView
+        ref={mapRef}
         style={styles.map}
-        region={region}
         zoomEnabled
         scrollEnabled
         pitchEnabled
