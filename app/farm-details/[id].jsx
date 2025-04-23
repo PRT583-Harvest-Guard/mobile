@@ -113,7 +113,19 @@ const FarmDetailsScreen = () => {
         </View>
 
         <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Farm Boundary</Text>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Farm Boundary</Text>
+            <TouchableOpacity
+              style={styles.boundaryButton}
+              onPress={() => router.push({
+                pathname: "/(auth)/upload-photos",
+                params: { farmId: farm.id }
+              })}
+            >
+              <Feather name="edit-2" size={14} color="#E9762B" />
+              <Text style={styles.boundaryButtonText}>Boundary</Text>
+            </TouchableOpacity>
+          </View>
           {boundiPoints.length > 0 ? (
             <>
               <BoundaryMap
@@ -156,6 +168,44 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 2,
   },
+  farmName: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  editButton: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    padding: 8,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  boundaryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(233, 118, 43, 0.1)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(233, 118, 43, 0.3)',
+  },
+  boundaryButtonText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#E9762B',
+    marginLeft: 4,
+  },
   boundaryMap: {
     width: '100%',
     height: 200,
@@ -165,6 +215,7 @@ const styles = StyleSheet.create({
     color: '#666',
     fontStyle: 'italic',
     textAlign: 'center',
+    marginTop: 8,
   },
   emptyText: {
     fontSize: 16,
@@ -173,11 +224,30 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginVertical: 16,
   },
-  sectionTitle: {
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: '#666',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  errorText: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 12,
+    color: '#ff4444',
+    marginVertical: 16,
+  },
+  button: {
+    marginTop: 16,
+    width: 200,
   },
 });
 
