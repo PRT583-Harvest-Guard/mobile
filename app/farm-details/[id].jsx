@@ -13,11 +13,13 @@ const FarmDetailsScreen = () => {
   const [loading, setLoading] = useState(true);
 
 
-  const boundiPoints = [
-    { latitude: 37.773972, longitude: -122.431297 }, // Point 1 (North-West)
-    { latitude: 37.773972, longitude: -122.426297 }, // Point 2 (North-East)
-    { latitude: 37.768972, longitude: -122.426297 }, // Point 3 (South-East)
-    { latitude: 37.768972, longitude: -122.431297 }, // Point 4 (South-West)
+  // Sample boundary points in case the API doesn't return any
+  const sampleBoundaryPoints = [
+    { latitude: -33.8731, longitude: 151.2111 }, // Point A
+    { latitude: -33.8720, longitude: 151.2135 }, // Point B
+    { latitude: -33.8735, longitude: 151.2160 }, // Point C
+    { latitude: -33.8750, longitude: 151.2140 }, // Point D
+    { latitude: -33.8742, longitude: 151.2115 }  // Point E
   ];
   useEffect(() => {
     loadFarmDetails();
@@ -126,15 +128,15 @@ const FarmDetailsScreen = () => {
               <Text style={styles.boundaryButtonText}>Boundary</Text>
             </TouchableOpacity>
           </View>
-          {boundiPoints.length > 0 ? (
+          {sampleBoundaryPoints .length > 0 ? (
             <>
               <BoundaryMap
-                points={boundiPoints}
+                points={sampleBoundaryPoints }
                 style={styles.boundaryMap}
                 showPoints={true}
               />
               <Text style={styles.boundaryInfoText}>
-                {boundiPoints.length} boundary points define this farm's perimeter
+                {sampleBoundaryPoints.length} boundary points define this farm's perimeter
               </Text>
             </>
           ) : (
@@ -142,7 +144,7 @@ const FarmDetailsScreen = () => {
           )}
         </View>
         <View style={styles.card}>
-        <MapSections points={boundiPoints} />
+        <MapSections points={sampleBoundaryPoints.length > 0 ? sampleBoundaryPoints : sampleBoundaryPoints} />
         </View>
       </ScrollView>
     </SafeAreaView>
