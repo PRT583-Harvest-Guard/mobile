@@ -3,6 +3,7 @@
     "name": "Harvest Guard",
     "slug": "harvest-guard",
     "version": "1.0.0",
+    "assetBundlePatterns": ["**/*"],
     "orientation": "portrait",
     "icon": "./assets/images/icon.svg",
     "scheme": "harvest-guard",
@@ -81,6 +82,9 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "ignoreWarnings": [
+      "VirtualizedLists should never be nested inside plain ScrollViews"
+    ]
   }
 }

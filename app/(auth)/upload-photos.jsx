@@ -456,27 +456,32 @@ export default function UploadPhotos() {
           {/* Existing Boundary Points Section */}
           {existingPoints.length > 0 && (
             <View style={styles.existingPointsSection}>
-              <Text style={styles.sectionLabel}>Existing Points:</Text>
-              <Text style={styles.boundaryInfoText}>
-                {existingPoints.length} existing boundary points
-              </Text>
+              <View style={styles.sectionHeaderRow}>
+                <Text style={styles.sectionLabel}>Existing Points:</Text>
+                <Text style={styles.countBadge}>{existingPoints.length}</Text>
+                <TouchableOpacity 
+                  style={styles.deleteAllButton}
+                  onPress={() => handleDeleteExistingPoints(0)}
+                >
+                  <Feather name="trash-2" size={16} color="#ff4444" />
+                  <Text style={styles.deleteAllText}>Delete All</Text>
+                </TouchableOpacity>
+              </View>
+              
               <View style={styles.pointsList}>
-                {existingPoints.slice(0, 3).map((point, index) => (
+                {existingPoints.slice(0, 5).map((point, index) => (
                   <View key={`existing-${index}`} style={styles.pointRow}>
+                    <View style={styles.pointIndexBadge}>
+                      <Text style={styles.pointIndexText}>{index + 1}</Text>
+                    </View>
                     <Text style={styles.pointText}>
-                      Point {index + 1}: 
                       {point.latitude.toFixed(6)}, {point.longitude.toFixed(6)}
                     </Text>
-                    <TouchableOpacity 
-                      style={styles.deleteButton}
-                      onPress={() => handleDeleteExistingPoints(index)}
-                    >
-                      <Feather name="trash-2" size={16} color="#ff4444" />
-                    </TouchableOpacity>
                   </View>
                 ))}
-                {existingPoints.length > 3 && (
+                {existingPoints.length > 5 && (
                   <TouchableOpacity 
+                    style={styles.viewAllButton}
                     onPress={() => {
                       setPointsToShow(existingPoints);
                       setPointsTitle("All Existing Boundary Points");
@@ -486,6 +491,7 @@ export default function UploadPhotos() {
                     <Text style={styles.viewAllText}>
                       View all {existingPoints.length} existing points
                     </Text>
+                    <Feather name="chevron-right" size={16} color="#E9762B" />
                   </TouchableOpacity>
                 )}
               </View>
@@ -498,21 +504,32 @@ export default function UploadPhotos() {
           )}
           
           {/* New Boundary Points Section */}
-          <Text style={styles.boundaryInfoText}>
-            {boundaryPoints.length === 0 
-              ? "No new boundary points captured yet. Take photos to add points." 
-              : `${boundaryPoints.length} new boundary points captured`}
-          </Text>
-          {boundaryPoints.length > 0 && (
+          <View style={styles.sectionHeaderRow}>
+            <Text style={styles.sectionLabel}>New Points:</Text>
+            <Text style={styles.countBadge}>{boundaryPoints.length}</Text>
+          </View>
+          
+          {boundaryPoints.length === 0 ? (
+            <Text style={styles.emptyPointsText}>
+              No new boundary points captured yet. Take photos to add points.
+            </Text>
+          ) : (
             <View style={styles.pointsList}>
-              {boundaryPoints.slice(-3).map((point, index) => (
-                <Text key={`new-${index}`} style={styles.pointText}>
-                  Point {boundaryPoints.length - 2 + index}: 
-                  {point.latitude.toFixed(6)}, {point.longitude.toFixed(6)}
-                </Text>
+              {boundaryPoints.slice(-5).map((point, index) => (
+                <View key={`new-${index}`} style={styles.pointRow}>
+                  <View style={styles.pointIndexBadge}>
+                    <Text style={styles.pointIndexText}>
+                      {boundaryPoints.length - 4 + index}
+                    </Text>
+                  </View>
+                  <Text style={styles.pointText}>
+                    {point.latitude.toFixed(6)}, {point.longitude.toFixed(6)}
+                  </Text>
+                </View>
               ))}
-              {boundaryPoints.length > 3 && (
+              {boundaryPoints.length > 5 && (
                 <TouchableOpacity 
+                  style={styles.viewAllButton}
                   onPress={() => {
                     setPointsToShow(boundaryPoints);
                     setPointsTitle("All New Boundary Points");
@@ -522,6 +539,7 @@ export default function UploadPhotos() {
                   <Text style={styles.viewAllText}>
                     View all {boundaryPoints.length} new points
                   </Text>
+                  <Feather name="chevron-right" size={16} color="#E9762B" />
                 </TouchableOpacity>
               )}
             </View>
@@ -635,7 +653,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     color: 'white',
-    marginBottom: 8,
+    marginBottom: 12,
   },
   boundaryInfoText: {
     fontSize: 16,
@@ -645,11 +663,42 @@ const styles = StyleSheet.create({
   existingPointsSection: {
     marginBottom: 16,
   },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
   sectionLabel: {
     fontSize: 16,
     fontWeight: 'bold',
     color: 'white',
-    marginBottom: 4,
+    marginRight: 8,
+  },
+  countBadge: {
+    backgroundColor: '#E9762B',
+    color: 'white',
+    fontSize: 14,
+    fontWeight: 'bold',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 12,
+    overflow: 'hidden',
+    marginRight: 8,
+  },
+  deleteAllButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 68, 68, 0.2)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+    marginLeft: 'auto',
+  },
+  deleteAllText: {
+    color: '#ff4444',
+    fontSize: 12,
+    fontWeight: 'bold',
+    marginLeft: 4,
   },
   divider: {
     height: 1,
@@ -661,34 +710,53 @@ const styles = StyleSheet.create({
   },
   pointRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 4,
+    paddingVertical: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  pointIndexBadge: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#E9762B',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
+  },
+  pointIndexText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: 'bold',
   },
   pointText: {
     fontSize: 14,
     color: 'white',
-    marginBottom: 4,
     flex: 1,
   },
-  deleteButton: {
-    padding: 6,
-    backgroundColor: 'rgba(255, 68, 68, 0.2)',
-    borderRadius: 4,
-    marginLeft: 8,
-  },
-  morePointsText: {
+  emptyPointsText: {
     fontSize: 14,
     color: 'rgba(255, 255, 255, 0.7)',
     fontStyle: 'italic',
-    marginTop: 4,
+    marginTop: 8,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  viewAllButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(233, 118, 43, 0.2)',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    marginTop: 12,
   },
   viewAllText: {
     fontSize: 14,
     color: '#E9762B',
     fontWeight: 'bold',
-    marginTop: 8,
-    textDecorationLine: 'underline',
+    marginRight: 4,
   },
   modalContainer: {
     flex: 1,

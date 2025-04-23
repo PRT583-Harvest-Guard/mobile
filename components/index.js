@@ -9,3 +9,4 @@ export { default as PageHeader } from './PageHeader';
 export { default as DropDownField } from './DropDownField';
 export { default as Completed } from './Completed';
 export { default as BoundaryMap } from './BoundaryMap';
+export { default as MapSections } from './MapSections';

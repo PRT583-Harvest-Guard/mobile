@@ -4,7 +4,7 @@ import { useLocalSearchParams, router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { getFarms, getBoundaryData } from '@/services/BoundaryService';
-import { CustomButton, PageHeader, BoundaryMap } from '@/components';
+import { CustomButton, PageHeader, BoundaryMap, MapSections } from '@/components';
 
 const FarmDetailsScreen = () => {
   const { id } = useLocalSearchParams();
@@ -12,6 +12,13 @@ const FarmDetailsScreen = () => {
   const [boundaryPoints, setBoundaryPoints] = useState([]);
   const [loading, setLoading] = useState(true);
 
+
+  const boundiPoints = [
+    { latitude: 37.773972, longitude: -122.431297 }, // Point 1 (North-West)
+    { latitude: 37.773972, longitude: -122.426297 }, // Point 2 (North-East)
+    { latitude: 37.768972, longitude: -122.426297 }, // Point 3 (South-East)
+    { latitude: 37.768972, longitude: -122.431297 }, // Point 4 (South-West)
+  ];
   useEffect(() => {
     loadFarmDetails();
   }, [id]);
@@ -59,8 +66,6 @@ const FarmDetailsScreen = () => {
   };
 
   const handleEditFarm = () => {
-    // Navigate back to the farm screen with edit mode
-    // This is a placeholder - you would need to implement the actual navigation
     router.push({
       pathname: '/(tabs)/farm',
       params: { editFarmId: farm.id }
@@ -101,97 +106,31 @@ const FarmDetailsScreen = () => {
       <PageHeader title="Farm Details" />
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.card}>
-          <View style={styles.header}>
-            <Text style={styles.farmName}>{farm.name}</Text>
-            <TouchableOpacity onPress={handleEditFarm} style={styles.editButton}>
-              <Feather name="edit" size={24} color="#E9762B" />
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.detailRow}>
-            <Feather name="map-pin" size={20} color="#666" />
-            <Text style={styles.detailLabel}>Size:</Text>
-            <Text style={styles.detailValue}>
-              {farm.size ? `${farm.size} acres` : 'Not specified'}
-            </Text>
-          </View>
-
-          <View style={styles.detailRow}>
-            <Feather name="grid" size={20} color="#666" />
-            <Text style={styles.detailLabel}>Plant Type:</Text>
-            <Text style={styles.detailValue}>
-              {farm.plant_type || 'Not specified'}
-            </Text>
-          </View>
-
-          <View style={styles.detailRow}>
-            <Feather name="calendar" size={20} color="#666" />
-            <Text style={styles.detailLabel}>Created:</Text>
-            <Text style={styles.detailValue}>
-              {new Date(farm.created_at).toLocaleDateString()}
-            </Text>
-          </View>
-        </View>
-        
-        {/* Map Action Buttons */}
-        <View style={styles.buttonContainer}>
-          <CustomButton
-            title="View Farm on Map"
-            handlePress={() => {
-              router.push(`/farm-details/map-view?id=${farm.id}`);
-            }}
-            containerStyles={styles.actionButton}
-          />
-          
-          <CustomButton
-            title="Add Boundary Points"
-            handlePress={() => {
-              router.push({
-                pathname: "/(auth)/upload-photos",
-                params: { farmId: farm.id }
-              });
-            }}
-            containerStyles={styles.actionButton}
-            theme="secondary"
-          />
+          <Text style={styles.farmName}>{farm.name}</Text>
+          <TouchableOpacity onPress={handleEditFarm} style={styles.editButton}>
+            <Feather name="edit" size={24} color="#E9762B" />
+          </TouchableOpacity>
         </View>
 
-        {/* Boundary Map */}
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>Farm Boundary</Text>
-          {boundaryPoints.length > 0 ? (
+          {boundiPoints.length > 0 ? (
             <>
-              <BoundaryMap 
-                points={boundaryPoints}
+              <BoundaryMap
+                points={boundiPoints}
                 style={styles.boundaryMap}
                 showPoints={true}
               />
               <Text style={styles.boundaryInfoText}>
-                {boundaryPoints.length} boundary points define this farm's perimeter
+                {boundiPoints.length} boundary points define this farm's perimeter
               </Text>
             </>
           ) : (
             <Text style={styles.emptyText}>No boundary points defined</Text>
           )}
         </View>
-
-        {/* Boundary Points List */}
         <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Boundary Points</Text>
-          {boundaryPoints.length > 0 ? (
-            <View style={styles.boundaryContainer}>
-              {boundaryPoints.map((point, index) => (
-                <View key={index} style={styles.boundaryPoint}>
-                  <Text style={styles.pointIndex}>{index + 1}</Text>
-                  <Text style={styles.pointCoords}>
-                    {point.latitude.toFixed(6)}, {point.longitude.toFixed(6)}
-                  </Text>
-                </View>
-              ))}
-            </View>
-          ) : (
-            <Text style={styles.emptyText}>No boundary points defined</Text>
-          )}
+        <MapSections points={boundiPoints} />
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -206,27 +145,6 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: 16,
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: '#666',
-  },
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  errorText: {
-    fontSize: 18,
-    color: '#ff4444',
-    marginVertical: 16,
-  },
   card: {
     backgroundColor: '#f9f9f9',
     borderRadius: 12,
@@ -238,74 +156,9 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 2,
   },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-    paddingBottom: 8,
-  },
-  farmName: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  editButton: {
-    padding: 8,
-  },
-  detailRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  detailLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#666',
-    marginLeft: 8,
-    width: 100,
-  },
-  detailValue: {
-    fontSize: 16,
-    color: '#333',
-    flex: 1,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 12,
-  },
-  boundaryContainer: {
-    marginTop: 8,
-  },
-  boundaryPoint: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-  },
-  pointIndex: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: '#E9762B',
-    color: 'white',
-    textAlign: 'center',
-    textAlignVertical: 'center',
-    fontWeight: 'bold',
-    marginRight: 12,
-  },
-  pointCoords: {
-    fontSize: 14,
-    color: '#666',
-  },
   boundaryMap: {
     width: '100%',
-    marginBottom: 12,
+    height: 200,
   },
   boundaryInfoText: {
     fontSize: 14,
@@ -320,10 +173,10 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginVertical: 16,
   },
-  buttonContainer: {
-    marginBottom: 16,
-  },
-  actionButton: {
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
     marginBottom: 12,
   },
 });
