@@ -1,7 +1,7 @@
 import { CustomButton, Logo, PhotoCapture, PageHeader } from '@/components'
 import { router, useLocalSearchParams } from 'expo-router'
 import React, { useState } from 'react'
-import { Alert, View, StyleSheet, Text, TouchableOpacity, ScrollView, Modal } from 'react-native'
+import { Alert, View, StyleSheet, Text, TouchableOpacity, FlatList, Modal } from 'react-native'
 import { Feather } from '@expo/vector-icons'
 // Temporarily remove map import until we resolve the compatibility issue
 // import MapView, { Marker, Polygon } from 'react-native-maps'
@@ -423,156 +423,167 @@ export default function UploadPhotos() {
         showBackButton={true}
         handleBackPress={handleBack}
       />
-      <ScrollView 
+      <FlatList
         className='w-full flex-1'
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={true}
-      >
-        <View className='w-full flex-col items-center px-4 pt-4'>
-        {/* Logo */}
-        <View className="w-full items-center justify-center mb-4">
-          <Logo containerStyles="w-24 h-24" />
-        </View>
-        
-        {/* Farm Info */}
-        {farmData && (
-          <View style={styles.farmInfoContainer}>
-            <Text style={styles.farmInfoTitle}>{farmData.name}</Text>
-            <Text style={styles.farmInfoText}>
-              Size: {farmData.size ? `${farmData.size} acres` : 'Not specified'}
-            </Text>
-            {farmData.plant_type && (
-              <Text style={styles.farmInfoText}>
-                Plants: {farmData.plant_type}
-              </Text>
-            )}
-          </View>
-        )}
-        
-        {/* Boundary Points Info */}
-        <View style={styles.boundaryInfoContainer}>
-          <Text style={styles.boundaryInfoTitle}>Boundary Points</Text>
-          
-          {/* Existing Boundary Points Section */}
-          {existingPoints.length > 0 && (
-            <View style={styles.existingPointsSection}>
-              <View style={styles.sectionHeaderRow}>
-                <Text style={styles.sectionLabel}>Existing Points:</Text>
-                <Text style={styles.countBadge}>{existingPoints.length}</Text>
-                <TouchableOpacity 
-                  style={styles.deleteAllButton}
-                  onPress={() => handleDeleteExistingPoints(0)}
-                >
-                  <Feather name="trash-2" size={16} color="#ff4444" />
-                  <Text style={styles.deleteAllText}>Delete All</Text>
-                </TouchableOpacity>
-              </View>
-              
-              <View style={styles.pointsList}>
-                {existingPoints.slice(0, 5).map((point, index) => (
-                  <View key={`existing-${index}`} style={styles.pointRow}>
-                    <View style={styles.pointIndexBadge}>
-                      <Text style={styles.pointIndexText}>{index + 1}</Text>
-                    </View>
-                    <Text style={styles.pointText}>
-                      {point.latitude.toFixed(6)}, {point.longitude.toFixed(6)}
-                    </Text>
-                  </View>
-                ))}
-                {existingPoints.length > 5 && (
-                  <TouchableOpacity 
-                    style={styles.viewAllButton}
-                    onPress={() => {
-                      setPointsToShow(existingPoints);
-                      setPointsTitle("All Existing Boundary Points");
-                      setShowAllPoints(true);
-                    }}
-                  >
-                    <Text style={styles.viewAllText}>
-                      View all {existingPoints.length} existing points
-                    </Text>
-                    <Feather name="chevron-right" size={16} color="#E9762B" />
-                  </TouchableOpacity>
+        data={[1]} // Single item to render the content
+        keyExtractor={() => 'main-content'}
+        renderItem={() => (
+          <View className='w-full flex-col items-center px-4 pt-4'>
+            {/* Logo */}
+            <View className="w-full items-center justify-center mb-4">
+              <Logo containerStyles="w-24 h-24" />
+            </View>
+            
+            {/* Farm Info */}
+            {farmData && (
+              <View style={styles.farmInfoContainer}>
+                <Text style={styles.farmInfoTitle}>{farmData.name}</Text>
+                <Text style={styles.farmInfoText}>
+                  Size: {farmData.size ? `${farmData.size} acres` : 'Not specified'}
+                </Text>
+                {farmData.plant_type && (
+                  <Text style={styles.farmInfoText}>
+                    Plants: {farmData.plant_type}
+                  </Text>
                 )}
               </View>
-            </View>
-          )}
-          
-          {/* Divider if both existing and new points */}
-          {existingPoints.length > 0 && boundaryPoints.length > 0 && (
-            <View style={styles.divider} />
-          )}
-          
-          {/* New Boundary Points Section */}
-          <View style={styles.sectionHeaderRow}>
-            <Text style={styles.sectionLabel}>New Points:</Text>
-            <Text style={styles.countBadge}>{boundaryPoints.length}</Text>
-          </View>
-          
-          {boundaryPoints.length === 0 ? (
-            <Text style={styles.emptyPointsText}>
-              No new boundary points captured yet. Take photos to add points.
-            </Text>
-          ) : (
-            <View style={styles.pointsList}>
-              {boundaryPoints.slice(-5).map((point, index) => (
-                <View key={`new-${index}`} style={styles.pointRow}>
-                  <View style={styles.pointIndexBadge}>
-                    <Text style={styles.pointIndexText}>
-                      {boundaryPoints.length - 4 + index}
-                    </Text>
+            )}
+            
+            {/* Boundary Points Info */}
+            <View style={styles.boundaryInfoContainer}>
+              <Text style={styles.boundaryInfoTitle}>Boundary Points</Text>
+              
+              {/* Existing Boundary Points Section */}
+              {existingPoints.length > 0 && (
+                <View style={styles.existingPointsSection}>
+                  <View style={styles.sectionHeaderRow}>
+                    <Text style={styles.sectionLabel}>Existing Points:</Text>
+                    <Text style={styles.countBadge}>{existingPoints.length}</Text>
+                    <TouchableOpacity 
+                      style={styles.deleteAllButton}
+                      onPress={() => handleDeleteExistingPoints(0)}
+                    >
+                      <Feather name="trash-2" size={16} color="#ff4444" />
+                      <Text style={styles.deleteAllText}>Delete All</Text>
+                    </TouchableOpacity>
                   </View>
-                  <Text style={styles.pointText}>
-                    {point.latitude.toFixed(6)}, {point.longitude.toFixed(6)}
-                  </Text>
+                  
+                  <FlatList
+                    data={existingPoints.slice(0, 5)}
+                    keyExtractor={(_, index) => `existing-${index}`}
+                    renderItem={({ item: point, index }) => (
+                      <View style={styles.pointRow}>
+                        <View style={styles.pointIndexBadge}>
+                          <Text style={styles.pointIndexText}>{index + 1}</Text>
+                        </View>
+                        <Text style={styles.pointText}>
+                          {point.latitude.toFixed(6)}, {point.longitude.toFixed(6)}
+                        </Text>
+                      </View>
+                    )}
+                    ListFooterComponent={() => 
+                      existingPoints.length > 5 ? (
+                        <TouchableOpacity 
+                          style={styles.viewAllButton}
+                          onPress={() => {
+                            setPointsToShow(existingPoints);
+                            setPointsTitle("All Existing Boundary Points");
+                            setShowAllPoints(true);
+                          }}
+                        >
+                          <Text style={styles.viewAllText}>
+                            View all {existingPoints.length} existing points
+                          </Text>
+                          <Feather name="chevron-right" size={16} color="#E9762B" />
+                        </TouchableOpacity>
+                      ) : null
+                    }
+                  />
                 </View>
-              ))}
-              {boundaryPoints.length > 5 && (
-                <TouchableOpacity 
-                  style={styles.viewAllButton}
-                  onPress={() => {
-                    setPointsToShow(boundaryPoints);
-                    setPointsTitle("All New Boundary Points");
-                    setShowAllPoints(true);
-                  }}
-                >
-                  <Text style={styles.viewAllText}>
-                    View all {boundaryPoints.length} new points
-                  </Text>
-                  <Feather name="chevron-right" size={16} color="#E9762B" />
-                </TouchableOpacity>
+              )}
+              
+              {/* Divider if both existing and new points */}
+              {existingPoints.length > 0 && boundaryPoints.length > 0 && (
+                <View style={styles.divider} />
+              )}
+              
+              {/* New Boundary Points Section */}
+              <View style={styles.sectionHeaderRow}>
+                <Text style={styles.sectionLabel}>New Points:</Text>
+                <Text style={styles.countBadge}>{boundaryPoints.length}</Text>
+              </View>
+              
+              {boundaryPoints.length === 0 ? (
+                <Text style={styles.emptyPointsText}>
+                  No new boundary points captured yet. Take photos to add points.
+                </Text>
+              ) : (
+                <FlatList
+                  data={boundaryPoints.slice(-5)}
+                  keyExtractor={(_, index) => `new-${index}`}
+                  renderItem={({ item: point, index }) => (
+                    <View style={styles.pointRow}>
+                      <View style={styles.pointIndexBadge}>
+                        <Text style={styles.pointIndexText}>
+                          {boundaryPoints.length - 4 + index}
+                        </Text>
+                      </View>
+                      <Text style={styles.pointText}>
+                        {point.latitude.toFixed(6)}, {point.longitude.toFixed(6)}
+                      </Text>
+                    </View>
+                  )}
+                  ListFooterComponent={() => 
+                    boundaryPoints.length > 5 ? (
+                      <TouchableOpacity 
+                        style={styles.viewAllButton}
+                        onPress={() => {
+                          setPointsToShow(boundaryPoints);
+                          setPointsTitle("All New Boundary Points");
+                          setShowAllPoints(true);
+                        }}
+                      >
+                        <Text style={styles.viewAllText}>
+                          View all {boundaryPoints.length} new points
+                        </Text>
+                        <Feather name="chevron-right" size={16} color="#E9762B" />
+                      </TouchableOpacity>
+                    ) : null
+                  }
+                />
               )}
             </View>
-          )}
-        </View>
 
-        {/* Photo Uploading Component */}
-        <View className='w-full flex-1 mt-4'>
-          <PhotoCapture
-            title={`Please Upload at least ${requiredPhotoNum} photos at the border of your property `}
-            titleStyles='text-white'
-            photos={photos}
-            setPhotos={handlePhotoCapture}
-          />
-        </View>
+            {/* Photo Uploading Component */}
+            <View className='w-full flex-1 mt-4'>
+              <PhotoCapture
+                title={`Please Upload at least ${requiredPhotoNum} photos at the border of your property `}
+                titleStyles='text-white'
+                photos={photos}
+                setPhotos={handlePhotoCapture}
+              />
+            </View>
 
-          {/* Buttons */}
-          <View className='w-full pb-4'>
-            <CustomButton
-              title="Save"
-              handlePress={save}
-              containerStyles="w-full mb-7"
-              isLoading={isSubmitting}
-            />
-            <CustomButton
-              title={photos.length === requiredPhotoNum ? "Complete" : `(${photos.length}) / ${requiredPhotoNum}`}
-              handlePress={submit}
-              containerStyles="w-full"
-              isLoading={isSubmitting}
-            />
+            {/* Buttons */}
+            <View className='w-full pb-4'>
+              <CustomButton
+                title="Save"
+                handlePress={save}
+                containerStyles="w-full mb-7"
+                isLoading={isSubmitting}
+              />
+              <CustomButton
+                title={photos.length === requiredPhotoNum ? "Complete" : `(${photos.length}) / ${requiredPhotoNum}`}
+                handlePress={submit}
+                containerStyles="w-full"
+                isLoading={isSubmitting}
+              />
+            </View>
           </View>
-        </View>
-      </ScrollView>
+        )}
+      />
 
       {/* Modal to show all boundary points */}
       <Modal
@@ -593,16 +604,18 @@ export default function UploadPhotos() {
               </TouchableOpacity>
             </View>
             
-            <ScrollView style={styles.modalScrollView}>
-              {pointsToShow.map((point, index) => (
-                <View key={`modal-point-${index}`} style={styles.modalPointRow}>
+            <FlatList
+              data={pointsToShow}
+              keyExtractor={(_, index) => `modal-point-${index}`}
+              renderItem={({ item: point, index }) => (
+                <View style={styles.modalPointRow}>
                   <Text style={styles.modalPointIndex}>{index + 1}</Text>
                   <Text style={styles.modalPointText}>
                     {point.latitude.toFixed(6)}, {point.longitude.toFixed(6)}
                   </Text>
                 </View>
-              ))}
-            </ScrollView>
+              )}
+            />
             
             <TouchableOpacity 
               style={styles.doneButton}

@@ -140,71 +140,43 @@ export const deleteBoundaryPoints = async (farmId) => {
 };
 
 export const saveBoundaryData = async (farmId, points) => {
-  console.log('saveBoundaryData called with farmId:', farmId, 'and points:', points);
-  
   if (!db) {
     console.log('Database not initialized, initializing...');
     await initBoundaryTable();
   }
-  
+
+  if (points.length < 3) {
+    throw new Error('Cannot form a boundary with less than three points');
+  }
+
   try {
-    // Ensure farmId is a number
-    const farmIdNum = Number(farmId);
-    console.log('Using farmId (as number):', farmIdNum);
-    
-    // Verify the farm exists
-    const existingFarm = await db.getAllAsync(
-      'SELECT * FROM farms WHERE id = ?',
-      [farmIdNum]
+    // Clear existing points for this farm
+    await db.execAsync(
+      'DELETE FROM boundary_points WHERE farm_id = ?',
+      [farmId]
     );
-    
-    if (!existingFarm || existingFarm.length === 0) {
-      console.error('No farm found with ID:', farmIdNum);
-      throw new Error(`No farm found with ID: ${farmIdNum}`);
-    }
-    
-    console.log('Found farm:', existingFarm[0]);
-    
-    // If points array is empty, just delete existing points
-    if (points.length === 0) {
-      console.log('No points to save, just deleting existing points');
-      return await deleteBoundaryPoints(farmIdNum);
-    }
-    
-    // Otherwise, delete existing points first
-    await deleteBoundaryPoints(farmIdNum);
-    
-    // Then insert new points
-    console.log('Inserting new boundary points...');
+
+    // Insert new points
     const values = points.map(point => 
-      `(${farmIdNum}, ${point.latitude}, ${point.longitude}, '${new Date().toISOString()}')`
+      `(${farmId}, ${point.latitude}, ${point.longitude}, '${new Date().toISOString()}')`
     ).join(',');
-    
-    console.log('Inserting new boundary points with SQL:', `INSERT INTO boundary_points (farm_id, latitude, longitude, timestamp) VALUES ${values}`);
-    
+
     await db.execAsync(`
       INSERT INTO boundary_points (farm_id, latitude, longitude, timestamp)
       VALUES ${values}
     `);
-    
-    // Verify insertion
-    const afterInsertPoints = await db.getAllAsync(
-      'SELECT COUNT(*) as count FROM boundary_points WHERE farm_id = ?',
-      [farmIdNum]
+
+    // Verify the points were saved
+    const savedPoints = await db.getAllAsync(
+      'SELECT * FROM boundary_points WHERE farm_id = ? ORDER BY timestamp',
+      [farmId]
     );
-    console.log('Points count after insertion:', afterInsertPoints[0]?.count || 0);
-    
-    // Final verification
-    const finalPoints = await db.getAllAsync(
-      'SELECT * FROM boundary_points WHERE farm_id = ?',
-      [farmIdNum]
-    );
-    console.log('Final boundary points:', finalPoints);
-    
-    return finalPoints;
+
+    console.log('Saved boundary points:', savedPoints);
+    return savedPoints;
   } catch (error) {
     console.error('Error saving boundary data:', error);
-    throw error;
+    throw new Error(`Failed to save boundary points: ${error.message}`);
   }
 };
 
