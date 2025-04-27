@@ -411,3 +411,48 @@ export const deleteAllBoundaryPoints = async (farmId) => {
     throw error;
   }
 };
+
+export const saveBoundaryPoint = async (farmId, point) => {
+  if (!db) await initBoundaryTable();
+  
+  try {
+    // Ensure farmId is a number
+    const farmIdNum = Number(farmId);
+    
+    // Verify the farm exists
+    const existingFarm = await db.getAllAsync(
+      'SELECT * FROM farms WHERE id = ?',
+      [farmIdNum]
+    );
+    
+    if (!existingFarm || existingFarm.length === 0) {
+      throw new Error(`No farm found with ID: ${farmIdNum}`);
+    }
+
+    // Insert the new point
+    const result = await db.runAsync(
+      `INSERT INTO boundary_points 
+       (farm_id, latitude, longitude, timestamp, description, photo_uri)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [
+        farmIdNum,
+        point.latitude,
+        point.longitude,
+        point.timestamp || new Date().toISOString(),
+        point.description || null,
+        point.photoUri || null
+      ]
+    );
+
+    // Get the newly inserted point
+    const savedPoint = await db.getAllAsync(
+      'SELECT * FROM boundary_points WHERE id = ?',
+      [result.lastInsertRowId]
+    );
+
+    return savedPoint[0];
+  } catch (error) {
+    console.error('Error saving boundary point:', error);
+    throw error;
+  }
+};

@@ -7,7 +7,7 @@ import FontAwesome5 from '@expo/vector-icons/FontAwesome5'
 import FontAwesome from '@expo/vector-icons/FontAwesome'
 import FontAwesome6 from '@expo/vector-icons/FontAwesome6'
 import LoadingIndicator from './LoadingIndicator'
-import { saveBoundaryData, deleteAllBoundaryPoints, updateBoundaryPoint } from '@/services/BoundaryService'
+import { saveBoundaryData, deleteAllBoundaryPoints, updateBoundaryPoint, getBoundaryData, saveBoundaryPoint } from '@/services/BoundaryService'
 import useBoundaryStore from '@/store/boundaryStore'
 
 const PhotoCapture = ({ title, titleStyles, farmId }) => {
@@ -19,6 +19,7 @@ const PhotoCapture = ({ title, titleStyles, farmId }) => {
   const [isModalVisible, setIsModalVisible] = useState(false)
   const [currentIndex, setCurrentIndex] = useState(null)
   const [tempDescription, setTempDescription] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
   const cameraRef = useRef(null)
   const boundaryStore = useBoundaryStore()
 
@@ -27,7 +28,35 @@ const PhotoCapture = ({ title, titleStyles, farmId }) => {
     if (!locationPermission) await requestLocationPermission()
   }
 
-  useEffect(() => { checkPermission() }, [])
+  useEffect(() => { 
+    loadExistingPoints()
+  }, [])
+
+  const loadExistingPoints = async () => {
+    if (!farmId) return
+    setIsLoading(true)
+    try {
+      const points = await getBoundaryData(farmId)
+      if (points && Array.isArray(points)) {
+        // Convert points to photo format
+        const photos = points.map(point => ({
+          uri: point.photo_uri,
+          location: {
+            latitude: point.latitude,
+            longitude: point.longitude
+          },
+          timestamp: point.timestamp,
+          description: point.description
+        }))
+        boundaryStore.setPhotos(photos)
+      }
+    } catch (error) {
+      console.error('Error loading existing points:', error)
+      Alert.alert('Error', 'Failed to load existing boundary points')
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   const takePhoto = async () => {
     setIsCapturing(true)
@@ -49,7 +78,7 @@ const PhotoCapture = ({ title, titleStyles, farmId }) => {
         throw new Error('Failed to get location')
       }
 
-      const newPhoto = {
+      const newPoint = {
         uri: photo.uri,
         location: { 
           latitude: location.coords.latitude, 
@@ -59,11 +88,20 @@ const PhotoCapture = ({ title, titleStyles, farmId }) => {
         timestamp: new Date().toISOString()
       }
 
-      // Update store first
+      // Save to database first
+      await saveBoundaryPoint(farmId, {
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+        photoUri: photo.uri,
+        timestamp: newPoint.timestamp,
+        description: null
+      })
+
+      // Then update store
       boundaryStore.addPhoto(photo, location)
 
       // Show success message
-      Alert.alert('Success', 'Photo captured successfully')
+      Alert.alert('Success', 'Photo captured and saved successfully')
 
       // Show warning if less than 3 points
       if (boundaryStore.photos.length < 3) {
@@ -75,7 +113,7 @@ const PhotoCapture = ({ title, titleStyles, farmId }) => {
       }
     } catch (error) {
       console.error('Capture error:', error)
-      Alert.alert('Error', error.message || 'Failed to capture photo')
+      Alert.alert('Error', error.message || 'Failed to capture and save photo')
     } finally {
       setIsCapturing(false)
       setIsOpenCamera(false)
@@ -150,7 +188,7 @@ const PhotoCapture = ({ title, titleStyles, farmId }) => {
 
   return (
     <View className="w-full h-full">
-      <LoadingIndicator isLoading={isCapturing} />
+      <LoadingIndicator isLoading={isLoading || isCapturing} />
 
       {isOpenCamera ? (
         <CameraView style={{ width: '100%', height: 500 }} facing={facing} ref={cameraRef}>
@@ -171,7 +209,10 @@ const PhotoCapture = ({ title, titleStyles, farmId }) => {
           <Text className={`w-full text-2xl font-psemibold text-center mb-5 ${titleStyles}`}>{title}</Text>
           <CustomButton 
             title="Capture Points" 
-            handlePress={() => setIsOpenCamera(true)} 
+            handlePress={async () => {
+              await checkPermission()
+              setIsOpenCamera(true)
+            }}
             isLoading={isCapturing}
             containerStyles="px-8 py-4"
             textStyles="text-lg"
@@ -203,21 +244,31 @@ const PhotoCapture = ({ title, titleStyles, farmId }) => {
               )}
             />
           )}
-
-          <Modal visible={isModalVisible} transparent animationType="slide" onRequestClose={() => setIsModalVisible(false)}>
-            <View className="flex-1 justify-center items-center bg-black/50">
-              <View className="w-4/5 bg-white p-5 rounded-lg">
-                <Text className="text-lg font-psemibold mb-4">Edit Description</Text>
-                <TextInput className="w-full border border-gray-300 rounded-lg p-2 text-black" value={tempDescription} onChangeText={setTempDescription} placeholder="Enter a description..." />
-                <View className="flex-row justify-end mt-4">
-                  <CustomButton title="Cancel" handlePress={() => setIsModalVisible(false)} />
-                  <CustomButton title="Save" handlePress={saveDescription} />
-                </View>
-              </View>
-            </View>
-          </Modal>
         </View>
       )}
+
+      <Modal 
+        visible={isModalVisible} 
+        transparent 
+        animationType="slide" 
+        onRequestClose={() => setIsModalVisible(false)}
+      >
+        <View className="flex-1 justify-center items-center bg-black/50">
+          <View className="w-4/5 bg-white p-5 rounded-lg">
+            <Text className="text-lg font-psemibold mb-4">Edit Description</Text>
+            <TextInput 
+              className="w-full border border-gray-300 rounded-lg p-2 text-black"
+              value={tempDescription}
+              onChangeText={setTempDescription}
+              placeholder="Enter a description..."
+            />
+            <View className="flex-row justify-end mt-4">
+              <CustomButton title="Cancel" handlePress={() => setIsModalVisible(false)} />
+              <CustomButton title="Save" handlePress={saveDescription} />
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   )
 }
