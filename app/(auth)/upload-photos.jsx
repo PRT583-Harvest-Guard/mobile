@@ -22,7 +22,7 @@ import {
 } from "@/services/BoundaryService";
 import PageHeader from "@/components/PageHeader";
 import { Feather } from "@expo/vector-icons";
-import { PhotoCapture } from "@/components";
+import { PhotoCapture, CustomButton } from "@/components";
 import useBoundaryStore from "@/store/boundaryStore";
 
 export default function UploadBoundaryScreen() {
