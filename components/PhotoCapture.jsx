@@ -139,7 +139,7 @@ const PhotoCapture = ({ photos, setPhotos, title, titleStyles }) => {
       <LoadingIndicator isLoading={isCapturing} />
 
       {isOpenCamera && (
-        <CameraView style={{ width: "100%", height: "100%" }} facing={facing} ref={cameraRef}>
+        <CameraView style={{ width: "100%", height: 500 }} facing={facing} ref={cameraRef}>
           <View className="flex-1 flex-row items-end justify-between bg-transparent m-8 relative">
             <TouchableOpacity onPress={toggleCamera}>
               <FontAwesome name="arrow-left" size={36} color="white" />
