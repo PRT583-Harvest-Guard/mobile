@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import {
   SafeAreaView,
   ScrollView,
@@ -18,162 +18,57 @@ import {
   getFarms,
   updateBoundaryPoint,
   deleteAllBoundaryPoints,
+  saveBoundaryData,
 } from "@/services/BoundaryService";
 import PageHeader from "@/components/PageHeader";
 import { Feather } from "@expo/vector-icons";
+import { PhotoCapture } from "@/components";
+import useBoundaryStore from "@/store/boundaryStore";
 
 export default function UploadBoundaryScreen() {
   const { farmId } = useLocalSearchParams();
-  const [points, setPoints] = useState([]);
   const [farmData, setFarmData] = useState(null);
-  const [isCapturing, setIsCapturing] = useState(false);
+  const boundaryStore = useBoundaryStore();
 
   useEffect(() => {
     const loadData = async () => {
       try {
-        const existing = await getBoundaryData(farmId);
-        if (Array.isArray(existing) && existing.length > 0) {
-          setPoints(
-            existing.map((p) => ({
-              id: p.id,
-              uri: p.photoUri,
-              latitude: p.latitude,
-              longitude: p.longitude,
-              timestamp: p.timestamp,
-              description: p.description || "",
-            }))
-          );
-        }
         const farms = await getFarms();
         const farm = farms.find((f) => f.id === Number(farmId));
-        if (farm) setFarmData(farm);
+        if (farm) {
+          setFarmData(farm);
+          boundaryStore.setFarmId(farm.id);
+          await boundaryStore.loadExistingPoints(farm.id);
+        }
       } catch (error) {
         console.error(error);
-        Alert.alert("Error", "Failed to load farm data or boundary points.");
+        Alert.alert("Error", "Failed to load farm data.");
       }
     };
 
     loadData();
   }, [farmId]);
 
-  const handleCapturePoint = async () => {
-    setIsCapturing(true);
+  const handleSave = async () => {
+    const points = boundaryStore.photos;
+    if (points.length < 3) {
+      Alert.alert("Error", "Cannot form a boundary with less than three points");
+      return;
+    }
+
     try {
-      const location = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.BestForNavigation,
-      });
-      
-      const point = {
-        id: Date.now().toString(),
-        uri: "", // You'll need to implement your photo capture logic
-        latitude: location.coords.latitude,
-        longitude: location.coords.longitude,
-        timestamp: new Date().toISOString(),
-        description: "",
-      };
-      
-      setPoints((prev) => [...prev, point]);
-      await saveBoundaryPoint(farmId, {
-        photoUri: point.uri,
-        latitude: point.latitude,
-        longitude: point.longitude,
-        timestamp: point.timestamp,
-        description: point.description,
-      });
+      await saveBoundaryData(farmId, points.map(p => ({
+        photoUri: p.uri,
+        latitude: p.location.latitude,
+        longitude: p.location.longitude,
+        description: p.description || "",
+      })));
+      Alert.alert("Success", "Boundary points saved successfully");
+      router.back();
     } catch (error) {
       console.error(error);
-      Alert.alert("Error", "Failed to capture location or save point.");
-    } finally {
-      setIsCapturing(false);
+      Alert.alert("Error", "Failed to save boundary points");
     }
-  };
-
-  const onDeletePoint = async (index) => {
-    const point = points[index];
-    Alert.alert(
-      "Delete Point",
-      "Are you sure you want to delete this point?",
-      [
-        {
-          text: "Cancel",
-          style: "cancel",
-        },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              await deleteBoundaryPoint(point.id);
-              setPoints((prev) => prev.filter((_, i) => i !== index));
-              Alert.alert("Success", "Point deleted successfully.");
-            } catch (error) {
-              console.error(error);
-              Alert.alert("Error", "Failed to delete point.");
-            }
-          },
-        },
-      ]
-    );
-  };
-
-  const onEditPoint = async (index) => {
-    const point = points[index];
-    Alert.prompt(
-      "Edit Description",
-      "Enter a description for this point:",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Save",
-          onPress: async (desc) => {
-            try {
-              await updateBoundaryPoint(point.id, desc);
-              setPoints((prev) => {
-                const updated = [...prev];
-                updated[index] = {
-                  ...updated[index],
-                  description: desc
-                };
-                return updated;
-              });
-              Alert.alert("Success", "Description updated successfully!");
-            } catch (error) {
-              console.error(error);
-              Alert.alert("Error", "Failed to update description.");
-            }
-          },
-        },
-      ],
-      "plain-text",
-      point.description || ""
-    );
-  };
-
-  const handleDeleteAllPoints = async () => {
-    Alert.alert(
-      "Delete All Points",
-      "Are you sure you want to delete all boundary points? This action cannot be undone.",
-      [
-        {
-          text: "Cancel",
-          style: "cancel",
-        },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              await deleteAllBoundaryPoints(farmId);
-              setPoints([]);
-              Alert.alert("Success", "All boundary points have been deleted.");
-            } catch (error) {
-              console.error(error);
-              Alert.alert("Error", "Failed to delete boundary points.");
-            }
-          },
-        },
-      ]
-    );
   };
 
   return (
@@ -201,63 +96,13 @@ export default function UploadBoundaryScreen() {
           </View>
         )}
 
-        <View style={styles.pointsContainer}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Boundary Points</Text>
-            {points.length > 0 && (
-              <TouchableOpacity
-                onPress={handleDeleteAllPoints}
-                style={styles.deleteAllButton}
-              >
-                <Feather name="trash-2" size={20} color="#FF3B30" />
-              </TouchableOpacity>
-            )}
-          </View>
-          <FlatList
-            data={points}
-            keyExtractor={(item) => item.id}
-            contentContainerStyle={styles.flatListContent}
-            renderItem={({ item, index }) => (
-              <View style={styles.pointItem}>
-                <View style={styles.pointInfo}>
-                  <Text style={styles.pointTitle}>Point {index + 1}:</Text>
-                  <Text style={styles.coordinates}>
-                    {item.latitude?.toFixed(6) ?? 'N/A'}, {item.longitude?.toFixed(6) ?? 'N/A'}
-                  </Text>
-                  {item.description ? (
-                    <Text style={styles.description}>{item.description}</Text>
-                  ) : null}
-                </View>
-                <View style={styles.actions}>
-                  <TouchableOpacity onPress={() => onEditPoint(index)}>
-                    <Feather name="edit-2" size={20} color="#007AFF" />
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={() => onDeletePoint(index)}
-                    style={styles.deleteButton}
-                  >
-                    <Feather name="trash-2" size={20} color="#FF3B30" />
-                  </TouchableOpacity>
-                </View>
-              </View>
-            )}
-            ListEmptyComponent={() => (
-              <Text style={styles.emptyText}>
-                No existing points for this farm.
-              </Text>
-            )}
-          />
-        </View>
-
-        <TouchableOpacity
-          onPress={handleCapturePoint}
-          style={styles.captureButton}
-          disabled={isCapturing}
-        >
-          <Text style={styles.captureButtonText}>
-            {isCapturing ? "Capturing..." : "Capture Point"}
-          </Text>
-        </TouchableOpacity>
+        <PhotoCapture
+          photos={boundaryStore.photos}
+          onCapture={(newPhotos) => boundaryStore.setPhotos(newPhotos)}
+          title="Capture boundary points"
+          titleStyles="text-black"
+          farmId={farmId}
+        />
       </View>
     </SafeAreaView>
   );

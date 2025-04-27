@@ -13,6 +13,8 @@ const useBoundaryStore = create((set, get) => ({
   // Actions
   setFarmId: (id) => set({ farmId: id }),
 
+  setPhotos: (photos) => set({ photos }),
+
   addPhoto: (photo, location) => {
     // Ensure location is an object and has the required properties
     if (!location || typeof location !== 'object') {
@@ -43,9 +45,6 @@ const useBoundaryStore = create((set, get) => ({
       photos: [...state.photos, photoWithLocation],
       boundaryPoints: [...state.boundaryPoints, newPoint],
     }));
-
-    // Save to database in background
-    get().savePoint(newPoint);
   },
 
   savePoint: async (point) => {

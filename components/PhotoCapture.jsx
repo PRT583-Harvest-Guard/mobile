@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { Alert, FlatList, Image, Modal, Text, TextInput, TouchableOpacity, View, Linking } from 'react-native'
+import { Alert, FlatList, Image, Modal, Text, TextInput, TouchableOpacity, View } from 'react-native'
 import { CameraView, useCameraPermissions } from 'expo-camera'
 import * as Location from 'expo-location'
 import CustomButton from './CustomButton'
@@ -7,8 +7,10 @@ import FontAwesome5 from '@expo/vector-icons/FontAwesome5'
 import FontAwesome from '@expo/vector-icons/FontAwesome'
 import FontAwesome6 from '@expo/vector-icons/FontAwesome6'
 import LoadingIndicator from './LoadingIndicator'
+import { saveBoundaryData, deleteAllBoundaryPoints, updateBoundaryPoint } from '@/services/BoundaryService'
+import useBoundaryStore from '@/store/boundaryStore'
 
-const PhotoCapture = ({ photos, onCapture, title, titleStyles }) => {
+const PhotoCapture = ({ title, titleStyles, farmId }) => {
   const [facing, setFacing] = useState('back')
   const [locationPermission, requestLocationPermission] = Location.useForegroundPermissions()
   const [cameraPermission, requestCameraPermission] = useCameraPermissions()
@@ -18,6 +20,7 @@ const PhotoCapture = ({ photos, onCapture, title, titleStyles }) => {
   const [currentIndex, setCurrentIndex] = useState(null)
   const [tempDescription, setTempDescription] = useState('')
   const cameraRef = useRef(null)
+  const boundaryStore = useBoundaryStore()
 
   const checkPermission = async () => {
     if (!cameraPermission) await requestCameraPermission()
@@ -29,44 +32,107 @@ const PhotoCapture = ({ photos, onCapture, title, titleStyles }) => {
   const takePhoto = async () => {
     setIsCapturing(true)
     try {
+      if (!cameraRef.current) {
+        throw new Error('Camera not initialized')
+      }
+
       const photo = await cameraRef.current.takePictureAsync({ quality: 0.5 })
-      const location = (await Location.getLastKnownPositionAsync()) || (await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }))
+      if (!photo || !photo.uri) {
+        throw new Error('Failed to capture photo')
+      }
+
+      const location = await Location.getCurrentPositionAsync({ 
+        accuracy: Location.Accuracy.Balanced 
+      })
+      
+      if (!location || !location.coords) {
+        throw new Error('Failed to get location')
+      }
+
       const newPhoto = {
         uri: photo.uri,
-        location: { latitude: location.coords.latitude, longitude: location.coords.longitude },
+        location: { 
+          latitude: location.coords.latitude, 
+          longitude: location.coords.longitude 
+        },
         description: null,
+        timestamp: new Date().toISOString()
       }
-      onCapture(newPhoto)
+
+      // Update store first
+      boundaryStore.addPhoto(photo, location)
+
+      // Show success message
+      Alert.alert('Success', 'Photo captured successfully')
+
+      // Show warning if less than 3 points
+      if (boundaryStore.photos.length < 3) {
+        Alert.alert(
+          'Warning',
+          `You need ${3 - boundaryStore.photos.length} more points to form a boundary.`,
+          [{ text: 'OK' }]
+        )
+      }
     } catch (error) {
-      Alert.alert('Error', 'Failed to capture photo.')
+      console.error('Capture error:', error)
+      Alert.alert('Error', error.message || 'Failed to capture photo')
     } finally {
       setIsCapturing(false)
       setIsOpenCamera(false)
     }
   }
 
-  const deletePhoto = index => {
+  const deletePhoto = async index => {
     Alert.alert(
       'Confirm Deletion',
       'Are you sure you want to delete this photo?',
       [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Confirm', onPress: () => onCapture(photos.filter((_, i) => i !== index)) },
+        { 
+          text: 'Confirm', 
+          onPress: async () => {
+            try {
+              const photos = boundaryStore.photos
+              const photoToDelete = photos[index]
+              // Delete from database
+              await deleteAllBoundaryPoints(farmId)
+              // Update store
+              const updatedPhotos = photos.filter((_, i) => i !== index)
+              boundaryStore.setPhotos(updatedPhotos)
+              Alert.alert('Success', 'Photo deleted successfully')
+            } catch (error) {
+              console.error('Delete error:', error)
+              Alert.alert('Error', 'Failed to delete photo. Please try again.')
+            }
+          }
+        },
       ]
     )
   }
 
   const openModal = index => {
     setCurrentIndex(index)
-    setTempDescription(photos[index]?.description || '')
+    setTempDescription(boundaryStore.photos[index]?.description || '')
     setIsModalVisible(true)
   }
 
-  const saveDescription = () => {
+  const saveDescription = async () => {
     if (currentIndex != null) {
-      const updated = [...photos]
-      updated[currentIndex].description = tempDescription
-      onCapture(updated)
+      try {
+        const photos = boundaryStore.photos
+        const photoToUpdate = photos[currentIndex]
+        // Update in database
+        await updateBoundaryPoint(photoToUpdate.id, tempDescription)
+        // Update store
+        const updated = [...photos]
+        updated[currentIndex] = {
+          ...updated[currentIndex],
+          description: tempDescription
+        }
+        boundaryStore.setPhotos(updated)
+      } catch (error) {
+        Alert.alert('Error', 'Failed to update description.')
+      }
     }
     setIsModalVisible(false)
   }
@@ -103,11 +169,18 @@ const PhotoCapture = ({ photos, onCapture, title, titleStyles }) => {
       ) : (
         <View className="w-full h-full flex-col items-center justify-center">
           <Text className={`w-full text-2xl font-psemibold text-center mb-5 ${titleStyles}`}>{title}</Text>
-          <CustomButton title="Take Photo" handlePress={() => setIsOpenCamera(true)} isLoading={isCapturing} />
+          <CustomButton 
+            title="Capture Points" 
+            handlePress={() => setIsOpenCamera(true)} 
+            isLoading={isCapturing}
+            containerStyles="px-8 py-4"
+            textStyles="text-lg"
+            icon={<FontAwesome5 name="camera" size={20} color="white" style={{ marginLeft: 10 }} />}
+          />
 
-          {photos.length > 0 && (
+          {boundaryStore.photos.length > 0 && (
             <FlatList
-              data={photos}
+              data={boundaryStore.photos}
               keyExtractor={(_, i) => i.toString()}
               renderItem={({ item, index }) => (
                 <View className="w-full items-center justify-center p-2 border-b-2 border-secondary">
@@ -149,4 +222,4 @@ const PhotoCapture = ({ photos, onCapture, title, titleStyles }) => {
   )
 }
 
-export default PhotoCapture;
+export default PhotoCapture
