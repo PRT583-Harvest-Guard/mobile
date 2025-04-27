@@ -28,6 +28,17 @@ export const initBoundaryTable = async () => {
         FOREIGN KEY (farm_id) REFERENCES farms(id) ON DELETE CASCADE
       )
     `);
+
+    // Add description column if it doesn't exist
+    try {
+      await db.execAsync(`
+        ALTER TABLE boundary_points 
+        ADD COLUMN description TEXT
+      `);
+    } catch (error) {
+      // Column might already exist, ignore the error
+      console.log('Description column might already exist:', error.message);
+    }
   } catch (error) {
     console.error('Error initializing database:', error);
     throw error;
@@ -158,11 +169,11 @@ export const saveBoundaryData = async (farmId, points) => {
 
     // Insert new points
     const values = points.map(point => 
-      `(${farmId}, ${point.latitude}, ${point.longitude}, '${new Date().toISOString()}')`
+      `(${farmId}, ${point.latitude}, ${point.longitude}, '${new Date().toISOString()}', '${point.description}')`
     ).join(',');
 
     await db.execAsync(`
-      INSERT INTO boundary_points (farm_id, latitude, longitude, timestamp)
+      INSERT INTO boundary_points (farm_id, latitude, longitude, timestamp, description)
       VALUES ${values}
     `);
 
@@ -340,5 +351,63 @@ export const updateFarm = async (farmId, farmData) => {
   } catch (error) {
     console.error('Error in updateFarm:', error);
     throw new Error(`Failed to update farm: ${error.message}`);
+  }
+};
+
+export const updateBoundaryPoint = async (pointId, description) => {
+  if (!db) await initBoundaryTable();
+  
+  try {
+    // First get the existing point data
+    const existingPoint = await db.getAllAsync(
+      'SELECT * FROM boundary_points WHERE id = ?',
+      [pointId]
+    );
+
+    if (!existingPoint || existingPoint.length === 0) {
+      throw new Error('Point not found');
+    }
+
+    const point = existingPoint[0];
+    
+    // Delete the existing point
+    await db.runAsync(
+      'DELETE FROM boundary_points WHERE id = ?',
+      [pointId]
+    );
+
+    // Insert new point with updated description
+    await db.runAsync(
+      `INSERT INTO boundary_points 
+       (farm_id, latitude, longitude, timestamp, description)
+       VALUES (?, ?, ?, ?, ?)`,
+      [
+        point.farm_id,
+        point.latitude,
+        point.longitude,
+        point.timestamp,
+        description
+      ]
+    );
+
+    return true;
+  } catch (error) {
+    console.error('Error updating boundary point:', error);
+    throw error;
+  }
+};
+
+export const deleteAllBoundaryPoints = async (farmId) => {
+  if (!db) await initBoundaryTable();
+  
+  try {
+    await db.runAsync(
+      'DELETE FROM boundary_points WHERE farm_id = ?',
+      [farmId]
+    );
+    return true;
+  } catch (error) {
+    console.error('Error deleting boundary points:', error);
+    throw error;
   }
 };
