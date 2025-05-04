@@ -48,12 +48,26 @@ const useBoundaryStore = create((set, get) => ({
   },
 
   savePoint: async (point) => {
-    const { farmId } = get();
+    const { farmId, photos } = get();
     if (!farmId) return;
 
     set({ isSaving: true, error: null });
     try {
-      await saveBoundaryData(farmId, [point]);
+      // Instead of saving just one point, save all points including the new one
+      // This ensures we're not creating duplicates
+      const allPoints = [...photos, {
+        uri: point.uri || '',
+        location: point,
+        timestamp: point.timestamp || new Date().toISOString(),
+      }];
+      
+      await saveBoundaryData(farmId, allPoints.map(p => ({
+        latitude: p.location.latitude,
+        longitude: p.location.longitude,
+        description: p.description || "",
+      })));
+      
+      // Update the local state with the latest from the database
       const updatedPoints = await getBoundaryData(farmId);
       if (updatedPoints && Array.isArray(updatedPoints)) {
         set({ existingPoints: updatedPoints });
@@ -102,4 +116,4 @@ const useBoundaryStore = create((set, get) => ({
   },
 }));
 
-export default useBoundaryStore; 
+export default useBoundaryStore;
