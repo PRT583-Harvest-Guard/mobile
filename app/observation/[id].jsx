@@ -9,6 +9,7 @@ import {
   Modal,
   TextInput,
   Switch,
+  Image
 } from 'react-native';
 import Slider from '@react-native-community/slider';
 import { useLocalSearchParams, router } from 'expo-router';
@@ -17,7 +18,7 @@ import { Feather } from '@expo/vector-icons';
 import { PageHeader, CustomButton, ObservationPhotoCapture } from '@/components';
 import { updateObservationPoint, getObservationPoints } from '@/services/ObservationService';
 import { getFarms } from '@/services/BoundaryService';
-import { saveObservation, getLatestObservation } from '@/services/ObservationRecordService';
+import { saveObservation, getLatestObservation, updateObservation } from '@/services/ObservationRecordService';
 
 const ObservationDetailsScreen = () => {
   const { id } = useLocalSearchParams();
@@ -33,6 +34,7 @@ const ObservationDetailsScreen = () => {
   const [existingObservation, setExistingObservation] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [pictureUri, setPictureUri] = useState(null);
+  const [isEditMode, setIsEditMode] = useState(false);
 
   useEffect(() => {
     loadObservationDetails();
@@ -144,7 +146,21 @@ const ObservationDetailsScreen = () => {
         picture_uri: pictureUri
       };
       
-      await saveObservation(observationData);
+      if (isEditMode && existingObservation) {
+        // Update existing observation
+        await updateObservation(existingObservation.id, {
+          identifier,
+          detection: detection ? 1 : 0,
+          severity: detection ? severity : 0,
+          notes,
+          picture_uri: pictureUri
+        });
+        console.log('Observation updated successfully');
+      } else {
+        // Create new observation
+        await saveObservation(observationData);
+        console.log('New observation saved successfully');
+      }
       
       // Close the modal
       setModalVisible(false);
@@ -247,13 +263,33 @@ const ObservationDetailsScreen = () => {
             </View>
           </View>
           
-          {selectedStatus === 'Nil' && (
+          {selectedStatus === 'Nil' ? (
             <TouchableOpacity 
               style={styles.recordButton}
-              onPress={() => setModalVisible(true)}
+              onPress={() => {
+                setIsEditMode(false);
+                setModalVisible(true);
+              }}
             >
               <Feather name="edit-3" size={18} color="#fff" style={styles.recordButtonIcon} />
               <Text style={styles.recordButtonText}>Record Observation</Text>
+            </TouchableOpacity>
+          ) : selectedStatus === 'Completed' && existingObservation && (
+            <TouchableOpacity 
+              style={styles.editButton}
+              onPress={() => {
+                // Pre-fill form with existing data
+                setIdentifier(existingObservation.identifier || '');
+                setDetection(existingObservation.detection === 1);
+                setSeverity(existingObservation.severity || 0);
+                setNotes(existingObservation.notes || '');
+                setPictureUri(existingObservation.picture_uri || null);
+                setIsEditMode(true);
+                setModalVisible(true);
+              }}
+            >
+              <Feather name="edit-2" size={18} color="#fff" style={styles.recordButtonIcon} />
+              <Text style={styles.recordButtonText}>Edit Observation</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -263,6 +299,50 @@ const ObservationDetailsScreen = () => {
             <Text style={styles.complianceText}>
               Observation is required to meet compliance
             </Text>
+          </View>
+        )}
+        
+        {selectedStatus === 'Completed' && existingObservation && (
+          <View style={styles.observationSummaryCard}>
+            <Text style={styles.observationSummaryTitle}>Observation Summary</Text>
+            
+            <View style={styles.observationDetail}>
+              <Text style={styles.observationLabel}>Identifier:</Text>
+              <Text style={styles.observationValue}>{existingObservation.identifier || 'None'}</Text>
+            </View>
+            
+            <View style={styles.observationDetail}>
+              <Text style={styles.observationLabel}>Pest/Disease:</Text>
+              <Text style={styles.observationValue}>
+                {existingObservation.detection === 1 ? 'Detected' : 'None detected'}
+              </Text>
+            </View>
+            
+            {existingObservation.detection === 1 && (
+              <View style={styles.observationDetail}>
+                <Text style={styles.observationLabel}>Severity:</Text>
+                <Text style={styles.observationValue}>
+                  {getSeverityLabel(existingObservation.severity)} ({existingObservation.severity})
+                </Text>
+              </View>
+            )}
+            
+            {existingObservation.picture_uri && (
+              <View style={styles.observationImageContainer}>
+                <Image 
+                  source={{ uri: existingObservation.picture_uri }} 
+                  style={styles.observationImage}
+                  resizeMode="cover"
+                />
+              </View>
+            )}
+            
+            {existingObservation.notes && (
+              <View style={styles.observationDetail}>
+                <Text style={styles.observationLabel}>Notes:</Text>
+                <Text style={styles.observationValue}>{existingObservation.notes}</Text>
+              </View>
+            )}
           </View>
         )}
         
@@ -283,7 +363,9 @@ const ObservationDetailsScreen = () => {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Record Observation</Text>
+              <Text style={styles.modalTitle}>
+                {isEditMode ? 'Edit Observation' : 'Record Observation'}
+              </Text>
               <TouchableOpacity onPress={() => setModalVisible(false)}>
                 <Feather name="x" size={24} color="#333" />
               </TouchableOpacity>
@@ -379,7 +461,9 @@ const ObservationDetailsScreen = () => {
                 {submitting ? (
                   <ActivityIndicator size="small" color="#fff" />
                 ) : (
-                  <Text style={styles.submitButtonText}>Submit</Text>
+                  <Text style={styles.submitButtonText}>
+                    {isEditMode ? 'Update' : 'Submit'}
+                  </Text>
                 )}
               </TouchableOpacity>
             </View>
@@ -505,6 +589,16 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginTop: 20,
   },
+  editButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#4CAF50',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    marginTop: 20,
+  },
   recordButtonText: {
     color: '#fff',
     fontSize: 16,
@@ -529,6 +623,46 @@ const styles = StyleSheet.create({
     color: '#ff8f00',
     fontWeight: 'bold',
     textAlign: 'center',
+  },
+  observationSummaryCard: {
+    backgroundColor: '#e8f5e9',
+    borderWidth: 1,
+    borderColor: '#81c784',
+    borderRadius: 8,
+    padding: 16,
+    marginTop: 16,
+    marginBottom: 16,
+  },
+  observationSummaryTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#2e7d32',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  observationDetail: {
+    marginBottom: 12,
+  },
+  observationLabel: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#2e7d32',
+    marginBottom: 4,
+  },
+  observationValue: {
+    fontSize: 16,
+    color: '#333',
+  },
+  observationImageContainer: {
+    width: '100%',
+    aspectRatio: 4/3,
+    borderRadius: 8,
+    overflow: 'hidden',
+    marginBottom: 12,
+  },
+  observationImage: {
+    width: '100%',
+    height: '100%',
   },
   // Modal styles
   modalOverlay: {
