@@ -11,6 +11,7 @@ const FarmDetailsScreen = () => {
   const [farm, setFarm] = useState(null);
   const [boundaryPoints, setBoundaryPoints] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [markers, setMarkers] = useState([]);
 
 
   // Sample boundary points in case the API doesn't return any
@@ -174,6 +175,15 @@ const FarmDetailsScreen = () => {
                 points={sampleBoundaryPoints }
                 style={styles.boundaryMap}
                 showPoints={true}
+                numSegments={6}
+                boundaryWidth={2}
+                segmentFill= 'rgba(100,150,240,0.2)'        // outer boundary stroke width// fill for each slice
+                lineColor     = '#E9762B' // slice border color
+                lineWidth     = {1}          // slice border width
+                pointColor    = {'black'}
+                onMarkersUpdated={setMarkers}  
+
+
               />
               <Text style={styles.boundaryInfoText}>
                 {sampleBoundaryPoints.length} boundary points define this farm's perimeter
@@ -184,7 +194,7 @@ const FarmDetailsScreen = () => {
           )}
         </View>
         <View style={styles.card}>
-        <MapSections points={sampleBoundaryPoints.length > 0 ? sampleBoundaryPoints : sampleBoundaryPoints} />
+        <MapSections points={markers.length > 0 ? markers : markers} />
         </View>
       </ScrollView>
     </SafeAreaView>

@@ -1,435 +1,182 @@
-import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, Dimensions, TouchableOpacity, Image, Modal } from 'react-native';
-import MapView, { Marker, Polygon, Callout } from 'react-native-maps';
-import { Text } from 'react-native';
-import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
+// components/BoundaryMap.jsx
 
-/**
- * BoundaryMap component displays a zoomable map with boundary points and polygons.
- */
-const BoundaryMap = ({
-  points = [],
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { StyleSheet, Text } from 'react-native';
+import MapView, {
+  PROVIDER_GOOGLE,
+  Polygon,
+  Marker,
+  Callout
+} from 'react-native-maps';
+
+import { polygon as turfPolygon } from '@turf/helpers';
+import bbox from '@turf/bbox';
+import bboxClip from '@turf/bbox-clip';
+import { randomPoint } from '@turf/random';
+import booleanPointInPolygon from '@turf/boolean-point-in-polygon';
+
+export default function BoundaryMap({
+  points = [], // [{ latitude, longitude }, …]
+  numSegments, // how many vertical slices
   style = {},
-  showPoints = true,
+  boundaryColor = '#333',
+  boundaryWidth = 2,
+  segmentFill = 'rgba(100,150,240,0.2)',
   lineColor = '#E9762B',
-  pointColor = '#E9762B',
-  lineWidth = 2,
-  pointRadius = 4
-}) => {
-  const [selectedPoint, setSelectedPoint] = useState(null);
-  const [region, setRegion] = useState(null);
-  const [randomPoints, setRandomPoints] = useState([]);
+  lineWidth = 1,
+  pointColor = 'black',
+  onMarkerUpdated
+}) {
+  const [marker, setMarker] = useState([]);
+  const mapRef = useRef(null);
 
-  // Check if a point is inside a polygon using ray casting algorithm
-  const isPointInPolygon = (point, polygon) => {
-    let inside = false;
-    for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
-      const xi = polygon[i].latitude;
-      const yi = polygon[i].longitude;
-      const xj = polygon[j].latitude;
-      const yj = polygon[j].longitude;
-      
-      const intersect = ((yi > point.longitude) !== (yj > point.longitude)) && 
-                        (point.latitude < (xj - xi) * (point.longitude - yi) / (yj - yi) + xi);
-      if (intersect) inside = !inside;
-    }
-    return inside;
-  };
-  
-  // Calculate distance between two points in meters using the Haversine formula
-  const calculateDistance = (point1, point2) => {
-    const R = 6371000; // Earth's radius in meters
-    const lat1 = point1.latitude * Math.PI / 180;
-    const lat2 = point2.latitude * Math.PI / 180;
-    const deltaLat = (point2.latitude - point1.latitude) * Math.PI / 180;
-    const deltaLng = (point2.longitude - point1.longitude) * Math.PI / 180;
-    
-    const a = Math.sin(deltaLat/2) * Math.sin(deltaLat/2) +
-              Math.cos(lat1) * Math.cos(lat2) *
-              Math.sin(deltaLng/2) * Math.sin(deltaLng/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-    const distance = R * c;
-    
-    return distance;
-  };
-  
-  // Check if a point is too close to any existing points
-  const isTooClose = (point, existingPoints, minDistance) => {
-    for (const existingPoint of existingPoints) {
-      const distance = calculateDistance(point, existingPoint);
-      if (distance < minDistance) {
-        return true;
-      }
-    }
-    return false;
-  };
+  // 1️⃣ Build the closed‐loop coordinate array & compute a fit‐region
+  const { coords, region, turfPoly, bounds } = useMemo(() => {
+    if (points.length < 3) return { coords: [], region: null, turfPoly: null, bounds: null };
 
-  // Generate random points within the boundary polygon, one for each section
-  const generateRandomPointsInBoundary = (boundaryPoints, count) => {
-    if (!boundaryPoints || boundaryPoints.length < 3) return [];
-    
-    // Calculate center point
-    const latitudes = boundaryPoints.map(p => p.latitude);
-    const longitudes = boundaryPoints.map(p => p.longitude);
-    
-    const centerLat = latitudes.reduce((sum, lat) => sum + lat, 0) / boundaryPoints.length;
-    const centerLng = longitudes.reduce((sum, lng) => sum + lng, 0) / boundaryPoints.length;
-    const center = { latitude: centerLat, longitude: centerLng };
-    
-    // Sort boundary points clockwise around center
-    const sortedPoints = [...boundaryPoints].sort((a, b) => {
-      const angleA = Math.atan2(a.longitude - center.longitude, a.latitude - center.latitude);
-      const angleB = Math.atan2(b.longitude - center.longitude, b.latitude - center.latitude);
-      return angleA - angleB;
-    });
-    
-    // Create sections - each section is a triangle from center to two adjacent boundary points
-    const sections = [];
-    for (let i = 0; i < sortedPoints.length; i++) {
-      const p1 = sortedPoints[i];
-      const p2 = sortedPoints[(i + 1) % sortedPoints.length];
-      sections.push({ 
-        index: i,
-        p1, 
-        p2, 
-        center,
-        // Generate a color that matches the MapSections component
-        color: i < 10 ? [
-          'rgba(233, 118, 43, 1)',   // Orange
-          'rgba(76, 175, 80, 1)',    // Green
-          'rgba(33, 150, 243, 1)',   // Blue
-          'rgba(156, 39, 176, 1)',   // Purple
-          'rgba(255, 235, 59, 1)',   // Yellow
-          'rgba(0, 188, 212, 1)',    // Cyan
-          'rgba(255, 87, 34, 1)',    // Deep Orange
-          'rgba(121, 85, 72, 1)',    // Brown
-          'rgba(63, 81, 181, 1)',    // Indigo
-          'rgba(139, 195, 74, 1)'    // Light Green
-        ][i] : 'rgba(233, 118, 43, 1)'
-      });
+
+    // ensure the ring closes
+    const ring = points.map(p => [p.longitude, p.latitude]);
+    if (
+      ring[0][0] !== ring[ring.length - 1][0] ||
+      ring[0][1] !== ring[ring.length - 1][1]
+    ) {
+      ring.push(ring[0]);
     }
-    
-    // If we have more sections than requested points, select sections evenly distributed
-    let sectionsToUse = sections;
-    if (sections.length > count) {
-      sectionsToUse = [];
-      const step = sections.length / count;
-      
-      for (let i = 0; i < count; i++) {
-        const index = Math.floor(i * step);
-        sectionsToUse.push(sections[index]);
-      }
-    }
-    
-    // Generate one random point for each section with constraints
-    const randomPoints = [];
-    const minDistanceMeters = 100; // Minimum 100 meters between points
-    
-    sectionsToUse.forEach((section) => {
-      let randomPoint = null;
-      let attempts = 0;
-      const maxAttempts = 50; // Maximum attempts to find a valid point
-      
-      // Try to generate a point that meets all constraints
-      while (attempts < maxAttempts) {
-        attempts++;
-        
-        // Generate a random point within the triangular section
-        const candidatePoint = generateRandomPointInTriangle(
-          section.center, 
-          section.p1, 
-          section.p2
-        );
-        
-        // Check if the point is too close to existing points
-        if (!isTooClose(candidatePoint, randomPoints, minDistanceMeters)) {
-          randomPoint = candidatePoint;
-          break;
-        }
-      }
-      
-      // If we couldn't find a valid point after max attempts, use the last generated one
-      if (!randomPoint && attempts === maxAttempts) {
-        randomPoint = generateRandomPointInTriangle(
-          section.center, 
-          section.p1, 
-          section.p2
-        );
-      }
-      
-      randomPoint.title = `Section ${section.index + 1} Point`;
-      randomPoint.description = `Random point in section ${section.index + 1}`;
-      randomPoint.sectionIndex = section.index;
-      randomPoint.color = section.color;
-      
-      randomPoints.push(randomPoint);
-    });
-    
-    return randomPoints;
-  };
-  
-  // Generate a random point within a triangle using barycentric coordinates
-  const generateRandomPointInTriangle = (p1, p2, p3) => {
-    // Generate random barycentric coordinates
-    let r1 = Math.random();
-    let r2 = Math.random();
-    
-    // Ensure the point is inside the triangle
-    if (r1 + r2 > 1) {
-      r1 = 1 - r1;
-      r2 = 1 - r2;
-    }
-    
-    const r3 = 1 - r1 - r2;
-    
-    // Calculate the point using barycentric coordinates
-    const latitude = r1 * p1.latitude + r2 * p2.latitude + r3 * p3.latitude;
-    const longitude = r1 * p1.longitude + r2 * p2.longitude + r3 * p3.longitude;
-    
+
+    const poly = turfPolygon([ring]);
+    const [minX, minY, maxX, maxY] = bbox(poly);
+
+    const latDelta = (maxY - minY) * 1.2 || 0.01;
+    const lonDelta = (maxX - minX) * 1.2 || 0.01;
+
     return {
-      latitude,
-      longitude
-    };
-  };
-
-  useEffect(() => {
-    if (points && points.length > 0) {
-      // Calculate initial region based on points
-      const latitudes = points.map(p => p.latitude);
-      const longitudes = points.map(p => p.longitude);
-      
-      const minLat = Math.min(...latitudes);
-      const maxLat = Math.max(...latitudes);
-      const minLng = Math.min(...longitudes);
-      const maxLng = Math.max(...longitudes);
-      
-      const centerLat = (minLat + maxLat) / 2;
-      const centerLng = (minLng + maxLng) / 2;
-      
-      const latDelta = (maxLat - minLat) * 1.5; // Add 50% padding
-      const lngDelta = (maxLng - minLng) * 1.5;
-      
-      setRegion({
-        latitude: centerLat,
-        longitude: centerLng,
+      coords: points.map(p => ({
+        latitude: p.latitude,
+        longitude: p.longitude
+      })),
+      region: {
+        latitude: (minY + maxY) / 2,
+        longitude: (minX + maxX) / 2,
         latitudeDelta: latDelta,
-        longitudeDelta: lngDelta,
-      });
-      
-      // Generate 5 random points within the boundary
-      if (points.length > 2) {
-        const generatedPoints = generateRandomPointsInBoundary(points, 5);
-        setRandomPoints(generatedPoints);
-      }
-    }
+        longitudeDelta: lonDelta
+      },
+      turfPoly: poly,
+      bounds: { minX, minY, maxX, maxY }
+    };
   }, [points]);
 
-  if (!points || points.length === 0) {
-    return (
-      <View style={[styles.container, style]}>
-        <Text style={styles.emptyText}>No boundary points available</Text>
-      </View>
-    );
+  // 2️⃣ Chop into vertical slices & pick one random point per slice
+  const { segments, markers } = useMemo(() => {
+    if (!turfPoly || !bounds) return { segments: [], markers: [] };
+
+    const { minX, minY, maxX, maxY } = bounds;
+    const sliceWidth = (maxX - minX) / numSegments;
+
+    const segs = [];
+    const pts = [];
+
+    for (let i = 0; i < numSegments; i++) {
+      const box = [
+        minX + i * sliceWidth,
+        minY,
+        minX + (i + 1) * sliceWidth,
+        maxY
+      ];
+
+      const clipped = bboxClip(turfPoly, box);
+      const coords = clipped?.geometry?.coordinates?.[0] || [];
+      if (coords.length < 3) {
+        // skip tiny or empty slices
+        continue;
+      }
+
+      // build the segment polygon for rendering
+      segs.push(
+        coords.map(([lng, lat]) => ({ latitude: lat, longitude: lng }))
+      );
+
+      // drop one random point that *actually* lies inside the clipped poly
+      let feature, attempts = 0;
+      do {
+        feature = randomPoint(1, { bbox: box }).features[0];
+        attempts++;
+      } while (
+        attempts < 10 &&
+        !booleanPointInPolygon(feature, clipped)
+      );
+
+      if (booleanPointInPolygon(feature, clipped)) {
+        pts.push({
+          latitude: feature.geometry.coordinates[1],
+          longitude: feature.geometry.coordinates[0],
+          segment: i + 1
+        });
+      }
+    }
+    setMarker(pts);
+
+    return { segments: segs, markers: pts };
+  }, [turfPoly, bounds, numSegments]);
+
+  // 3️⃣ Center / zoom the map on first render
+  React.useEffect(() => {
+    if (mapRef.current && coords.length) {
+      mapRef.current.fitToCoordinates(coords, {
+        edgePadding: { top: 50, right: 50, bottom: 50, left: 50 },
+        animated: true
+      });
+    }
+  }, [coords]);
+
+  if (!region) {
+    return null; // not enough pts yet
   }
 
-  const formatDate = (timestamp) => {
-    const date = new Date(timestamp);
-    return date.toLocaleString();
-  };
-
   return (
-    <View style={[styles.container, style]}>
-      <MapView
-        style={styles.map}
-        region={region}
-        onRegionChangeComplete={setRegion}
-      >
-        {points.length > 2 && (
-          <Polygon
-            coordinates={points.map(point => ({
-              latitude: point.latitude,
-              longitude: point.longitude,
-            }))}
-            fillColor="rgba(233, 118, 43, 0.2)"
-            strokeColor="rgba(233, 118, 43, 0.7)"
-            strokeWidth={2}
-          />
-        )}
-        
-        {showPoints && points.map((point, index) => (
-          <Marker
-            key={point.id || index}
-            coordinate={{
-              latitude: point.latitude,
-              longitude: point.longitude,
-            }}
-            onPress={() => setSelectedPoint(point)}
-          >
-            <View style={styles.markerContainer}>
-              <View style={styles.marker}>
-                <Text style={styles.markerText}>{index + 1}</Text>
-              </View>
-            </View>
-          </Marker>
-        ))}
-        
-        {/* Random points as pins - one for each section */}
-        {randomPoints.map((point, index) => (
-          <Marker
-            key={`random-${index}`}
-            coordinate={{
-              latitude: point.latitude,
-              longitude: point.longitude,
-            }}
-          >
-            <MaterialCommunityIcons 
-              name="map-marker" 
-              size={30} 
-              color={point.color} 
-            />
-            <Callout>
-              <View style={styles.calloutContainer}>
-                <Text style={styles.calloutTitle}>{point.title}</Text>
-                <Text style={styles.calloutDescription}>{point.description}</Text>
-              </View>
-            </Callout>
-          </Marker>
-        ))}
-      </MapView>
+    <MapView
+      ref={mapRef}
+      provider={PROVIDER_GOOGLE}
+      style={[styles.map, style]}
+      initialRegion={region}
+    >
+      {/* Outer boundary */}
+      <Polygon
+        coordinates={coords}
+        strokeColor={boundaryColor}
+        strokeWidth={boundaryWidth}
+        fillColor="transparent"
+      />
 
-      <Modal
-        visible={!!selectedPoint}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setSelectedPoint(null)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <TouchableOpacity 
-              style={styles.closeButton}
-              onPress={() => setSelectedPoint(null)}
-            >
-              <Feather name="x" size={24} color="#333" />
-            </TouchableOpacity>
-            
-            <View style={styles.detailsContent}>
-              <Text style={styles.pointTitle}>Point {points.indexOf(selectedPoint) + 1}</Text>
-              <Text style={styles.pointDescription}>{selectedPoint?.description}</Text>
-              <Text style={styles.pointTimestamp}>
-                Captured: {formatDate(selectedPoint?.timestamp)}
-              </Text>
-              
-              {selectedPoint?.photo_uri && (
-                <View style={styles.photoContainer}>
-                  <Image 
-                    source={{ uri: selectedPoint.photo_uri }} 
-                    style={styles.photo}
-                    resizeMode="cover"
-                  />
-                </View>
-              )}
-            </View>
-          </View>
-        </View>
-      </Modal>
-    </View>
+      {/* Sliced segments */}
+      {segments.map((polyCoords, i) => (
+        <Polygon
+          key={`seg-${i}`}
+          coordinates={polyCoords}
+          strokeColor={lineColor}
+          strokeWidth={lineWidth}
+          fillColor={segmentFill}
+        />
+      ))}
+
+      {/* One pin per slice */}
+      {markers.map((m, i) => (
+        <Marker
+          key={`mark-${i}`}
+          coordinate={{ latitude: m.latitude, longitude: m.longitude }}
+          pinColor={pointColor}
+        >
+          <Callout>
+            <Text style={{ fontWeight: 'bold' }}>
+              Segment {m.segment}
+            </Text>
+          </Callout>
+        </Marker>
+      ))}
+    </MapView>
   );
-};
+}
 
 const styles = StyleSheet.create({
-  calloutContainer: {
-    width: 150,
-    padding: 8,
-  },
-  calloutTitle: {
-    fontWeight: 'bold',
-    fontSize: 14,
-    marginBottom: 4,
-  },
-  calloutDescription: {
-    fontSize: 12,
-  },
-  container: {
-    width: '100%',
-    height: 300,
-    borderRadius: 12,
-    overflow: 'hidden',
-  },
-  map: {
-    width: '100%',
-    height: '100%',
-  },
-  markerContainer: {
-    alignItems: 'center',
-  },
-  marker: {
-    backgroundColor: '#E9762B',
-    padding: 8,
-    borderRadius: 20,
-    borderWidth: 2,
-    borderColor: '#fff',
-  },
-  markerText: {
-    color: '#fff',
-    fontWeight: 'bold',
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContent: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 20,
-    width: '90%',
-    maxWidth: 400,
-    position: 'relative',
-  },
-  closeButton: {
-    position: 'absolute',
-    top: 10,
-    right: 10,
-    zIndex: 1,
-    padding: 8,
-  },
-  detailsContent: {
-    marginTop: 8,
-  },
-  pointTitle: {
-    color: '#333',
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 4,
-  },
-  pointDescription: {
-    color: '#333',
-    fontSize: 16,
-    marginBottom: 4,
-  },
-  pointTimestamp: {
-    color: '#666',
-    fontSize: 14,
-    marginBottom: 8,
-  },
-  photoContainer: {
-    width: '100%',
-    height: 200,
-    borderRadius: 8,
-    overflow: 'hidden',
-    marginTop: 8,
-  },
-  photo: {
-    width: '100%',
-    height: '100%',
-  },
-  emptyText: {
-    textAlign: 'center',
-    color: '#666',
-    fontSize: 16,
-    marginTop: 20,
-  },
+  map: { flex: 1 }
 });
-
-export default BoundaryMap;
