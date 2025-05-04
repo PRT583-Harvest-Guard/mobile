@@ -20,54 +20,7 @@ const FarmDetailsScreen = () => {
   const [deleting, setDeleting] = useState(false);
 
 
-  // Sample boundary points in case the API doesn't return any
-  const sampleBoundaryPoints = [
-    { 
-      id: 1,
-      farm_id: 2,
-      latitude: -33.8731, 
-      longitude: 151.2111,
-      timestamp: "2024-03-20T10:30:00.000Z",
-      description: "Northwest corner",
-      photo_uri: "file:///path/to/photo1.jpg"
-    },
-    { 
-      id: 2,
-      farm_id: 2,
-      latitude: -33.8720, 
-      longitude: 151.2135,
-      timestamp: "2024-03-20T10:35:00.000Z",
-      description: "Northeast corner",
-      photo_uri: "file:///path/to/photo2.jpg"
-    },
-    { 
-      id: 3,
-      farm_id: 2,
-      latitude: -33.8735, 
-      longitude: 151.2160,
-      timestamp: "2024-03-20T10:40:00.000Z",
-      description: "Southeast corner",
-      photo_uri: "file:///path/to/photo3.jpg"
-    },
-    { 
-      id: 4,
-      farm_id: 2,
-      latitude: -33.8750, 
-      longitude: 151.2140,
-      timestamp: "2024-03-20T10:45:00.000Z",
-      description: "Southwest corner",
-      photo_uri: "file:///path/to/photo4.jpg"
-    },
-    { 
-      id: 5,
-      farm_id: 2,
-      latitude: -33.8742, 
-      longitude: 151.2115,
-      timestamp: "2024-03-20T10:50:00.000Z",
-      description: "Center point",
-      photo_uri: "file:///path/to/photo5.jpg"
-    }
-  ];
+  // State for farm details and boundary points
   useEffect(() => {
     loadFarmDetails();
     loadObservationPoints();
@@ -284,10 +237,10 @@ const FarmDetailsScreen = () => {
               <Text style={styles.boundaryButtonText}>Boundary</Text>
             </TouchableOpacity>
           </View>
-          {sampleBoundaryPoints .length > 0 ? (
+          {boundaryPoints.length > 0 ? (
             <>
               <BoundaryMap
-                points={sampleBoundaryPoints}
+                points={boundaryPoints}
                 observationPoints={observationPoints}
                 style={styles.boundaryMap}
                 showPoints={true}
@@ -300,7 +253,7 @@ const FarmDetailsScreen = () => {
                 onMarkerUpdated={handleMarkersUpdated}
               />
               <Text style={styles.boundaryInfoText}>
-                {sampleBoundaryPoints.length} boundary points define this farm's perimeter
+                {boundaryPoints.length} boundary points define this farm's perimeter
               </Text>
             </>
           ) : (
