@@ -1,26 +1,49 @@
-import React, { useState, useEffect } from 'react'
-import { View, Text, Image, ActivityIndicator, TouchableOpacity } from 'react-native'
+import React, { useState, useEffect } from 'react';
+import { 
+  View, 
+  Text, 
+  Image, 
+  ActivityIndicator, 
+  TouchableOpacity, 
+  ScrollView,
+  StyleSheet
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import iconPrimary from '@/assets/images/icon-primary.png'
+import { Feather } from '@expo/vector-icons';
 import { Avatar, CustomButton } from '@/components';
 import { router } from 'expo-router';
 import { getProfile } from '@/services/ProfileService';
+import { getFarms } from '@/services/BoundaryService';
+import iconPrimary from '@/assets/images/icon-primary.png';
 
 const Home = () => {
   const [profile, setProfile] = useState(null);
+  const [farms, setFarms] = useState([]);
   const [loading, setLoading] = useState(true);
+  
+  // Mock upcoming inspections
+  const upcomingInspections = [
+    { id: '2455', dueIn: 3, farm: 'North Field' },
+    { id: '2456', dueIn: 7, farm: 'South Field' },
+    { id: '2457', dueIn: 14, farm: 'East Field' }
+  ];
 
   useEffect(() => {
-    loadProfile();
+    loadData();
   }, []);
 
-  const loadProfile = async () => {
+  const loadData = async () => {
     try {
       setLoading(true);
+      // Load profile data
       const profileData = await getProfile();
       setProfile(profileData);
+      
+      // Load farms data
+      const farmsData = await getFarms();
+      setFarms(farmsData);
     } catch (error) {
-      console.error('Error loading profile:', error);
+      console.error('Error loading data:', error);
     } finally {
       setLoading(false);
     }
@@ -44,16 +67,23 @@ const Home = () => {
     }
   };
 
+  // Get the primary farm info
+  const getPrimaryFarm = () => {
+    if (farms.length === 0) return null;
+    return farms[0]; // Just use the first farm for now
+  };
+
+  const primaryFarm = getPrimaryFarm();
+
   return (
-    <SafeAreaView className='bg-white h-full'>
-      <View className='w-full h-full flex-col items-center justify-around px-4'>
-        {/* Header */}
-        <View className='w-full flex-row items-center justify-between'>
-          {/* User */}
-          <View className='flex-row items-center gap-2'>
+    <SafeAreaView style={styles.container}>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        {/* Header Card */}
+        <View style={styles.headerCard}>
+          <View style={styles.userSection}>
             {/* Avatar */}
             <TouchableOpacity 
-              className='w-[50px] h-[50px] items-center justify-center rounded-full'
+              style={styles.avatarContainer}
               onPress={() => router.push('/profile/edit-profile')}
               activeOpacity={0.7}
             >
@@ -66,50 +96,243 @@ const Home = () => {
                 }}/>
               )}
             </TouchableOpacity>
-            {/* User Name */}
-            <View className='flex-col items-start gap-2'>
-              <Text className='text-base font-pregular text-black'>
-                Welcome
+            
+            {/* User Info */}
+            <View style={styles.userInfo}>
+              <Text style={styles.welcomeText}>
+                Welcome,
               </Text>
-              <Text className='text-2xl font-pmedium text-black'>
+              <Text style={styles.userName}>
                 {loading ? 'Loading...' : getUserName()}
               </Text>
+              
+              {primaryFarm && (
+                <View style={styles.farmInfo}>
+                  <Text style={styles.farmInfoText}>
+                    Crop: {primaryFarm.plant_type || 'Not specified'} | Size: {primaryFarm.size || '0'} ha
+                  </Text>
+                </View>
+              )}
             </View>
           </View>
-          {/* Logo */}
-          <Image
-            source={iconPrimary}
-            className='w-[130px] h-auto'
-            resizeMode='cover'
-          />
         </View>
-        {/* Body */}
-        <View className='w-full flex-col items-center gap-5'>
-          <Text className='text-xl font-pregular text-black mb-10'>
+        
+        {/* Hero Section */}
+        <View style={styles.heroSection}>
+          <Text style={styles.heroText}>
             Boost your yield with Harvest Guard!
           </Text>
-          <CustomButton
-            title="Get an Inspection Suggestion"
-            handlePress={() => { router.push("/inspection/submit-data") }}
-            containerStyles="w-full h-[130px]"
-            theme="primary"
-          />
-          <CustomButton
-            title="Synchronise Inspections"
-            handlePress={() => { router.push("/sync/sync-records") }}
-            containerStyles="w-full h-[130px]"
-            theme="primary"
-          />
-          <CustomButton
-            title="Get Support"
-            handlePress={() => { }}
-            containerStyles="w-full h-[130px]"
-            theme="primary"
+          <Image
+            source={iconPrimary}
+            style={styles.heroImage}
+            resizeMode="contain"
           />
         </View>
-      </View>
+        
+        {/* Upcoming Inspections */}
+        <View style={styles.inspectionsCard}>
+          <View style={styles.cardHeader}>
+            <Feather name="calendar" size={20} color="#E9762B" />
+            <Text style={styles.cardTitle}>Upcoming Inspections</Text>
+          </View>
+          
+          {upcomingInspections.map(inspection => (
+            <View key={inspection.id} style={styles.inspectionItem}>
+              <View style={styles.inspectionDot} />
+              <Text style={styles.inspectionText}>
+                Inspection #{inspection.id} – due in {inspection.dueIn} day{inspection.dueIn !== 1 ? 's' : ''}
+              </Text>
+            </View>
+          ))}
+        </View>
+        
+        {/* Action Buttons */}
+        <View style={styles.actionsContainer}>
+          <TouchableOpacity 
+            style={styles.actionButton}
+            onPress={() => router.push("/inspection/submit-data")}
+          >
+            <Feather name="search" size={24} color="#fff" style={styles.actionIcon} />
+            <Text style={styles.actionText}>Suggest Next Inspection</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={[styles.actionButton, styles.secondaryButton]}
+            onPress={() => router.push("/sync/sync-records")}
+          >
+            <Feather name="refresh-cw" size={24} color="#fff" style={styles.actionIcon} />
+            <Text style={styles.actionText}>Sync Data</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={[styles.actionButton, styles.tertiaryButton]}
+            onPress={() => {}}
+          >
+            <Feather name="help-circle" size={24} color="#fff" style={styles.actionIcon} />
+            <Text style={styles.actionText}>Support</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
     </SafeAreaView>
-  )
-}
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#f5f7fa',
+  },
+  scrollContent: {
+    padding: 16,
+  },
+  headerCard: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  userSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  avatarContainer: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    overflow: 'hidden',
+    marginRight: 16,
+  },
+  userInfo: {
+    flex: 1,
+  },
+  welcomeText: {
+    fontSize: 14,
+    color: '#666',
+    fontFamily: 'Poppins-Regular',
+  },
+  userName: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#333',
+    fontFamily: 'Poppins-Bold',
+    marginBottom: 4,
+  },
+  farmInfo: {
+    backgroundColor: '#f0f8ff',
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 4,
+    alignSelf: 'flex-start',
+  },
+  farmInfoText: {
+    fontSize: 12,
+    color: '#0066cc',
+    fontFamily: 'Poppins-Medium',
+  },
+  heroSection: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  heroText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+    fontFamily: 'Poppins-Bold',
+    flex: 1,
+    marginRight: 16,
+  },
+  heroImage: {
+    width: 80,
+    height: 80,
+  },
+  inspectionsCard: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  cardTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+    fontFamily: 'Poppins-Bold',
+    marginLeft: 8,
+  },
+  inspectionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  inspectionDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#E9762B',
+    marginRight: 12,
+  },
+  inspectionText: {
+    fontSize: 14,
+    color: '#333',
+    fontFamily: 'Poppins-Regular',
+  },
+  actionsContainer: {
+    marginBottom: 16,
+  },
+  actionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#E9762B',
+    borderRadius: 8,
+    padding: 16,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  secondaryButton: {
+    backgroundColor: '#1B4D3E',
+  },
+  tertiaryButton: {
+    backgroundColor: '#4A6FA5',
+  },
+  actionIcon: {
+    marginRight: 12,
+  },
+  actionText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#fff',
+    fontFamily: 'Poppins-Bold',
+  },
+});
 
 export default Home;
