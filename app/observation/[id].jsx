@@ -346,11 +346,13 @@ const ObservationDetailsScreen = () => {
           </View>
         )}
         
-        <CustomButton
-          title="Back to Farm"
-          handlePress={() => router.back()}
-          containerStyles={styles.backButton}
-        />
+        <TouchableOpacity 
+          style={styles.farmDetailsButton}
+          onPress={() => router.back()}
+        >
+          <Feather name="arrow-left" size={18} color="#fff" style={styles.buttonIcon} />
+          <Text style={styles.farmDetailsButtonText}>Back to Farm Details</Text>
+        </TouchableOpacity>
       </ScrollView>
 
       {/* Observation Form Modal */}
@@ -575,9 +577,29 @@ const styles = StyleSheet.create({
     marginTop: 16,
     width: 200,
   },
-  backButton: {
+  farmDetailsButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#1B4D3E',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 8,
     marginTop: 16,
     marginBottom: 32,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  farmDetailsButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  buttonIcon: {
+    marginRight: 8,
   },
   recordButton: {
     flexDirection: 'row',
