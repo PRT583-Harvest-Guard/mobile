@@ -165,7 +165,25 @@ const ObservationDetailsScreen = () => {
               ))}
             </View>
           </View>
+          
+          {selectedStatus === 'Nil' && (
+            <TouchableOpacity 
+              style={styles.recordButton}
+              onPress={() => console.log('Record observation pressed')}
+            >
+              <Feather name="edit-3" size={18} color="#fff" style={styles.recordButtonIcon} />
+              <Text style={styles.recordButtonText}>Record Observation</Text>
+            </TouchableOpacity>
+          )}
         </View>
+        
+        {selectedStatus === 'Nil' && (
+          <View style={styles.complianceCard}>
+            <Text style={styles.complianceText}>
+              Observation is required to meet compliance
+            </Text>
+          </View>
+        )}
         
         <CustomButton
           title="Back to Farm"
@@ -281,6 +299,41 @@ const styles = StyleSheet.create({
   backButton: {
     marginTop: 16,
     marginBottom: 32,
+  },
+  recordButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#E9762B',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    marginTop: 20,
+  },
+  recordButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  recordButtonIcon: {
+    marginRight: 8,
+  },
+  complianceCard: {
+    backgroundColor: '#fff8e1',
+    borderWidth: 1,
+    borderColor: '#ffd54f',
+    borderRadius: 8,
+    padding: 16,
+    marginTop: 16,
+    marginBottom: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  complianceText: {
+    fontSize: 16,
+    color: '#ff8f00',
+    fontWeight: 'bold',
+    textAlign: 'center',
   },
 });
 
