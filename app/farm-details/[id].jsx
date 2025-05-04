@@ -181,7 +181,7 @@ const FarmDetailsScreen = () => {
                 lineColor     = '#E9762B' // slice border color
                 lineWidth     = {1}          // slice border width
                 pointColor    = {'black'}
-                onMarkersUpdated={setMarkers}  
+                onMarkerUpdated={setMarkers}  
 
 
               />
@@ -194,7 +194,7 @@ const FarmDetailsScreen = () => {
           )}
         </View>
         <View style={styles.card}>
-        <MapSections points={markers.length > 0 ? markers : markers} />
+        <MapSections markers={markers.length > 0 ? markers : []} />
         </View>
       </ScrollView>
     </SafeAreaView>
