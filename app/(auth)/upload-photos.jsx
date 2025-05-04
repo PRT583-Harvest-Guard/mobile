@@ -96,13 +96,28 @@ export default function UploadBoundaryScreen() {
           </View>
         )}
 
-        <PhotoCapture
-          photos={boundaryStore.photos}
-          onCapture={(newPhotos) => boundaryStore.setPhotos(newPhotos)}
-          title="Capture boundary points"
-          titleStyles="text-black"
-          farmId={farmId}
-        />
+        <View style={styles.optionsContainer}>
+          <Text style={styles.optionsTitle}>Choose how to add boundary points:</Text>
+          
+          <PhotoCapture
+            photos={boundaryStore.photos}
+            onCapture={(newPhotos) => boundaryStore.setPhotos(newPhotos)}
+            title="Capture boundary points"
+            titleStyles="text-black"
+            farmId={farmId}
+          />
+          
+          <TouchableOpacity 
+            style={styles.mapButton}
+            onPress={() => router.push({
+              pathname: "/draw-map",
+              params: { farmId }
+            })}
+          >
+            <Feather name="map" size={24} color="#fff" style={styles.mapButtonIcon} />
+            <Text style={styles.mapButtonText}>Points from map</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </SafeAreaView>
   );
@@ -137,6 +152,35 @@ const styles = StyleSheet.create({
     color: "#333",
     marginBottom: 4,
     textAlign: "center",
+  },
+  optionsContainer: {
+    width: "100%",
+    marginBottom: 20,
+  },
+  optionsTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    marginBottom: 16,
+    textAlign: "center",
+    color: "#333",
+  },
+  mapButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#1B4D3E",
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    marginTop: 16,
+  },
+  mapButtonIcon: {
+    marginRight: 8,
+  },
+  mapButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "bold",
   },
   pointsContainer: {
     flex: 1,
