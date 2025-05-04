@@ -4,6 +4,7 @@ import { useLocalSearchParams, router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { getFarms, getBoundaryData } from '@/services/BoundaryService';
+import { getOrGenerateObservationPoints, saveObservationPoints } from '@/services/ObservationService';
 import { CustomButton, PageHeader, BoundaryMap, MapSections } from '@/components';
 
 const FarmDetailsScreen = () => {
@@ -12,6 +13,7 @@ const FarmDetailsScreen = () => {
   const [boundaryPoints, setBoundaryPoints] = useState([]);
   const [loading, setLoading] = useState(true);
   const [markers, setMarkers] = useState([]);
+  const [observationPoints, setObservationPoints] = useState([]);
 
 
   // Sample boundary points in case the API doesn't return any
@@ -64,7 +66,20 @@ const FarmDetailsScreen = () => {
   ];
   useEffect(() => {
     loadFarmDetails();
+    loadObservationPoints();
   }, [id]);
+
+  const loadObservationPoints = async () => {
+    try {
+      if (!id) return;
+      
+      // Get observation points from database or generate if none exist
+      const points = await getOrGenerateObservationPoints(id);
+      setObservationPoints(points);
+    } catch (error) {
+      console.error('Error loading observation points:', error);
+    }
+  };
 
   const loadFarmDetails = async () => {
     try {
@@ -105,6 +120,47 @@ const FarmDetailsScreen = () => {
       Alert.alert('Error', 'Failed to load farm details');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleMarkersUpdated = async (newMarkers) => {
+    console.log('handleMarkersUpdated called with', newMarkers.length, 'markers');
+    
+    // Set markers in state
+    setMarkers(newMarkers);
+    
+    // If we already have observation points, don't save new ones
+    if (observationPoints.length > 0) {
+      console.log('Using existing observation points from database');
+      return;
+    }
+    
+    try {
+      if (!farm || !farm.id) {
+        console.log('No farm data available, cannot save observation points');
+        return;
+      }
+      
+      // Prepare points for saving to database
+      const pointsToSave = newMarkers.map(marker => ({
+        farm_id: farm.id,
+        latitude: marker.latitude,
+        longitude: marker.longitude,
+        segment: marker.segment,
+        observation_status: 'Nil',
+        name: `Section ${marker.segment}`
+      }));
+      
+      // Save points to database
+      console.log('Saving observation points to database:', pointsToSave);
+      const savedPoints = await saveObservationPoints(farm.id, pointsToSave);
+      
+      // Update state with saved points
+      console.log('Saved points:', savedPoints.length);
+      setObservationPoints(savedPoints);
+    } catch (error) {
+      console.error('Error saving observation points:', error);
+      Alert.alert('Error', 'Failed to save observation points');
     }
   };
 
@@ -172,18 +228,17 @@ const FarmDetailsScreen = () => {
           {sampleBoundaryPoints .length > 0 ? (
             <>
               <BoundaryMap
-                points={sampleBoundaryPoints }
+                points={sampleBoundaryPoints}
+                observationPoints={observationPoints}
                 style={styles.boundaryMap}
                 showPoints={true}
                 numSegments={6}
                 boundaryWidth={2}
-                segmentFill= 'rgba(100,150,240,0.2)'        // outer boundary stroke width// fill for each slice
-                lineColor     = '#E9762B' // slice border color
-                lineWidth     = {1}          // slice border width
-                pointColor    = {'black'}
-                onMarkerUpdated={setMarkers}  
-
-
+                segmentFill='rgba(100,150,240,0.2)'
+                lineColor='#E9762B'
+                lineWidth={1}
+                pointColor={'black'}
+                onMarkerUpdated={handleMarkersUpdated}
               />
               <Text style={styles.boundaryInfoText}>
                 {sampleBoundaryPoints.length} boundary points define this farm's perimeter
@@ -194,7 +249,7 @@ const FarmDetailsScreen = () => {
           )}
         </View>
         <View style={styles.card}>
-        <MapSections markers={markers.length > 0 ? markers : []} />
+        <MapSections markers={observationPoints.length > 0 ? observationPoints : (markers.length > 0 ? markers : [])} />
         </View>
       </ScrollView>
     </SafeAreaView>

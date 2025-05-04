@@ -17,6 +17,7 @@ import booleanPointInPolygon from '@turf/boolean-point-in-polygon';
 
 export default function BoundaryMap({
   points = [], // [{ latitude, longitude }, …]
+  observationPoints = [], // Existing observation points from database
   numSegments, // how many vertical slices
   style = {},
   boundaryColor = '#333',
@@ -65,23 +66,18 @@ export default function BoundaryMap({
     };
   }, [points]);
 
-  // 2️⃣ Chop into vertical slices & pick one random point per slice
+  // 2️⃣ Chop into vertical slices & use existing observation points or generate new ones
   // Use useMemo with a stable dependency array to avoid re-computation
   const { segments, markers } = useMemo(() => {
     if (!turfPoly || !bounds || !numSegments) return { segments: [], markers: [] };
 
-    // Generate a seed based on the inputs to ensure consistent random points
-    const seed = JSON.stringify({ 
-      bounds: [bounds.minX, bounds.minY, bounds.maxX, bounds.maxY],
-      numSegments 
-    });
-    
     const { minX, minY, maxX, maxY } = bounds;
     const sliceWidth = (maxX - minX) / numSegments;
 
     const segs = [];
-    const pts = [];
+    let pts = [];
 
+    // First, create the segments
     for (let i = 0; i < numSegments; i++) {
       const box = [
         minX + i * sliceWidth,
@@ -101,59 +97,89 @@ export default function BoundaryMap({
       segs.push(
         coords.map(([lng, lat]) => ({ latitude: lat, longitude: lng }))
       );
+    }
 
-      // Use a deterministic approach for point generation
-      // Instead of random points, use the center of the box
-      const centerLat = (box[1] + box[3]) / 2;
-      const centerLng = (box[0] + box[2]) / 2;
-      
-      // Check if center point is inside the polygon
-      const centerPoint = { type: 'Feature', geometry: { type: 'Point', coordinates: [centerLng, centerLat] } };
-      
-      if (booleanPointInPolygon(centerPoint, clipped)) {
-        pts.push({
-          latitude: centerLat,
-          longitude: centerLng,
-          segment: i + 1
-        });
-      } else {
-        // If center is not inside, try to find a point that is
-        let feature, attempts = 0;
-        do {
-          // Use a deterministic approach based on attempt number
-          const offsetX = (attempts % 5) * (sliceWidth / 5) - sliceWidth / 2;
-          const offsetY = Math.floor(attempts / 5) * ((maxY - minY) / 5) - (maxY - minY) / 2;
-          
-          const testLng = centerLng + offsetX;
-          const testLat = centerLat + offsetY;
-          
-          feature = { 
-            type: 'Feature', 
-            geometry: { 
-              type: 'Point', 
-              coordinates: [testLng, testLat] 
-            } 
-          };
-          
-          attempts++;
-        } while (
-          attempts < 25 && // 5x5 grid of test points
-          !booleanPointInPolygon(feature, clipped)
-        );
-
-        if (attempts < 25) {
+    // If we have existing observation points, use those
+    if (observationPoints && observationPoints.length > 0) {
+      console.log('Using existing observation points:', observationPoints);
+      pts = observationPoints.map(point => ({
+        latitude: point.latitude,
+        longitude: point.longitude,
+        segment: point.segment,
+        observation_status: point.observation_status,
+        name: point.name
+      }));
+    } 
+    // Otherwise, generate points for each segment
+    else {
+      console.log('Generating new observation points');
+      for (let i = 0; i < segs.length; i++) {
+        const segmentIndex = i + 1;
+        const box = [
+          minX + i * sliceWidth,
+          minY,
+          minX + (i + 1) * sliceWidth,
+          maxY
+        ];
+        
+        const clipped = bboxClip(turfPoly, box);
+        
+        // Use a deterministic approach for point generation
+        // Instead of random points, use the center of the box
+        const centerLat = (box[1] + box[3]) / 2;
+        const centerLng = (box[0] + box[2]) / 2;
+        
+        // Check if center point is inside the polygon
+        const centerPoint = { type: 'Feature', geometry: { type: 'Point', coordinates: [centerLng, centerLat] } };
+        
+        if (booleanPointInPolygon(centerPoint, clipped)) {
           pts.push({
-            latitude: feature.geometry.coordinates[1],
-            longitude: feature.geometry.coordinates[0],
-            segment: i + 1
+            latitude: centerLat,
+            longitude: centerLng,
+            segment: segmentIndex
           });
+        } else {
+          // If center is not inside, try to find a point that is
+          let feature, attempts = 0;
+          do {
+            // Use a deterministic approach based on attempt number
+            const offsetX = (attempts % 5) * (sliceWidth / 5) - sliceWidth / 2;
+            const offsetY = Math.floor(attempts / 5) * ((maxY - minY) / 5) - (maxY - minY) / 2;
+            
+            const testLng = centerLng + offsetX;
+            const testLat = centerLat + offsetY;
+            
+            feature = { 
+              type: 'Feature', 
+              geometry: { 
+                type: 'Point', 
+                coordinates: [testLng, testLat] 
+              } 
+            };
+            
+            attempts++;
+          } while (
+            attempts < 25 && // 5x5 grid of test points
+            !booleanPointInPolygon(feature, clipped)
+          );
+
+          if (attempts < 25) {
+            pts.push({
+              latitude: feature.geometry.coordinates[1],
+              longitude: feature.geometry.coordinates[0],
+              segment: segmentIndex
+            });
+          }
         }
       }
     }
 
-    // Call onMarkerUpdated only once with the generated markers
-    if (onMarkerUpdated && pts.length > 0 && !hasCalledMarkerUpdate.current) {
+    // Only call onMarkerUpdated if we're generating new points (not using existing ones)
+    // and we haven't called it yet for this set of points
+    if (onMarkerUpdated && pts.length > 0 && !hasCalledMarkerUpdate.current && 
+        (!observationPoints || observationPoints.length === 0)) {
       hasCalledMarkerUpdate.current = true;
+      console.log('Calling onMarkerUpdated with generated points');
       // Use setTimeout to ensure this happens after the component has rendered
       setTimeout(() => {
         onMarkerUpdated(pts);
@@ -161,7 +187,7 @@ export default function BoundaryMap({
     }
 
     return { segments: segs, markers: pts };
-  }, [turfPoly, bounds, numSegments, onMarkerUpdated]);
+  }, [turfPoly, bounds, numSegments, observationPoints, onMarkerUpdated]);
 
   // 3️⃣ Center / zoom the map on first render
   useEffect(() => {
@@ -173,10 +199,13 @@ export default function BoundaryMap({
     }
   }, [coords]);
 
-  // Reset the marker update flag when inputs change
+  // Reset the marker update flag when inputs change, but only if observation points change
   useEffect(() => {
-    hasCalledMarkerUpdate.current = false;
-  }, [points, numSegments]);
+    // Only reset if we don't have observation points
+    if (!observationPoints || observationPoints.length === 0) {
+      hasCalledMarkerUpdate.current = false;
+    }
+  }, [points, numSegments, observationPoints]);
 
   if (!region) {
     return null; // not enough pts yet
