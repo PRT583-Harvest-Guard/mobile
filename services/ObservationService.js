@@ -104,6 +104,9 @@ export const saveObservationPoint = async (point) => {
   }
 };
 
+// Flag to track if a transaction is active
+let transactionActive = false;
+
 /**
  * Save multiple observation points
  * @param {number} farmId - Farm ID
@@ -126,8 +129,11 @@ export const saveObservationPoints = async (farmId, points) => {
     
     console.log(`Saving ${points.length} new observation points for farm ${farmIdNum}`);
     
-    // Begin transaction
-    await db.execAsync('BEGIN TRANSACTION');
+    // Only begin a transaction if one is not already active
+    if (!transactionActive) {
+      transactionActive = true;
+      await db.execAsync('BEGIN TRANSACTION');
+    }
     
     // Insert each point
     for (const point of points) {
@@ -147,16 +153,26 @@ export const saveObservationPoints = async (farmId, points) => {
       );
     }
     
-    // Commit transaction
-    await db.execAsync('COMMIT');
+    // Only commit if we started the transaction
+    if (transactionActive) {
+      await db.execAsync('COMMIT');
+      transactionActive = false;
+    }
     
     // Get all saved points
     const savedPoints = await getObservationPoints(farmIdNum);
     
     return savedPoints;
   } catch (error) {
-    // Rollback transaction on error
-    await db.execAsync('ROLLBACK');
+    // Only rollback if we started the transaction
+    if (transactionActive) {
+      try {
+        await db.execAsync('ROLLBACK');
+      } catch (rollbackError) {
+        console.error('Error rolling back transaction:', rollbackError);
+      }
+      transactionActive = false;
+    }
     console.error('Error saving observation points:', error);
     throw error;
   }
@@ -260,8 +276,26 @@ export const removeDuplicateObservationPoints = async (farmId) => {
       pointsBySegment[point.segment].push(point);
     });
     
-    // Begin transaction
-    await db.execAsync('BEGIN TRANSACTION');
+    // Check if there are any duplicates to remove
+    let hasDuplicates = false;
+    for (const segment in pointsBySegment) {
+      if (pointsBySegment[segment].length > 1) {
+        hasDuplicates = true;
+        break;
+      }
+    }
+    
+    // If no duplicates, return early
+    if (!hasDuplicates) {
+      console.log('No duplicate points found');
+      return true;
+    }
+    
+    // Only begin a transaction if one is not already active
+    if (!transactionActive) {
+      transactionActive = true;
+      await db.execAsync('BEGIN TRANSACTION');
+    }
     
     // For each segment, keep only the first point and delete the rest
     for (const segment in pointsBySegment) {
@@ -284,13 +318,23 @@ export const removeDuplicateObservationPoints = async (farmId) => {
       }
     }
     
-    // Commit transaction
-    await db.execAsync('COMMIT');
+    // Only commit if we started the transaction
+    if (transactionActive) {
+      await db.execAsync('COMMIT');
+      transactionActive = false;
+    }
     
     return true;
   } catch (error) {
-    // Rollback transaction on error
-    await db.execAsync('ROLLBACK');
+    // Only rollback if we started the transaction
+    if (transactionActive) {
+      try {
+        await db.execAsync('ROLLBACK');
+      } catch (rollbackError) {
+        console.error('Error rolling back transaction:', rollbackError);
+      }
+      transactionActive = false;
+    }
     console.error('Error removing duplicate observation points:', error);
     throw error;
   }
