@@ -14,7 +14,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { CustomButton, FormField, PageHeader } from '@/components';
-import { getFarms, createFarm, updateFarm } from '@/services/BoundaryService';
+import { getFarms, createFarm, updateFarm, deleteFarm } from '@/services/BoundaryService';
+import { isFeatureEnabled } from '@/services/FeatureFlagService';
 
 const FarmScreen = () => {
   const params = useLocalSearchParams();
@@ -31,10 +32,23 @@ const FarmScreen = () => {
   const [plantType, setPlantType] = useState('');
   const [currentFarmId, setCurrentFarmId] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [deleteEnabled, setDeleteEnabled] = useState(true); // Set to true for testing
 
   useEffect(() => {
     loadFarms();
+    checkDeleteFeatureFlag();
   }, []);
+  
+  const checkDeleteFeatureFlag = async () => {
+    try {
+      // For testing purposes, force enable the delete button
+      // const enabled = await isFeatureEnabled('delete_farm');
+      const enabled = true; // Force enable for testing
+      setDeleteEnabled(enabled);
+    } catch (error) {
+      console.error('Error checking delete farm feature flag:', error);
+    }
+  };
 
   useEffect(() => {
     if (editFarmId) {
@@ -84,6 +98,38 @@ const FarmScreen = () => {
     } catch (error) {
       console.error('Error preparing farm edit:', error);
       Alert.alert('Error', 'Failed to prepare farm edit');
+    }
+  };
+
+  const handleDeleteFarm = async (farmId) => {
+    try {
+      Alert.alert(
+        'Confirm Delete',
+        'Are you sure you want to delete this farm? This will delete all associated data and cannot be undone.',
+        [
+          {
+            text: 'Cancel',
+            style: 'cancel'
+          },
+          {
+            text: 'Delete',
+            style: 'destructive',
+            onPress: async () => {
+              try {
+                await deleteFarm(farmId);
+                Alert.alert('Success', 'Farm deleted successfully');
+                await loadFarms();
+              } catch (error) {
+                console.error('Error deleting farm:', error);
+                Alert.alert('Error', 'Failed to delete farm');
+              }
+            }
+          }
+        ]
+      );
+    } catch (error) {
+      console.error('Error preparing farm deletion:', error);
+      Alert.alert('Error', 'Failed to prepare farm deletion');
     }
   };
 
@@ -166,6 +212,19 @@ const FarmScreen = () => {
           >
             <Feather name="edit" size={20} color="#E9762B" />
           </TouchableOpacity>
+          
+          {deleteEnabled && (
+            <TouchableOpacity 
+              style={styles.deleteButton}
+              onPress={(e) => {
+                e.stopPropagation();
+                handleDeleteFarm(farm.id);
+              }}
+            >
+              <Feather name="trash-2" size={20} color="#ff4444" />
+            </TouchableOpacity>
+          )}
+          
           <Feather name="chevron-right" size={20} color="#999" />
         </View>
       </TouchableOpacity>
@@ -354,6 +413,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   editButton: {
+    padding: 8,
+    marginRight: 8,
+  },
+  deleteButton: {
     padding: 8,
     marginRight: 8,
   },
