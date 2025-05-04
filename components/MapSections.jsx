@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { router } from 'expo-router';
 
 // Predefined fill colors for each section
 const sectionColors = [
@@ -31,6 +32,15 @@ const sectionColors = [
  *    }>
  */
 const MapSections = ({ markers = [] }) => {
+  const handleSectionPress = (marker) => {
+    if (marker && marker.id) {
+      // Navigate to the observation details page
+      router.push(`/observation/${marker.id}`);
+    } else {
+      console.log('Cannot navigate: marker has no ID', marker);
+    }
+  };
+
   if (!markers.length) {
     return (
       <View style={styles.emptyContainer}>
@@ -47,7 +57,11 @@ const MapSections = ({ markers = [] }) => {
         const status = m.observation_status || m.status || 'Nil';
         const sectionName = m.name || `Section ${m.segment}`;
         return (
-          <View key={idx} style={styles.card}>
+          <TouchableOpacity 
+            key={idx} 
+            style={styles.card}
+            onPress={() => handleSectionPress(m)}
+          >
             <View style={[styles.colorBox, { backgroundColor: color }]} />
             <View style={styles.textContainer}>
               <Text style={styles.sectionText}>
@@ -57,7 +71,10 @@ const MapSections = ({ markers = [] }) => {
                 Observation status: {status}
               </Text>
             </View>
-          </View>
+            <View style={styles.arrowContainer}>
+              <Text style={styles.arrowText}>›</Text>
+            </View>
+          </TouchableOpacity>
         );
       })}
     </ScrollView>
@@ -106,6 +123,16 @@ const styles = StyleSheet.create({
   statusText: {
     fontSize: 14,
     color: '#555'
+  },
+  arrowContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingLeft: 8
+  },
+  arrowText: {
+    fontSize: 24,
+    color: '#999',
+    fontWeight: 'bold'
   }
 });
 
