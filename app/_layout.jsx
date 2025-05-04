@@ -36,6 +36,8 @@ const RootLayout = () => {
         <Stack.Screen name="sync" options={{ headerShown: false }} />
         <Stack.Screen name="profile" options={{ headerShown: false }} />
         <Stack.Screen name="farm-details" options={{ headerShown: false }} />
+        <Stack.Screen name="observation" options={{ headerShown: false }} />
+        <Stack.Screen name="draw-map" options={{ headerShown: false }} />
       </Stack>
     </GlobalProvider>
   );
