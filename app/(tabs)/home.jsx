@@ -1,15 +1,48 @@
-import React from 'react'
-import { View, Text, Image } from 'react-native'
+import React, { useState, useEffect } from 'react'
+import { View, Text, Image, ActivityIndicator } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context';
 import iconPrimary from '@/assets/images/icon-primary.png'
 import { Avatar, CustomButton } from '@/components';
 import { router } from 'expo-router';
+import { getProfile } from '@/services/ProfileService';
 
 const Home = () => {
-  const user = {
-    name: "John Doe",
-    avatar: "https://images.pexels.com/photos/45201/kitty-cat-kitten-pet-45201.jpeg"
-  }
+  const [profile, setProfile] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadProfile();
+  }, []);
+
+  const loadProfile = async () => {
+    try {
+      setLoading(true);
+      const profileData = await getProfile();
+      setProfile(profileData);
+    } catch (error) {
+      console.error('Error loading profile:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Format the user's full name
+  const getUserName = () => {
+    if (!profile) return 'User';
+    
+    const firstName = profile.first_name || '';
+    const lastName = profile.last_name || '';
+    
+    if (firstName && lastName) {
+      return `${firstName} ${lastName}`;
+    } else if (firstName) {
+      return firstName;
+    } else if (lastName) {
+      return lastName;
+    } else {
+      return 'User';
+    }
+  };
 
   return (
     <SafeAreaView className='bg-white h-full'>
@@ -20,7 +53,14 @@ const Home = () => {
           <View className='flex-row items-center gap-2'>
             {/* Avatar */}
             <View className='w-[50px] h-[50px] items-center justify-center rounded-full'>
-              <Avatar user={user}/>
+              {loading ? (
+                <ActivityIndicator size="small" color="#E9762B" />
+              ) : (
+                <Avatar user={{ 
+                  name: getUserName(),
+                  avatar: profile?.picture_uri || null
+                }}/>
+              )}
             </View>
             {/* User Name */}
             <View className='flex-col items-start gap-2'>
@@ -28,7 +68,7 @@ const Home = () => {
                 Welcome
               </Text>
               <Text className='text-2xl font-pmedium text-black'>
-                {user?.name}
+                {loading ? 'Loading...' : getUserName()}
               </Text>
             </View>
           </View>
