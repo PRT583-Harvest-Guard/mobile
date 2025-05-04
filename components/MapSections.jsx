@@ -59,7 +59,10 @@ const MapSections = ({ markers = [] }) => {
         return (
           <TouchableOpacity 
             key={idx} 
-            style={styles.card}
+            style={[
+              styles.card,
+              status === 'Completed' && styles.completedCard
+            ]}
             onPress={() => handleSectionPress(m)}
           >
             <View style={[styles.colorBox, { backgroundColor: color }]} />
@@ -103,6 +106,9 @@ const styles = StyleSheet.create({
     padding: 12,
     marginBottom: 12,
     elevation: 2
+  },
+  completedCard: {
+    backgroundColor: '#e8f5e9', // Very light green color
   },
   colorBox: {
     width: 16,
