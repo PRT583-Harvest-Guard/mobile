@@ -1,11 +1,23 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { 
+  View, 
+  Text, 
+  StyleSheet, 
+  ScrollView, 
+  ActivityIndicator, 
+  TouchableOpacity,
+  Modal,
+  TextInput,
+  Switch,
+} from 'react-native';
+import Slider from '@react-native-community/slider';
 import { useLocalSearchParams, router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { PageHeader, CustomButton } from '@/components';
 import { updateObservationPoint, getObservationPoints } from '@/services/ObservationService';
 import { getFarms } from '@/services/BoundaryService';
+import { saveObservation, getLatestObservation } from '@/services/ObservationRecordService';
 
 const ObservationDetailsScreen = () => {
   const { id } = useLocalSearchParams();
@@ -13,10 +25,35 @@ const ObservationDetailsScreen = () => {
   const [loading, setLoading] = useState(true);
   const [statusOptions] = useState(['Nil', 'Pending', 'Completed', 'Requires Attention']);
   const [selectedStatus, setSelectedStatus] = useState('');
+  const [modalVisible, setModalVisible] = useState(false);
+  const [identifier, setIdentifier] = useState('');
+  const [detection, setDetection] = useState(false);
+  const [severity, setSeverity] = useState(0);
+  const [notes, setNotes] = useState('');
+  const [existingObservation, setExistingObservation] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     loadObservationDetails();
+    loadExistingObservation();
   }, [id]);
+
+  const loadExistingObservation = async () => {
+    try {
+      if (!id) return;
+      
+      const latestObservation = await getLatestObservation(id);
+      if (latestObservation) {
+        setExistingObservation(latestObservation);
+        setIdentifier(latestObservation.identifier || '');
+        setDetection(latestObservation.detection === 1);
+        setSeverity(latestObservation.severity || 0);
+        setNotes(latestObservation.notes || '');
+      }
+    } catch (error) {
+      console.error('Error loading existing observation:', error);
+    }
+  };
 
   const loadObservationDetails = async () => {
     try {
@@ -84,6 +121,47 @@ const ObservationDetailsScreen = () => {
     } catch (error) {
       console.error('Error updating observation status:', error);
     }
+  };
+
+  const handleSubmitObservation = async () => {
+    try {
+      setSubmitting(true);
+      
+      if (!observation || !observation.farm_id) {
+        console.error('Missing farm ID');
+        return;
+      }
+      
+      const observationData = {
+        farm_id: observation.farm_id,
+        observation_point_id: observation.id,
+        identifier,
+        detection: detection ? 1 : 0,
+        severity: detection ? severity : 0,
+        notes
+      };
+      
+      await saveObservation(observationData);
+      
+      // Close the modal
+      setModalVisible(false);
+      
+      // Reload the observation details to update the status
+      loadObservationDetails();
+      loadExistingObservation();
+    } catch (error) {
+      console.error('Error submitting observation:', error);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const getSeverityLabel = (value) => {
+    if (value === 0) return 'None';
+    if (value <= 3) return 'Mild';
+    if (value <= 5) return 'Moderate';
+    if (value <= 8) return 'Severe';
+    return 'Critical';
   };
 
   if (loading) {
@@ -169,7 +247,7 @@ const ObservationDetailsScreen = () => {
           {selectedStatus === 'Nil' && (
             <TouchableOpacity 
               style={styles.recordButton}
-              onPress={() => console.log('Record observation pressed')}
+              onPress={() => setModalVisible(true)}
             >
               <Feather name="edit-3" size={18} color="#fff" style={styles.recordButtonIcon} />
               <Text style={styles.recordButtonText}>Record Observation</Text>
@@ -191,6 +269,113 @@ const ObservationDetailsScreen = () => {
           containerStyles={styles.backButton}
         />
       </ScrollView>
+
+      {/* Observation Form Modal */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={modalVisible}
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Record Observation</Text>
+              <TouchableOpacity onPress={() => setModalVisible(false)}>
+                <Feather name="x" size={24} color="#333" />
+              </TouchableOpacity>
+            </View>
+            
+            <ScrollView style={styles.modalBody}>
+              <View style={styles.formGroup}>
+                <Text style={styles.formLabel}>Identifier:</Text>
+                <TextInput
+                  style={styles.formInput}
+                  value={identifier}
+                  onChangeText={setIdentifier}
+                  placeholder="Enter identifier"
+                />
+              </View>
+              
+              <View style={styles.formGroup}>
+                <View style={styles.switchRow}>
+                  <Text style={styles.formLabel}>Pest/Disease Detected:</Text>
+                  <Switch
+                    value={detection}
+                    onValueChange={setDetection}
+                    trackColor={{ false: '#d1d1d1', true: '#E9762B' }}
+                    thumbColor={detection ? '#fff' : '#f4f3f4'}
+                  />
+                </View>
+              </View>
+              
+              {detection && (
+                <View style={styles.formGroup}>
+                  <Text style={styles.formLabel}>Severity: {getSeverityLabel(severity)} ({severity})</Text>
+                  <Slider
+                    style={styles.slider}
+                    minimumValue={0}
+                    maximumValue={10}
+                    step={1}
+                    value={severity}
+                    onValueChange={setSeverity}
+                    minimumTrackTintColor="#E9762B"
+                    maximumTrackTintColor="#d1d1d1"
+                    thumbTintColor="#E9762B"
+                  />
+                  <View style={styles.sliderLabels}>
+                    <Text style={styles.sliderLabel}>None</Text>
+                    <Text style={styles.sliderLabel}>Mild</Text>
+                    <Text style={styles.sliderLabel}>Moderate</Text>
+                    <Text style={styles.sliderLabel}>Severe</Text>
+                    <Text style={styles.sliderLabel}>Critical</Text>
+                  </View>
+                  <View style={styles.sliderValues}>
+                    <Text style={styles.sliderValue}>0</Text>
+                    <Text style={styles.sliderValue}>3</Text>
+                    <Text style={styles.sliderValue}>5</Text>
+                    <Text style={styles.sliderValue}>8</Text>
+                    <Text style={styles.sliderValue}>10</Text>
+                  </View>
+                </View>
+              )}
+              
+              <View style={styles.formGroup}>
+                <Text style={styles.formLabel}>Notes:</Text>
+                <TextInput
+                  style={[styles.formInput, styles.textArea]}
+                  value={notes}
+                  onChangeText={setNotes}
+                  placeholder="Enter any additional information"
+                  multiline={true}
+                  numberOfLines={4}
+                />
+              </View>
+            </ScrollView>
+            
+            <View style={styles.modalFooter}>
+              <TouchableOpacity 
+                style={styles.cancelButton}
+                onPress={() => setModalVisible(false)}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={styles.submitButton}
+                onPress={handleSubmitObservation}
+                disabled={submitting}
+              >
+                {submitting ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Text style={styles.submitButtonText}>Submit</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -334,6 +519,122 @@ const styles = StyleSheet.create({
     color: '#ff8f00',
     fontWeight: 'bold',
     textAlign: 'center',
+  },
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    width: '100%',
+    maxHeight: '80%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  modalBody: {
+    padding: 16,
+    maxHeight: 400,
+  },
+  modalFooter: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    padding: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#eee',
+  },
+  formGroup: {
+    marginBottom: 16,
+  },
+  formLabel: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#555',
+    marginBottom: 8,
+  },
+  formInput: {
+    backgroundColor: '#f9f9f9',
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+  },
+  textArea: {
+    height: 100,
+    textAlignVertical: 'top',
+  },
+  switchRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  slider: {
+    width: '100%',
+    height: 40,
+  },
+  sliderLabels: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 10,
+  },
+  sliderLabel: {
+    fontSize: 12,
+    color: '#666',
+    textAlign: 'center',
+  },
+  sliderValues: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 10,
+  },
+  sliderValue: {
+    fontSize: 12,
+    color: '#999',
+    textAlign: 'center',
+  },
+  cancelButton: {
+    backgroundColor: '#f0f0f0',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    marginRight: 8,
+  },
+  cancelButtonText: {
+    color: '#666',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  submitButton: {
+    backgroundColor: '#E9762B',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+  },
+  submitButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
 
