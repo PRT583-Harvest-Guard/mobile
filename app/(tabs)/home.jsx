@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { View, Text, Image, ActivityIndicator } from 'react-native'
+import { View, Text, Image, ActivityIndicator, TouchableOpacity } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context';
 import iconPrimary from '@/assets/images/icon-primary.png'
 import { Avatar, CustomButton } from '@/components';
@@ -52,7 +52,11 @@ const Home = () => {
           {/* User */}
           <View className='flex-row items-center gap-2'>
             {/* Avatar */}
-            <View className='w-[50px] h-[50px] items-center justify-center rounded-full'>
+            <TouchableOpacity 
+              className='w-[50px] h-[50px] items-center justify-center rounded-full'
+              onPress={() => router.push('/profile/edit-profile')}
+              activeOpacity={0.7}
+            >
               {loading ? (
                 <ActivityIndicator size="small" color="#E9762B" />
               ) : (
@@ -61,7 +65,7 @@ const Home = () => {
                   avatar: profile?.picture_uri || null
                 }}/>
               )}
-            </View>
+            </TouchableOpacity>
             {/* User Name */}
             <View className='flex-col items-start gap-2'>
               <Text className='text-base font-pregular text-black'>
