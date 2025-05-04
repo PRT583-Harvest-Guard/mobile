@@ -1,9 +1,7 @@
 import React from 'react'
 import { Tabs } from 'expo-router';
 import { View, Text } from 'react-native'
-import Entypo from '@expo/vector-icons/Entypo';
-import FontAwesome from '@expo/vector-icons/FontAwesome';
-import Ionicons from '@expo/vector-icons/Ionicons';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 const TabsLayout = () => {
   return (
@@ -29,7 +27,20 @@ const TabsLayout = () => {
           headerShown: false,
           tabBarIcon: ({ color, focused }) => (
             <View className='items-center justify-center w-48 h-48'>
-              <Entypo name="home" size={focused ? 36 : 24} color={color} />
+              <MaterialCommunityIcons name="home-variant" size={focused ? 36 : 24} color={color} />
+            </View>
+          )
+        }}
+      />
+
+      <Tabs.Screen
+        name='farm'
+        options={{
+          title: "Farm",
+          headerShown: false,
+          tabBarIcon: ({ color, focused }) => (
+            <View className='items-center justify-center w-48 h-48'>
+              <MaterialCommunityIcons name="tree" size={focused ? 36 : 24} color={color} />
             </View>
           )
         }}
@@ -42,7 +53,7 @@ const TabsLayout = () => {
           headerShown: false,
           tabBarIcon: ({ color, focused }) => (
             <View className='items-center justify-center w-48 h-48'>
-              <FontAwesome name="history" size={focused ? 36 : 24} color={color} />
+              <MaterialCommunityIcons name="clock-outline" size={focused ? 36 : 24} color={color} />
             </View>
           )
         }}
@@ -55,7 +66,7 @@ const TabsLayout = () => {
           headerShown: false,
           tabBarIcon: ({ color, focused }) => (
             <View className='items-center justify-center w-48 h-48'>
-              <Ionicons name="settings-sharp" size={focused ? 36 : 24} color={color} />
+              <MaterialCommunityIcons name="cog" size={focused ? 36 : 24} color={color} />
             </View>
           )
         }}
