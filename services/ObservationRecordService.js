@@ -25,7 +25,25 @@ export const initObservationsTable = async () => {
       )
     `);
     
-    console.log('Observations table created successfully');
+    // Check if picture_uri column exists, if not add it
+    try {
+      // First check if the column exists
+      const tableInfo = await db.getAllAsync("PRAGMA table_info(observations)");
+      const pictureUriColumnExists = tableInfo.some(column => column.name === 'picture_uri');
+      
+      if (!pictureUriColumnExists) {
+        console.log('Adding picture_uri column to observations table');
+        await db.execAsync(`
+          ALTER TABLE observations 
+          ADD COLUMN picture_uri TEXT
+        `);
+      }
+    } catch (error) {
+      console.error('Error checking/adding picture_uri column:', error);
+      // Continue execution even if this fails
+    }
+    
+    console.log('Observations table created/updated successfully');
   } catch (error) {
     console.error('Error initializing observations table:', error);
     throw error;
@@ -75,7 +93,8 @@ export const saveObservation = async (observation) => {
       identifier, 
       detection, 
       severity, 
-      notes 
+      notes,
+      picture_uri
     } = observation;
     
     // Ensure IDs are numbers
@@ -85,15 +104,16 @@ export const saveObservation = async (observation) => {
     // Insert the new observation
     const result = await db.runAsync(
       `INSERT INTO observations 
-       (farm_id, observation_point_id, identifier, detection, severity, notes)
-       VALUES (?, ?, ?, ?, ?, ?)`,
+       (farm_id, observation_point_id, identifier, detection, severity, notes, picture_uri)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [
         farmId,
         pointId,
         identifier || '',
         detection ? 1 : 0,
         severity || 0,
-        notes || ''
+        notes || '',
+        picture_uri || null
       ]
     );
 
@@ -103,12 +123,12 @@ export const saveObservation = async (observation) => {
       [result.lastInsertRowId]
     );
 
-    // Update the observation_status in the observation_points table to "Completed"
+    // Update the observation_status and observation_id in the observation_points table
     await db.runAsync(
       `UPDATE observation_points 
-       SET observation_status = 'Completed' 
+       SET observation_status = 'Completed', observation_id = ? 
        WHERE id = ?`,
-      [pointId]
+      [result.lastInsertRowId, pointId]
     );
 
     return savedObservation[0];

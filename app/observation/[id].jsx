@@ -14,7 +14,7 @@ import Slider from '@react-native-community/slider';
 import { useLocalSearchParams, router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
-import { PageHeader, CustomButton } from '@/components';
+import { PageHeader, CustomButton, ObservationPhotoCapture } from '@/components';
 import { updateObservationPoint, getObservationPoints } from '@/services/ObservationService';
 import { getFarms } from '@/services/BoundaryService';
 import { saveObservation, getLatestObservation } from '@/services/ObservationRecordService';
@@ -32,6 +32,7 @@ const ObservationDetailsScreen = () => {
   const [notes, setNotes] = useState('');
   const [existingObservation, setExistingObservation] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [pictureUri, setPictureUri] = useState(null);
 
   useEffect(() => {
     loadObservationDetails();
@@ -49,6 +50,7 @@ const ObservationDetailsScreen = () => {
         setDetection(latestObservation.detection === 1);
         setSeverity(latestObservation.severity || 0);
         setNotes(latestObservation.notes || '');
+        setPictureUri(latestObservation.picture_uri || null);
       }
     } catch (error) {
       console.error('Error loading existing observation:', error);
@@ -138,7 +140,8 @@ const ObservationDetailsScreen = () => {
         identifier,
         detection: detection ? 1 : 0,
         severity: detection ? severity : 0,
-        notes
+        notes,
+        picture_uri: pictureUri
       };
       
       await saveObservation(observationData);
@@ -310,34 +313,41 @@ const ObservationDetailsScreen = () => {
               </View>
               
               {detection && (
-                <View style={styles.formGroup}>
-                  <Text style={styles.formLabel}>Severity: {getSeverityLabel(severity)} ({severity})</Text>
-                  <Slider
-                    style={styles.slider}
-                    minimumValue={0}
-                    maximumValue={10}
-                    step={1}
-                    value={severity}
-                    onValueChange={setSeverity}
-                    minimumTrackTintColor="#E9762B"
-                    maximumTrackTintColor="#d1d1d1"
-                    thumbTintColor="#E9762B"
-                  />
-                  <View style={styles.sliderLabels}>
-                    <Text style={styles.sliderLabel}>None</Text>
-                    <Text style={styles.sliderLabel}>Mild</Text>
-                    <Text style={styles.sliderLabel}>Moderate</Text>
-                    <Text style={styles.sliderLabel}>Severe</Text>
-                    <Text style={styles.sliderLabel}>Critical</Text>
+                <>
+                  <View style={styles.formGroup}>
+                    <Text style={styles.formLabel}>Severity: {getSeverityLabel(severity)} ({severity})</Text>
+                    <Slider
+                      style={styles.slider}
+                      minimumValue={0}
+                      maximumValue={10}
+                      step={1}
+                      value={severity}
+                      onValueChange={setSeverity}
+                      minimumTrackTintColor="#E9762B"
+                      maximumTrackTintColor="#d1d1d1"
+                      thumbTintColor="#E9762B"
+                    />
+                    <View style={styles.sliderLabels}>
+                      <Text style={styles.sliderLabel}>None</Text>
+                      <Text style={styles.sliderLabel}>Mild</Text>
+                      <Text style={styles.sliderLabel}>Moderate</Text>
+                      <Text style={styles.sliderLabel}>Severe</Text>
+                      <Text style={styles.sliderLabel}>Critical</Text>
+                    </View>
+                    <View style={styles.sliderValues}>
+                      <Text style={styles.sliderValue}>0</Text>
+                      <Text style={styles.sliderValue}>3</Text>
+                      <Text style={styles.sliderValue}>5</Text>
+                      <Text style={styles.sliderValue}>8</Text>
+                      <Text style={styles.sliderValue}>10</Text>
+                    </View>
                   </View>
-                  <View style={styles.sliderValues}>
-                    <Text style={styles.sliderValue}>0</Text>
-                    <Text style={styles.sliderValue}>3</Text>
-                    <Text style={styles.sliderValue}>5</Text>
-                    <Text style={styles.sliderValue}>8</Text>
-                    <Text style={styles.sliderValue}>10</Text>
+                  
+                  <View style={styles.formGroup}>
+                    <Text style={styles.formLabel}>Photo Evidence:</Text>
+                    <ObservationPhotoCapture onPhotoCapture={setPictureUri} />
                   </View>
-                </View>
+                </>
               )}
               
               <View style={styles.formGroup}>
