@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
   SafeAreaView,
   ScrollView,
@@ -8,6 +8,7 @@ import {
   FlatList,
   StyleSheet,
   TouchableOpacity,
+  Switch,
 } from "react-native";
 import * as Location from "expo-location";
 import { router, useLocalSearchParams } from "expo-router";
@@ -29,6 +30,7 @@ export default function UploadBoundaryScreen() {
   const { farmId } = useLocalSearchParams();
   const [farmData, setFarmData] = useState(null);
   const boundaryStore = useBoundaryStore();
+  const [drawOnMap, setDrawOnMap] = useState(false);
 
   useEffect(() => {
     const loadData = async () => {
@@ -99,24 +101,43 @@ export default function UploadBoundaryScreen() {
         <View style={styles.optionsContainer}>
           <Text style={styles.optionsTitle}>Choose how to add boundary points:</Text>
           
-          <PhotoCapture
-            photos={boundaryStore.photos}
-            onCapture={(newPhotos) => boundaryStore.setPhotos(newPhotos)}
-            title="Capture boundary points"
-            titleStyles="text-black"
-            farmId={farmId}
-          />
+          <View style={styles.toggleContainer}>
+            <Text style={styles.toggleLabel}>
+              {drawOnMap ? 'Draw on Map' : 'Photo Capture'}
+            </Text>
+            <View style={styles.toggleRow}>
+              <Text style={styles.toggleOption}>Photo Capture</Text>
+              <Switch
+                value={drawOnMap}
+                onValueChange={setDrawOnMap}
+                trackColor={{ false: '#E9762B', true: '#1B4D3E' }}
+                thumbColor={'#fff'}
+                ios_backgroundColor="#E9762B"
+              />
+              <Text style={styles.toggleOption}>Draw on Map</Text>
+            </View>
+          </View>
           
-          <TouchableOpacity 
-            style={styles.mapButton}
-            onPress={() => router.push({
-              pathname: "/draw-map",
-              params: { farmId }
-            })}
-          >
-            <Feather name="map" size={24} color="#fff" style={styles.mapButtonIcon} />
-            <Text style={styles.mapButtonText}>Points from map</Text>
-          </TouchableOpacity>
+          {!drawOnMap ? (
+            <PhotoCapture
+              photos={boundaryStore.photos}
+              onCapture={(newPhotos) => boundaryStore.setPhotos(newPhotos)}
+              title="Capture boundary points"
+              titleStyles="text-black"
+              farmId={farmId}
+            />
+          ) : (
+            <TouchableOpacity 
+              style={styles.mapButton}
+              onPress={() => router.push({
+                pathname: "/draw-map",
+                params: { farmId }
+              })}
+            >
+              <Feather name="map" size={24} color="#fff" style={styles.mapButtonIcon} />
+              <Text style={styles.mapButtonText}>Open Map Drawing Tool</Text>
+            </TouchableOpacity>
+          )}
         </View>
       </View>
     </SafeAreaView>
@@ -163,6 +184,29 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     textAlign: "center",
     color: "#333",
+  },
+  toggleContainer: {
+    marginBottom: 20,
+    backgroundColor: '#f5f5f5',
+    borderRadius: 8,
+    padding: 16,
+    alignItems: 'center',
+  },
+  toggleLabel: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 12,
+  },
+  toggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  toggleOption: {
+    fontSize: 14,
+    color: '#555',
+    marginHorizontal: 8,
   },
   mapButton: {
     flexDirection: "row",

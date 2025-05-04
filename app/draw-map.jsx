@@ -14,7 +14,7 @@ import { Feather } from '@expo/vector-icons';
 import MapView, { Marker, Polygon } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { PageHeader, CustomButton } from '@/components';
-import { getFarms, saveBoundaryData } from '@/services/BoundaryService';
+import { getFarms, saveBoundaryData, deleteAllBoundaryPoints } from '@/services/BoundaryService';
 import useBoundaryStore from '@/store/boundaryStore';
 
 const DrawMapScreen = () => {
@@ -163,7 +163,7 @@ const DrawMapScreen = () => {
   const handleClear = () => {
     Alert.alert(
       'Confirm Clear',
-      'Are you sure you want to clear all boundary points?',
+      'Are you sure you want to clear all boundary points? This will delete them from the database.',
       [
         {
           text: 'Cancel',
@@ -172,7 +172,23 @@ const DrawMapScreen = () => {
         {
           text: 'Clear',
           style: 'destructive',
-          onPress: () => setMarkers([])
+          onPress: async () => {
+            try {
+              // Clear markers from state
+              setMarkers([]);
+              
+              // Delete boundary points from database
+              await deleteAllBoundaryPoints(farmId);
+              
+              // Clear boundary store
+              boundaryStore.setPhotos([]);
+              
+              Alert.alert('Success', 'All boundary points have been cleared');
+            } catch (error) {
+              console.error('Error clearing boundary points:', error);
+              Alert.alert('Error', 'Failed to clear boundary points from database');
+            }
+          }
         }
       ]
     );
