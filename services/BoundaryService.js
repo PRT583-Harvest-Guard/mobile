@@ -61,6 +61,7 @@ export const createFarm = async (farmData) => {
   }
 };
 
+
 export const getFarms = async () => {
   if (!db) await initBoundaryTable();
   
@@ -234,27 +235,62 @@ export const getBoundaryData = async (farmId) => {
   }
 };
 
+/**
+ * Delete a farm and all associated data
+ * @param {number} farmId - Farm ID
+ * @returns {Promise<boolean>} - Success status
+ */
 export const deleteFarm = async (farmId) => {
   if (!db) await initBoundaryTable();
   
   try {
+    // Ensure farmId is a number
+    const farmIdNum = Number(farmId);
+    
     // First, verify the farm exists
     const existingFarm = await db.getAllAsync(
       'SELECT * FROM farms WHERE id = ?',
-      [farmId]
+      [farmIdNum]
     );
     
     if (!existingFarm || existingFarm.length === 0) {
       throw new Error('No farm found with the given ID');
     }
     
+    // Begin transaction
+    await db.execAsync('BEGIN TRANSACTION');
+    
+    // Delete all boundary points for this farm
+    await db.runAsync(
+      'DELETE FROM boundary_points WHERE farm_id = ?',
+      [farmIdNum]
+    );
+    
+    // Delete all observation points for this farm
+    // This will cascade to delete all observations due to the foreign key constraint
+    await db.runAsync(
+      'DELETE FROM observation_points WHERE farm_id = ?',
+      [farmIdNum]
+    );
+    
     // Delete the farm
-    await db.execAsync('DELETE FROM farms WHERE id = ?', [farmId]);
+    await db.runAsync(
+      'DELETE FROM farms WHERE id = ?',
+      [farmIdNum]
+    );
     
-    // Boundary points will be automatically deleted due to ON DELETE CASCADE
+    // Commit transaction
+    await db.execAsync('COMMIT');
     
+    console.log(`Farm ${farmIdNum} and all associated data deleted successfully`);
     return true;
   } catch (error) {
+    // Rollback transaction on error
+    try {
+      await db.execAsync('ROLLBACK');
+    } catch (rollbackError) {
+      console.error('Error during rollback:', rollbackError);
+    }
     console.error('Error deleting farm:', error);
     throw new Error(`Failed to delete farm: ${error.message}`);
   }

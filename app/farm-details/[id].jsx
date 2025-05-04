@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, Alert, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Alert, ActivityIndicator, TouchableOpacity, Modal } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
-import { getFarms, getBoundaryData } from '@/services/BoundaryService';
+import { getFarms, getBoundaryData, deleteFarm } from '@/services/BoundaryService';
+import { isFeatureEnabled } from '@/services/FeatureFlagService';
 import { getOrGenerateObservationPoints, saveObservationPoints } from '@/services/ObservationService';
 import { CustomButton, PageHeader, BoundaryMap, MapSections } from '@/components';
 
@@ -14,6 +15,9 @@ const FarmDetailsScreen = () => {
   const [loading, setLoading] = useState(true);
   const [markers, setMarkers] = useState([]);
   const [observationPoints, setObservationPoints] = useState([]);
+  const [deleteEnabled, setDeleteEnabled] = useState(false);
+  const [deleteConfirmVisible, setDeleteConfirmVisible] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
 
   // Sample boundary points in case the API doesn't return any
@@ -67,7 +71,17 @@ const FarmDetailsScreen = () => {
   useEffect(() => {
     loadFarmDetails();
     loadObservationPoints();
+    checkDeleteFeatureFlag();
   }, [id]);
+  
+  const checkDeleteFeatureFlag = async () => {
+    try {
+      const enabled = await isFeatureEnabled('delete_farm');
+      setDeleteEnabled(enabled);
+    } catch (error) {
+      console.error('Error checking delete farm feature flag:', error);
+    }
+  };
 
   const loadObservationPoints = async () => {
     try {
@@ -200,15 +214,60 @@ const FarmDetailsScreen = () => {
     );
   }
 
+  const handleDeleteFarm = async () => {
+    try {
+      setDeleting(true);
+      
+      if (!farm || !farm.id) {
+        Alert.alert('Error', 'Farm not found');
+        return;
+      }
+      
+      // Delete the farm and all associated data
+      await deleteFarm(farm.id);
+      
+      // Close the modal
+      setDeleteConfirmVisible(false);
+      
+      // Show success message
+      Alert.alert(
+        'Success',
+        'Farm deleted successfully',
+        [
+          {
+            text: 'OK',
+            onPress: () => router.replace('/(tabs)/home')
+          }
+        ]
+      );
+    } catch (error) {
+      console.error('Error deleting farm:', error);
+      Alert.alert('Error', 'Failed to delete farm');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <PageHeader title="Farm Details" />
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.card}>
           <Text style={styles.farmName}>{farm.name}</Text>
-          <TouchableOpacity onPress={handleEditFarm} style={styles.editButton}>
-            <Feather name="edit" size={24} color="#E9762B" />
-          </TouchableOpacity>
+          <View style={styles.buttonContainer}>
+            <TouchableOpacity onPress={handleEditFarm} style={styles.editButton}>
+              <Feather name="edit" size={24} color="#E9762B" />
+            </TouchableOpacity>
+            
+            {deleteEnabled && (
+              <TouchableOpacity 
+                onPress={() => setDeleteConfirmVisible(true)} 
+                style={styles.deleteButton}
+              >
+                <Feather name="trash-2" size={24} color="#ff4444" />
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
 
         <View style={styles.card}>
@@ -252,6 +311,54 @@ const FarmDetailsScreen = () => {
         <MapSections markers={observationPoints.length > 0 ? observationPoints : (markers.length > 0 ? markers : [])} />
         </View>
       </ScrollView>
+      
+      {/* Delete Confirmation Modal */}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={deleteConfirmVisible}
+        onRequestClose={() => setDeleteConfirmVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Delete Farm</Text>
+            </View>
+            
+            <View style={styles.modalBody}>
+              <Feather name="alert-triangle" size={48} color="#ff4444" style={styles.warningIcon} />
+              <Text style={styles.warningText}>
+                Are you sure you want to delete this farm?
+              </Text>
+              <Text style={styles.warningSubtext}>
+                This will permanently delete all farm data, including boundaries, observation points, and observations. This action cannot be undone.
+              </Text>
+            </View>
+            
+            <View style={styles.modalFooter}>
+              <TouchableOpacity 
+                style={styles.cancelButton}
+                onPress={() => setDeleteConfirmVisible(false)}
+                disabled={deleting}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={styles.deleteConfirmButton}
+                onPress={handleDeleteFarm}
+                disabled={deleting}
+              >
+                {deleting ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Text style={styles.deleteConfirmButtonText}>Delete</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -280,10 +387,17 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#333',
   },
-  editButton: {
+  buttonContainer: {
     position: 'absolute',
     top: 16,
     right: 16,
+    flexDirection: 'row',
+  },
+  editButton: {
+    padding: 8,
+    marginRight: 8,
+  },
+  deleteButton: {
     padding: 8,
   },
   sectionHeader: {
@@ -355,6 +469,84 @@ const styles = StyleSheet.create({
   button: {
     marginTop: 16,
     width: 200,
+  },
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    width: '100%',
+    maxWidth: 400,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  modalHeader: {
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  modalBody: {
+    padding: 16,
+    alignItems: 'center',
+  },
+  warningIcon: {
+    marginBottom: 16,
+  },
+  warningText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  warningSubtext: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+  },
+  modalFooter: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    padding: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#eee',
+  },
+  cancelButton: {
+    backgroundColor: '#f0f0f0',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    marginRight: 8,
+  },
+  cancelButtonText: {
+    color: '#666',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  deleteConfirmButton: {
+    backgroundColor: '#ff4444',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+  },
+  deleteConfirmButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
 
