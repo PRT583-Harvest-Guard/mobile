@@ -98,7 +98,7 @@ const Settings = () => {
             "map", 
             "Edit Property Border", 
             "Update your farm boundaries", 
-            () => router.push("/(auth)/upload-photos")
+            () => router.push("/(tabs)/farm")
           )}
           
           {renderSettingItem(
