@@ -11,7 +11,7 @@ import {
   Switch,
 } from "react-native";
 import * as Location from "expo-location";
-import { router, useLocalSearchParams } from "expo-router";
+import { router, useLocalSearchParams, Link } from "expo-router";
 import {
   getBoundaryData,
   saveBoundaryPoint,
@@ -75,13 +75,34 @@ export default function UploadBoundaryScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <PageHeader
-        title={farmData ? `Boundary: ${farmData.name}` : "Upload Boundary Photos"}
-        textColor="black"
-        showBackButton={true}
-        handleBackPress={() => router.back()}
-        backButtonColor="#1B4D3E"
-      />
+      <View style={styles.headerContainer}>
+        <PageHeader
+          title={farmData ? `Boundary: ${farmData.name}` : "Upload Boundary Photos"}
+          textColor="white"
+          showBackButton={true}
+          handleBackPress={() => router.back()}
+          backButtonColor="white"
+        />
+      </View>
+      
+      <View style={styles.breadcrumbContainer}>
+        <Link href="/(tabs)/home" style={styles.breadcrumbLink}>
+          <Text style={styles.breadcrumbText}>Home</Text>
+        </Link>
+        <Text style={styles.breadcrumbSeparator}> &gt; </Text>
+        
+        <Link href="/(tabs)/farm" style={styles.breadcrumbLink}>
+          <Text style={styles.breadcrumbText}>Farm</Text>
+        </Link>
+        <Text style={styles.breadcrumbSeparator}> &gt; </Text>
+        
+        <Link href={`/farm-details/${farmId}`} style={styles.breadcrumbLink}>
+          <Text style={styles.breadcrumbText}>Farm Details</Text>
+        </Link>
+        <Text style={styles.breadcrumbSeparator}> &gt; </Text>
+        
+        <Text style={styles.breadcrumbActiveText}>Upload Boundary</Text>
+      </View>
 
       <View style={styles.content}>
         {farmData && (
@@ -148,6 +169,47 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: "white",
+  },
+  headerContainer: {
+    backgroundColor: '#1B4D3E',
+    paddingVertical: 16,
+    paddingHorizontal: 8,
+    borderBottomLeftRadius: 15,
+    borderBottomRightRadius: 15,
+    marginBottom: 0,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  breadcrumbContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#f5f5f5',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+    flexWrap: 'wrap',
+  },
+  breadcrumbLink: {
+    marginRight: 4,
+  },
+  breadcrumbText: {
+    fontSize: 14,
+    color: '#1B4D3E',
+    fontWeight: '500',
+  },
+  breadcrumbSeparator: {
+    fontSize: 14,
+    color: '#999',
+    marginRight: 4,
+  },
+  breadcrumbActiveText: {
+    fontSize: 14,
+    color: '#E9762B',
+    fontWeight: 'bold',
   },
   content: {
     flex: 1,

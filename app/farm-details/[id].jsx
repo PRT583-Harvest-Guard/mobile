@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, Alert, ActivityIndicator, TouchableOpacity, Modal } from 'react-native';
-import { useLocalSearchParams, router } from 'expo-router';
+import { useLocalSearchParams, router, Link } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { getFarms, getBoundaryData, deleteFarm } from '@/services/BoundaryService';
@@ -141,7 +141,9 @@ const FarmDetailsScreen = () => {
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
-        <PageHeader title="Farm Details" />
+        <View style={styles.headerContainer}>
+          <PageHeader title="Farm Details" textColor="white" />
+        </View>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#E9762B" />
           <Text style={styles.loadingText}>Loading farm details...</Text>
@@ -153,7 +155,9 @@ const FarmDetailsScreen = () => {
   if (!farm) {
     return (
       <SafeAreaView style={styles.container}>
-        <PageHeader title="Farm Details" />
+        <View style={styles.headerContainer}>
+          <PageHeader title="Farm Details" textColor="white" />
+        </View>
         <View style={styles.errorContainer}>
           <Feather name="alert-circle" size={48} color="#ff4444" />
           <Text style={styles.errorText}>Farm not found</Text>
@@ -203,7 +207,24 @@ const FarmDetailsScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <PageHeader title="Farm Details" />
+      <View style={styles.headerContainer}>
+        <PageHeader title="Farm Details" textColor="white" />
+      </View>
+      
+      <View style={styles.breadcrumbContainer}>
+        <Link href="/(tabs)/home" style={styles.breadcrumbLink}>
+          <Text style={styles.breadcrumbText}>Home</Text>
+        </Link>
+        <Text style={styles.breadcrumbSeparator}> &gt; </Text>
+        
+        <Link href="/(tabs)/farm" style={styles.breadcrumbLink}>
+          <Text style={styles.breadcrumbText}>Farm</Text>
+        </Link>
+        <Text style={styles.breadcrumbSeparator}> &gt; </Text>
+        
+        <Text style={styles.breadcrumbActiveText}>Farm Details</Text>
+      </View>
+      
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.card}>
           <Text style={styles.farmName}>{farm.name}</Text>
@@ -320,6 +341,47 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
+  },
+  headerContainer: {
+    backgroundColor: '#1B4D3E',
+    paddingVertical: 16,
+    paddingHorizontal: 8,
+    borderBottomLeftRadius: 15,
+    borderBottomRightRadius: 15,
+    marginBottom: 0,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  breadcrumbContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#f5f5f5',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+    flexWrap: 'wrap',
+  },
+  breadcrumbLink: {
+    marginRight: 4,
+  },
+  breadcrumbText: {
+    fontSize: 14,
+    color: '#1B4D3E',
+    fontWeight: '500',
+  },
+  breadcrumbSeparator: {
+    fontSize: 14,
+    color: '#999',
+    marginRight: 4,
+  },
+  breadcrumbActiveText: {
+    fontSize: 14,
+    color: '#E9762B',
+    fontWeight: 'bold',
   },
   scrollContent: {
     padding: 16,
