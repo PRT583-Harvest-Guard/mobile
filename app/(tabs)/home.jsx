@@ -6,7 +6,9 @@ import {
   ActivityIndicator, 
   TouchableOpacity, 
   ScrollView,
-  StyleSheet
+  StyleSheet,
+  Modal,
+  Linking
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
@@ -20,6 +22,7 @@ const Home = () => {
   const [profile, setProfile] = useState(null);
   const [farms, setFarms] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [supportModalVisible, setSupportModalVisible] = useState(false);
   
   // Mock upcoming inspections
   const upcomingInspections = [
@@ -183,13 +186,96 @@ const Home = () => {
           
           <TouchableOpacity 
             style={[styles.actionButton, styles.tertiaryButton]}
-            onPress={() => {}}
+            onPress={() => setSupportModalVisible(true)}
           >
             <Feather name="help-circle" size={24} color="#fff" style={styles.actionIcon} />
             <Text style={styles.actionText}>Support</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
+      
+      {/* Support Modal */}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={supportModalVisible}
+        onRequestClose={() => setSupportModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Contact Support</Text>
+              <TouchableOpacity 
+                onPress={() => setSupportModalVisible(false)}
+                hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
+              >
+                <Feather name="x" size={24} color="#333" />
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.modalBody}>
+              <Image 
+                source={iconPrimary}
+                style={styles.supportLogo}
+                resizeMode="contain"
+              />
+              
+              <Text style={styles.supportText}>
+                Need help with Harvest Guard? Our support team is ready to assist you.
+              </Text>
+              
+              <TouchableOpacity 
+                style={styles.contactItem}
+                onPress={() => Linking.openURL('mailto:support@harvestguard.com')}
+              >
+                <View style={styles.contactIconContainer}>
+                  <Feather name="mail" size={20} color="#1B4D3E" />
+                </View>
+                <View style={styles.contactTextContainer}>
+                  <Text style={styles.contactLabel}>Email</Text>
+                  <Text style={styles.contactValue}>support@harvestguard.com</Text>
+                </View>
+                <Feather name="external-link" size={16} color="#999" />
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={styles.contactItem}
+                onPress={() => Linking.openURL('tel:+61234567890')}
+              >
+                <View style={styles.contactIconContainer}>
+                  <Feather name="phone" size={20} color="#1B4D3E" />
+                </View>
+                <View style={styles.contactTextContainer}>
+                  <Text style={styles.contactLabel}>Phone</Text>
+                  <Text style={styles.contactValue}>+61 2 3456 7890</Text>
+                </View>
+                <Feather name="external-link" size={16} color="#999" />
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={styles.contactItem}
+                onPress={() => Linking.openURL('https://harvestguard.com/support')}
+              >
+                <View style={styles.contactIconContainer}>
+                  <Feather name="globe" size={20} color="#1B4D3E" />
+                </View>
+                <View style={styles.contactTextContainer}>
+                  <Text style={styles.contactLabel}>Support Center</Text>
+                  <Text style={styles.contactValue}>harvestguard.com/support</Text>
+                </View>
+                <Feather name="external-link" size={16} color="#999" />
+              </TouchableOpacity>
+            </View>
+            
+            <TouchableOpacity 
+              style={styles.closeButton}
+              onPress={() => setSupportModalVisible(false)}
+            >
+              <Text style={styles.closeButtonText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -365,6 +451,98 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     color: '#fff',
+    fontFamily: 'Poppins-Bold',
+  },
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    width: '100%',
+    maxWidth: 400,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+    overflow: 'hidden',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
+    fontFamily: 'Poppins-Bold',
+  },
+  modalBody: {
+    padding: 20,
+    alignItems: 'center',
+  },
+  supportLogo: {
+    width: 80,
+    height: 80,
+    marginBottom: 16,
+  },
+  supportText: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 24,
+    fontFamily: 'Poppins-Regular',
+  },
+  contactItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f9f9f9',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    width: '100%',
+  },
+  contactIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#e6f0ed',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  contactTextContainer: {
+    flex: 1,
+  },
+  contactLabel: {
+    fontSize: 14,
+    color: '#666',
+    fontFamily: 'Poppins-Regular',
+  },
+  contactValue: {
+    fontSize: 16,
+    color: '#333',
+    fontFamily: 'Poppins-Medium',
+  },
+  closeButton: {
+    backgroundColor: '#1B4D3E',
+    padding: 16,
+    alignItems: 'center',
+  },
+  closeButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
     fontFamily: 'Poppins-Bold',
   },
 });
