@@ -106,12 +106,29 @@ const Home = () => {
                 {loading ? 'Loading...' : getUserName()}
               </Text>
               
-              {primaryFarm && (
-                <View style={styles.farmInfo}>
+              {primaryFarm ? (
+                <TouchableOpacity 
+                  style={styles.farmInfo}
+                  onPress={() => router.push(`/farm-details/${primaryFarm.id}`)}
+                  activeOpacity={0.7}
+                >
+                  <Feather name="map-pin" size={12} color="#0066cc" style={styles.farmIcon} />
                   <Text style={styles.farmInfoText}>
                     Crop: {primaryFarm.plant_type || 'Not specified'} | Size: {primaryFarm.size || '0'} ha
                   </Text>
-                </View>
+                  <Feather name="chevron-right" size={12} color="#0066cc" style={styles.farmArrow} />
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity 
+                  style={[styles.farmInfo, styles.addFarmButton]}
+                  onPress={() => router.push('/(tabs)/farm')}
+                  activeOpacity={0.7}
+                >
+                  <Feather name="plus-circle" size={12} color="#E9762B" style={styles.farmIcon} />
+                  <Text style={[styles.farmInfoText, styles.addFarmText]}>
+                    Add Farm
+                  </Text>
+                </TouchableOpacity>
               )}
             </View>
           </View>
@@ -224,15 +241,32 @@ const styles = StyleSheet.create({
   },
   farmInfo: {
     backgroundColor: '#f0f8ff',
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    borderRadius: 4,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 6,
     alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#e0f0ff',
   },
   farmInfoText: {
     fontSize: 12,
     color: '#0066cc',
     fontFamily: 'Poppins-Medium',
+  },
+  farmIcon: {
+    marginRight: 4,
+  },
+  farmArrow: {
+    marginLeft: 4,
+  },
+  addFarmButton: {
+    backgroundColor: '#fff8f0',
+    borderColor: '#ffe0c0',
+  },
+  addFarmText: {
+    color: '#E9762B',
   },
   heroSection: {
     backgroundColor: '#fff',
