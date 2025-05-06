@@ -256,7 +256,7 @@ export default function BoundaryMap({
       ref={mapRef}
       provider={PROVIDER_GOOGLE}
       style={[styles.map, style]}
-      initialRegion={region}
+      region={region}
     >
       {/* Outer boundary */}
       <Polygon

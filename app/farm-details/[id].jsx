@@ -302,7 +302,17 @@ const FarmDetailsScreen = () => {
           )}
         </View>
         <View style={styles.card}>
-        <MapSections markers={observationPoints.length > 0 ? observationPoints : (markers.length > 0 ? markers : [])} />
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Observation Points</Text>
+            <TouchableOpacity
+              style={styles.refreshButton}
+              onPress={loadObservationPoints}
+            >
+              <Feather name="refresh-cw" size={14} color="#E9762B" />
+              <Text style={styles.refreshButtonText}>Refresh</Text>
+            </TouchableOpacity>
+          </View>
+          <MapSections markers={observationPoints.length > 0 ? observationPoints : (markers.length > 0 ? markers : [])} />
         </View>
       </ScrollView>
       
@@ -457,6 +467,22 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(233, 118, 43, 0.3)',
   },
   boundaryButtonText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#E9762B',
+    marginLeft: 4,
+  },
+  refreshButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(233, 118, 43, 0.1)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(233, 118, 43, 0.3)',
+  },
+  refreshButtonText: {
     fontSize: 12,
     fontWeight: 'bold',
     color: '#E9762B',
