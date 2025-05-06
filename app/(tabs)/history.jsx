@@ -242,7 +242,19 @@ function History() {
   useFocusEffect(
     React.useCallback(() => {
       console.log('History screen focused, reloading data...');
+      
+      // Reset all state to ensure fresh data
+      setUnfinishedList([]);
+      setFinishedList([]);
+      setFarms([]);
+      setSelectedFarm(null);
+      setFarmObservationPoints([]);
+      setShowFarmObservations(false);
+      setLoading(true);
+      
+      // Load all data from scratch
       loadData();
+      
       return () => {
         // Cleanup function when screen goes out of focus
         console.log('History screen unfocused');
