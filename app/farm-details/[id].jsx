@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, Alert, ActivityIndicator, TouchableOpacity, Modal } from 'react-native';
-import { useLocalSearchParams, router, Link } from 'expo-router';
+import { useLocalSearchParams, router, Link, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { getFarms, getBoundaryData, deleteFarm } from '@/services/BoundaryService';
@@ -20,12 +20,35 @@ const FarmDetailsScreen = () => {
   const [deleting, setDeleting] = useState(false);
 
 
-  // State for farm details and boundary points
+  // Load data when the component mounts
   useEffect(() => {
     loadFarmDetails();
     loadObservationPoints();
     checkDeleteFeatureFlag();
   }, [id]);
+  
+  // Also load data when the screen comes into focus
+  useFocusEffect(
+    React.useCallback(() => {
+      console.log('Farm details screen focused, reloading data...');
+      
+      // Reset all state to ensure fresh data
+      setFarm(null);
+      setBoundaryPoints([]);
+      setMarkers([]);
+      setObservationPoints([]);
+      
+      // Load all data from scratch
+      loadFarmDetails();
+      loadObservationPoints();
+      checkDeleteFeatureFlag();
+      
+      return () => {
+        // Cleanup function when screen goes out of focus
+        console.log('Farm details screen unfocused');
+      };
+    }, [id])
+  );
   
   const checkDeleteFeatureFlag = async () => {
     try {
@@ -73,9 +96,6 @@ const FarmDetailsScreen = () => {
         typeof point.latitude === 'number' && !isNaN(point.latitude) && 
         typeof point.longitude === 'number' && !isNaN(point.longitude)
       );
-      
-      console.log('All boundary points:', points);
-      console.log('Valid boundary points:', validPoints);
       
       if (validPoints.length !== points.length) {
         console.warn(`Found ${points.length - validPoints.length} invalid boundary points`);

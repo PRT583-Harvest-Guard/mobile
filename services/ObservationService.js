@@ -473,7 +473,21 @@ export const getOrGenerateObservationPoints = async (farmId, numSegments = 6) =>
     const boundaryPoints = await getBoundaryData(farmIdNum);
     
     if (!boundaryPoints || boundaryPoints.length < 3) {
-      console.error('Not enough boundary points to generate observation points');
+      // Import Alert from react-native
+      const { Alert } = require('react-native');
+      
+      // Show a popup alert
+      Alert.alert(
+        "Boundary Points Required",
+        "Not enough boundary points to generate observation points. Please add at least 3 boundary points to the farm.",
+        [
+          {
+            text: "OK",
+            style: "default"
+          }
+        ]
+      );
+      
       return [];
     }
     

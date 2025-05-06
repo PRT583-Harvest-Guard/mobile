@@ -79,7 +79,7 @@ export default function BoundaryMap({
         bounds: { minX, minY, maxX, maxY }
       };
     } catch (error) {
-      console.error('Error creating polygon:', error);
+      // Silently handle the error
       return { coords: [], region: null, turfPoly: null, bounds: null };
     }
   }, [points]);
@@ -118,7 +118,7 @@ export default function BoundaryMap({
             coords.map(([lng, lat]) => ({ latitude: lat, longitude: lng }))
           );
         } catch (error) {
-          console.error('Error clipping segment:', error);
+          // Silently handle the error
           continue;
         }
       }
@@ -203,7 +203,7 @@ export default function BoundaryMap({
               }
             }
           } catch (error) {
-            console.error('Error generating point for segment:', error);
+            // Silently handle the error
             continue;
           }
         }
@@ -224,7 +224,7 @@ export default function BoundaryMap({
 
       return { segments: segs, markers: pts };
     } catch (error) {
-      console.error('Error generating segments and markers:', error);
+      // Silently handle the error
       return { segments: [], markers: [] };
     }
   }, [turfPoly, bounds, numSegments, observationPoints, onMarkerUpdated]);
