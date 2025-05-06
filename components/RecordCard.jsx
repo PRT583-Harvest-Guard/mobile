@@ -45,8 +45,8 @@ const RecordCard = ({
       ]}
       activeOpacity={0.8}
       onPress={() => {
-        // Navigate to inspection details if needed
-        // router.push(`/inspection/${id}`);
+        // Navigate to observation details page
+        router.push(`/observation/${id}`);
       }}
     >
       <View style={styles.header}>
