@@ -41,7 +41,16 @@ const MapSections = ({ markers = [] }) => {
     }
   };
 
-  if (!markers.length) {
+  // Ensure markers is an array and filter out invalid markers
+  const validMarkers = Array.isArray(markers) 
+    ? markers.filter(m => 
+        m && 
+        typeof m.latitude === 'number' && !isNaN(m.latitude) && 
+        typeof m.longitude === 'number' && !isNaN(m.longitude)
+      )
+    : [];
+
+  if (!validMarkers.length) {
     return (
       <View style={styles.emptyContainer}>
         <Text style={styles.emptyText}>No section markers to display.</Text>
@@ -51,34 +60,45 @@ const MapSections = ({ markers = [] }) => {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      {markers.map((m, idx) => {
-        const color = sectionColors[(m.segment - 1) % sectionColors.length];
-        // Support both database format (observation_status) and in-memory format (status)
-        const status = m.observation_status || m.status || 'Nil';
-        const sectionName = m.name || `Section ${m.segment}`;
-        return (
-          <TouchableOpacity 
-            key={idx} 
-            style={[
-              styles.card,
-              status === 'Completed' && styles.completedCard
-            ]}
-            onPress={() => handleSectionPress(m)}
-          >
-            <View style={[styles.colorBox, { backgroundColor: color }]} />
-            <View style={styles.textContainer}>
-              <Text style={styles.sectionText}>
-                {sectionName}: lat {m.latitude.toFixed(5)}, lon {m.longitude.toFixed(5)}
-              </Text>
-              <Text style={styles.statusText}>
-                Observation status: {status}
-              </Text>
-            </View>
-            <View style={styles.arrowContainer}>
-              <Text style={styles.arrowText}>›</Text>
-            </View>
-          </TouchableOpacity>
-        );
+      {validMarkers.map((m, idx) => {
+        try {
+          // Ensure segment is a number and default to 1 if not
+          const segment = typeof m.segment === 'number' ? m.segment : 1;
+          const color = sectionColors[(segment - 1) % sectionColors.length];
+          
+          // Support both database format (observation_status) and in-memory format (status)
+          const status = m.observation_status || m.status || 'Nil';
+          
+          // Ensure segment is a number for the section name
+          const sectionName = m.name || `Section ${segment}`;
+          
+          return (
+            <TouchableOpacity 
+              key={idx} 
+              style={[
+                styles.card,
+                status === 'Completed' && styles.completedCard
+              ]}
+              onPress={() => handleSectionPress(m)}
+            >
+              <View style={[styles.colorBox, { backgroundColor: color }]} />
+              <View style={styles.textContainer}>
+                <Text style={styles.sectionText}>
+                  {sectionName}: lat {m.latitude.toFixed(5)}, lon {m.longitude.toFixed(5)}
+                </Text>
+                <Text style={styles.statusText}>
+                  Observation status: {status}
+                </Text>
+              </View>
+              <View style={styles.arrowContainer}>
+                <Text style={styles.arrowText}>›</Text>
+              </View>
+            </TouchableOpacity>
+          );
+        } catch (error) {
+          console.error('Error rendering marker:', error, m);
+          return null; // Skip this marker if there's an error
+        }
       })}
     </ScrollView>
   );

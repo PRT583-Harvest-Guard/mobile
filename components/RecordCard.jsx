@@ -10,11 +10,39 @@ const RecordCard = ({
   confidenceLevel,
   inspectionSections,
   plantsPerSection,
-  otherStyles
+  otherStyles,
+  status
 }) => {
+  // Determine the background color based on status
+  const getBackgroundColor = () => {
+    if (status === 'completed') {
+      return '#e6f7e6'; // Light green for completed
+    } else if (status === 'pending') {
+      return '#f5f5f5'; // Light gray for pending
+    } else if (status === 'cancelled') {
+      return '#ffebee'; // Light red for cancelled
+    }
+    return '#1B4D3E'; // Default color
+  };
+  
+  // Determine the status text color
+  const getStatusTextColor = () => {
+    if (status === 'completed') {
+      return '#2e7d32'; // Dark green for completed
+    } else if (status === 'pending') {
+      return '#757575'; // Dark gray for pending
+    } else if (status === 'cancelled') {
+      return '#c62828'; // Dark red for cancelled
+    }
+    return '#E9762B'; // Default color
+  };
   return (
     <TouchableOpacity 
-      style={[styles.container, otherStyles && { marginBottom: 16 }]}
+      style={[
+        styles.container, 
+        otherStyles && { marginBottom: 16 },
+        status && { backgroundColor: getBackgroundColor() }
+      ]}
       activeOpacity={0.8}
       onPress={() => {
         // Navigate to inspection details if needed
@@ -22,33 +50,81 @@ const RecordCard = ({
       }}
     >
       <View style={styles.header}>
-        <Text style={styles.date}>{date}</Text>
-        <View style={styles.badge}>
+        <Text style={[styles.date, status && { color: getStatusTextColor() }]}>{date}</Text>
+        <View style={[styles.badge, status && { backgroundColor: getStatusTextColor() }]}>
           <Text style={styles.badgeText}>{category}</Text>
         </View>
       </View>
       
       <View style={styles.detailRow}>
         <View style={styles.detailItem}>
-          <Feather name="percent" size={16} color="#fff" style={styles.icon} />
-          <Text style={styles.detailText}>Confidence: {confidenceLevel}</Text>
+          <Feather 
+            name="percent" 
+            size={16} 
+            color={status ? getStatusTextColor() : "#fff"} 
+            style={styles.icon} 
+          />
+          <Text style={[
+            styles.detailText, 
+            status && { color: getStatusTextColor() }
+          ]}>
+            Confidence: {confidenceLevel}
+          </Text>
         </View>
+        
+        {status && (
+          <View style={styles.detailItem}>
+            <Feather 
+              name={status === 'completed' ? "check-circle" : status === 'pending' ? "clock" : "x-circle"} 
+              size={16} 
+              color={getStatusTextColor()} 
+              style={styles.icon} 
+            />
+            <Text style={[styles.detailText, { color: getStatusTextColor() }]}>
+              {status.charAt(0).toUpperCase() + status.slice(1)}
+            </Text>
+          </View>
+        )}
       </View>
       
       <View style={styles.detailRow}>
         <View style={styles.detailItem}>
-          <Feather name="grid" size={16} color="#fff" style={styles.icon} />
-          <Text style={styles.detailText}>Sections: {inspectionSections}</Text>
+          <Feather 
+            name="grid" 
+            size={16} 
+            color={status ? getStatusTextColor() : "#fff"} 
+            style={styles.icon} 
+          />
+          <Text style={[
+            styles.detailText, 
+            status && { color: getStatusTextColor() }
+          ]}>
+            Sections: {inspectionSections}
+          </Text>
         </View>
         
         <View style={styles.detailItem}>
-          <Feather name="layers" size={16} color="#fff" style={styles.icon} />
-          <Text style={styles.detailText}>Plants/Section: {plantsPerSection}</Text>
+          <Feather 
+            name="layers" 
+            size={16} 
+            color={status ? getStatusTextColor() : "#fff"} 
+            style={styles.icon} 
+          />
+          <Text style={[
+            styles.detailText, 
+            status && { color: getStatusTextColor() }
+          ]}>
+            Plants/Section: {plantsPerSection}
+          </Text>
         </View>
       </View>
       
       <View style={styles.footer}>
-        <Feather name="chevron-right" size={20} color="#E9762B" />
+        <Feather 
+          name="chevron-right" 
+          size={20} 
+          color={status ? getStatusTextColor() : "#E9762B"} 
+        />
       </View>
     </TouchableOpacity>
   );

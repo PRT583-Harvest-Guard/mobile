@@ -53,7 +53,7 @@ const TabsLayout = () => {
           headerShown: false,
           tabBarIcon: ({ color, focused }) => (
             <View className='items-center justify-center w-48 h-48'>
-              <MaterialCommunityIcons name="clock-outline" size={focused ? 36 : 24} color={color} />
+              <MaterialCommunityIcons name="history" size={focused ? 36 : 24} color={color} />
             </View>
           )
         }}

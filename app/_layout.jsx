@@ -3,6 +3,7 @@ import { Stack, SplashScreen } from "expo-router";
 import { useFonts } from "expo-font";
 import "../global.css"
 import GlobalProvider from "@/context/GlobalProvider";
+import "@/utils/bcryptSetup"; // Import bcrypt setup to fix Math.random warning
 
 SplashScreen.preventAutoHideAsync();
 

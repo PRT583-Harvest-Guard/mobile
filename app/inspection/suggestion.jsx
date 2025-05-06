@@ -15,6 +15,10 @@ import { Feather } from '@expo/vector-icons';
 import { PageHeader, CustomButton, FormField } from '@/components';
 import { Entities } from '@/constants/Entities';
 import { ConfidenceLevels } from '@/constants/ConfidenceLevels';
+import { 
+  initInspectionSuggestionTable, 
+  createInspectionSuggestionWithObservations 
+} from '@/services/InspectionSuggestionService';
 import { getFarms } from '@/services/BoundaryService';
 
 // Simple component for dropdown selection
@@ -85,7 +89,7 @@ const SimpleDropdown = ({ label, options, value, onSelect, disabled }) => {
   );
 };
 
-const Suggestion = () => {
+export default function Suggestion() {
   // Form state
   const [targetEntity, setTargetEntity] = useState('');
   const [confidenceLevel, setConfidenceLevel] = useState('');
@@ -113,6 +117,9 @@ const Suggestion = () => {
     const initialize = async () => {
       try {
         setIsLoading(true);
+        
+        // Initialize the tables
+        await initInspectionSuggestionTable();
         
         // Load farms for dropdown
         const farmsData = await getFarms();
@@ -157,9 +164,32 @@ const Suggestion = () => {
     setIsSubmitting(true);
     
     try {
-      // In a real app, we would save the data to the database here
+      // Extract the farm ID from the selected farm
+      const farmId = selectedFarm ? selectedFarm.id : null;
       
-      // For now, just navigate to the task page
+      if (!farmId) {
+        throw new Error('No farm selected');
+      }
+      
+      // Extract just the confidence percentage from the selected confidence level
+      const confidencePercentage = confidenceLevel.split(' - ')[0];
+      
+      // Create the suggestion data
+      const suggestionData = {
+        target_entity: targetEntity,
+        confidence_level: confidencePercentage,
+        property_location: farmId,
+        area_size: parseFloat(areaSize),
+        density_of_plant: parseInt(densityOfPlant, 10)
+      };
+      
+      // Create the suggestion and observations
+      const result = await createInspectionSuggestionWithObservations(suggestionData);
+      
+      console.log('Created suggestion with ID:', result.suggestionId);
+      console.log('Created observations:', result.observationIds);
+      
+      // Navigate to the task page
       router.push("/inspection/task");
     } catch (error) {
       console.error('Error submitting suggestion:', error);
@@ -470,5 +500,3 @@ const styles = StyleSheet.create({
     color: '#333',
   },
 });
-
-export default Suggestion;

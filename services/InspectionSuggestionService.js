@@ -4,6 +4,8 @@
  */
 import InspectionSuggestion from '@/models/InspectionSuggestion';
 import { getFarms } from '@/services/BoundaryService';
+import { createInspectionObservationsForFarm } from '@/services/InspectionObservationService';
+import { initInspectionObservationTable } from '@/services/InspectionObservationService';
 
 /**
  * Initialize the InspectionSuggestion table
@@ -12,6 +14,8 @@ import { getFarms } from '@/services/BoundaryService';
 export const initInspectionSuggestionTable = async () => {
   try {
     await InspectionSuggestion.initTable();
+    // Also initialize the InspectionObservation table
+    await initInspectionObservationTable();
   } catch (error) {
     console.error('Error initializing inspection suggestion table:', error);
     throw error;
@@ -29,6 +33,33 @@ export const createInspectionSuggestion = async (suggestionData) => {
     return await suggestion.save();
   } catch (error) {
     console.error('Error creating inspection suggestion:', error);
+    throw error;
+  }
+};
+
+/**
+ * Create a new inspection suggestion and create observations for all points in the farm
+ * @param {Object} suggestionData - The suggestion data
+ * @returns {Promise<Object>} Object containing the suggestion ID and observation IDs
+ */
+export const createInspectionSuggestionWithObservations = async (suggestionData) => {
+  try {
+    // Create the suggestion
+    const suggestionId = await createInspectionSuggestion(suggestionData);
+    
+    // Create observations for all points in the farm
+    const observationIds = await createInspectionObservationsForFarm(
+      suggestionId,
+      suggestionData.property_location,
+      suggestionData.confidence_level
+    );
+    
+    return {
+      suggestionId,
+      observationIds
+    };
+  } catch (error) {
+    console.error('Error creating inspection suggestion with observations:', error);
     throw error;
   }
 };

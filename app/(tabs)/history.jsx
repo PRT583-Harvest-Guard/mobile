@@ -11,66 +11,55 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { RecordCard, PageHeader } from '@/components';
 import { Feather } from '@expo/vector-icons';
 import { Link } from 'expo-router';
+import { 
+  getInspectionObservations,
+  getPendingInspectionObservations,
+  getCompletedInspectionObservations,
+  initInspectionObservationTable
+} from '@/services/InspectionObservationService';
 
-const allRecords = [
-  {
-    id: 1,
-    Date: "01/01/2025",
-    Category: "Pests",
-    ConfidenceLevel: "90%",
-    InspectionSections: 25,
-    InspectedPlantsPerSection: 20,
-    Finished: 0
-  }, {
-    id: 2,
-    Date: "01/01/2025",
-    Category: "Pests",
-    ConfidenceLevel: "90%",
-    InspectionSections: 25,
-    InspectedPlantsPerSection: 20,
-    Finished: 1
-  }, {
-    id: 3,
-    Date: "01/01/2025",
-    Category: "Pests",
-    ConfidenceLevel: "90%",
-    InspectionSections: 25,
-    InspectedPlantsPerSection: 20,
-    Finished: 1
-  }, {
-    id: 4,
-    Date: "01/01/2025",
-    Category: "Pests",
-    ConfidenceLevel: "90%",
-    InspectionSections: 25,
-    InspectedPlantsPerSection: 20,
-    Finished: 1
-  }, {
-    id: 5,
-    Date: "01/01/2025",
-    Category: "Pests",
-    ConfidenceLevel: "90%",
-    InspectionSections: 25,
-    InspectedPlantsPerSection: 20,
-    Finished: 1
-  }
-];
-
-const History = () => {
+function History() {
   const [unfinishedList, setUnfinishedList] = useState([]);
   const [finishedList, setFinishedList] = useState([]);
   const [isShowUnfinishedList, setIsShowUnfinishedList] = useState(true);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Simulate loading data
-    const timer = setTimeout(() => {
-      setUnfinishedList(allRecords.filter(item => item.Finished === 0));
-      setFinishedList(allRecords.filter(item => item.Finished === 1));
-      setLoading(false);
-    }, 500);
+    const loadData = async () => {
+      try {
+        setLoading(true);
+        
+        // Initialize the table if needed
+        await initInspectionObservationTable();
+        
+        // Load inspection observations
+        const pendingObservations = await getPendingInspectionObservations();
+        const completedObservations = await getCompletedInspectionObservations();
+        
+        // Format the data for display
+        const formatObservation = (observation) => ({
+          id: observation.id,
+          Date: new Date(observation.date).toLocaleDateString(),
+          Category: observation.target_entity || 'Unknown',
+          ConfidenceLevel: observation.confidence || 'Unknown',
+          InspectionSections: 1, // Each observation is one section
+          InspectedPlantsPerSection: observation.plant_per_section || 0,
+          Finished: observation.status === 'completed' ? 1 : 0,
+          FarmId: observation.farm_id,
+          Status: observation.status
+        });
+        
+        setUnfinishedList(pendingObservations.map(formatObservation));
+        setFinishedList(completedObservations.map(formatObservation));
+        
+        setLoading(false);
+      } catch (error) {
+        console.error('Error loading inspection observations:', error);
+        setLoading(false);
+      }
+    };
     
-    return () => clearTimeout(timer);
+    loadData();
   }, []);
 
   const renderEmptyList = () => (
@@ -152,7 +141,8 @@ const History = () => {
                 confidenceLevel={item.ConfidenceLevel}
                 inspectionSections={item.InspectionSections}
                 plantsPerSection={item.InspectedPlantsPerSection}
-                otherStyles="mb-4"
+                otherStyles={`mb-4 ${item.Finished ? 'bg-green-50' : 'bg-gray-50'}`}
+                status={item.Status}
               />
             )}
             showsVerticalScrollIndicator={false}
@@ -163,7 +153,7 @@ const History = () => {
       </View>
     </SafeAreaView>
   );
-};
+}
 
 const styles = StyleSheet.create({
   container: {
