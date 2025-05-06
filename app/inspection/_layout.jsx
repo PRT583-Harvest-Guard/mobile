@@ -4,7 +4,6 @@ import { Stack } from 'expo-router'
 const InspectionLayout = () => {
   return (
     <Stack>
-      <Stack.Screen name='submit-data' options={{ headerShown: false }} />
       <Stack.Screen name='suggestion' options={{ headerShown: false }} />
       <Stack.Screen name='task' options={{ headerShown: false }} />
       <Stack.Screen name='completion' options={{ headerShown: false }} />

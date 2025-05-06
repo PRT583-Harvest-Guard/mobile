@@ -170,7 +170,7 @@ const Home = () => {
         <View style={styles.actionsContainer}>
           <TouchableOpacity 
             style={styles.actionButton}
-            onPress={() => router.push("/inspection/submit-data")}
+            onPress={() => router.push("/inspection/suggestion")}
           >
             <Feather name="search" size={24} color="#fff" style={styles.actionIcon} />
             <Text style={styles.actionText}>Suggest Next Inspection</Text>

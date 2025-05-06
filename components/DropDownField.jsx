@@ -3,15 +3,16 @@ import { View, Text,  } from 'react-native'
 import SelectDropDown from 'react-native-select-dropdown'
 import Entypo from '@expo/vector-icons/Entypo';
 
-const DropDownField = ({label, data, onSelect, selectedVal}) => {
+const DropDownField = ({label, data, onSelect, selectedVal, disabled = false}) => {
   return (
     <View className='w-full flex-col items-start justify-center'>
       <Text className='text-black-100 text-base font-psemibold mb-2'>
         {label}
       </Text>
       <SelectDropDown
-        data={data}
+        data={data || []}
         onSelect={onSelect}
+        disabled={disabled}
         renderButton={(selectedVal, isOpened) => (
           <View className='w-full h-16 px-4 bg-white rounded-2xl border-2 border-secondary items-center justify-center relative'>
             <Text className='w-full text-center text-base text-black-200 font-pregular'>
