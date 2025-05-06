@@ -43,6 +43,8 @@ function History() {
   const [farms, setFarms] = useState([]);
   const [selectedFarm, setSelectedFarm] = useState(null);
   const [farmObservationPoints, setFarmObservationPoints] = useState([]);
+  const [pendingFarmPoints, setPendingFarmPoints] = useState([]);
+  const [completedFarmPoints, setCompletedFarmPoints] = useState([]);
   const [showFarmObservations, setShowFarmObservations] = useState(false);
 
   // Function to delete all suggestions and observations
@@ -202,7 +204,7 @@ function History() {
           // From farm service
           InspectedPlantsPerSection: farm?.plant_per_section || observation.plant_per_section || 0,
           // From observation points
-          Finished: observation.status === 'completed' ? 1 : 0,
+          Finished: observation.status === 'completed' || observation.status === 'Completed' ? 1 : 0,
           FarmId: observation.farm_id,
           Status: observation.status,
           // Additional details
@@ -216,8 +218,21 @@ function History() {
       const pendingPromises = pendingObservations.map(formatObservation);
       const completedPromises = completedObservations.map(formatObservation);
       
-      const formattedPending = await Promise.all(pendingPromises);
-      const formattedCompleted = await Promise.all(completedPromises);
+      let formattedPending = await Promise.all(pendingPromises);
+      let formattedCompleted = await Promise.all(completedPromises);
+      
+      // Make sure all observations with "Completed" status are in the completed list
+      // and all other observations are in the pending list
+      const allObservations = [...formattedPending, ...formattedCompleted];
+      
+      // Filter observations based on status
+      formattedCompleted = allObservations.filter(obs => 
+        obs.Status === 'Completed' || obs.Status === 'completed'
+      );
+      
+      formattedPending = allObservations.filter(obs => 
+        obs.Status !== 'Completed' && obs.Status !== 'completed'
+      );
       
       console.log('Formatted pending observations:', formattedPending.length);
       console.log('Formatted completed observations:', formattedCompleted.length);
@@ -337,7 +352,7 @@ function History() {
                     ConfidenceLevel: point.confidence_level || 'Unknown',
                     InspectionSections: 1,
                     InspectedPlantsPerSection: 0,
-                    Finished: point.observation_status === 'completed' ? 1 : 0,
+                    Finished: point.observation_status === 'completed' || point.observation_status === 'Completed' ? 1 : 0,
                     FarmId: farm.id,
                     Status: point.observation_status || 'Nil',
                     FarmName: farm.name,
@@ -346,7 +361,21 @@ function History() {
                   };
                 }));
                 
-                setFarmObservationPoints(formattedPoints);
+                // Filter observation points based on status
+                const completedPoints = formattedPoints.filter(point => 
+                  point.Status === 'Completed' || point.Status === 'completed'
+                );
+                
+                const pendingPoints = formattedPoints.filter(point => 
+                  point.Status !== 'Completed' && point.Status !== 'completed'
+                );
+                
+                // Store both sets of points
+                setCompletedFarmPoints(completedPoints);
+                setPendingFarmPoints(pendingPoints);
+                
+                // Update the farm observation points based on which tab is active
+                setFarmObservationPoints(isShowUnfinishedList ? pendingPoints : completedPoints);
                 setShowFarmObservations(true);
               } catch (error) {
                 console.error('Error loading farm observation points:', error);
@@ -381,13 +410,19 @@ function History() {
               styles.tabButton,
               isShowUnfinishedList && styles.activeTabButton
             ]}
-            onPress={() => setIsShowUnfinishedList(true)}
+            onPress={() => {
+              setIsShowUnfinishedList(true);
+              // Update farm observation points if they exist
+              if (selectedFarm && showFarmObservations) {
+                setFarmObservationPoints(pendingFarmPoints);
+              }
+            }}
           >
             <Text style={[
               styles.tabText,
               isShowUnfinishedList && styles.activeTabText
             ]}>
-              Unfinished ({unfinishedList.length})
+              Unfinished ({showFarmObservations ? pendingFarmPoints.length : unfinishedList.length})
             </Text>
           </TouchableOpacity>
           
@@ -396,13 +431,19 @@ function History() {
               styles.tabButton,
               !isShowUnfinishedList && styles.activeTabButton
             ]}
-            onPress={() => setIsShowUnfinishedList(false)}
+            onPress={() => {
+              setIsShowUnfinishedList(false);
+              // Update farm observation points if they exist
+              if (selectedFarm && showFarmObservations) {
+                setFarmObservationPoints(completedFarmPoints);
+              }
+            }}
           >
             <Text style={[
               styles.tabText,
               !isShowUnfinishedList && styles.activeTabText
             ]}>
-              Completed ({finishedList.length})
+              Completed ({showFarmObservations ? completedFarmPoints.length : finishedList.length})
             </Text>
           </TouchableOpacity>
         </View>
@@ -452,14 +493,29 @@ function History() {
                     ConfidenceLevel: point.confidence_level || 'Unknown',
                     InspectionSections: 1,
                     InspectedPlantsPerSection: 0,
-                    Finished: point.observation_status === 'completed' ? 1 : 0,
+                    Finished: point.observation_status === 'completed' || point.observation_status === 'Completed' ? 1 : 0,
                     FarmId: selectedFarm.id,
                     Status: point.observation_status || 'Nil',
                     FarmName: selectedFarm.name,
                     FarmSize: selectedFarm.size,
                     SuggestionId: point.inspection_suggestion_id
                   }));
-                  setFarmObservationPoints(formattedPoints);
+                  
+                  // Filter observation points based on status
+                  const completedPoints = formattedPoints.filter(point => 
+                    point.Status === 'Completed' || point.Status === 'completed'
+                  );
+                  
+                  const pendingPoints = formattedPoints.filter(point => 
+                    point.Status !== 'Completed' && point.Status !== 'completed'
+                  );
+                  
+                  // Store both sets of points
+                  setCompletedFarmPoints(completedPoints);
+                  setPendingFarmPoints(pendingPoints);
+                  
+                  // Update the farm observation points based on which tab is active
+                  setFarmObservationPoints(isShowUnfinishedList ? pendingPoints : completedPoints);
                 });
               }
             }}
