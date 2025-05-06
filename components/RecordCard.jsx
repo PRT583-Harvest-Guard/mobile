@@ -15,7 +15,7 @@ const RecordCard = ({
 }) => {
   // Determine the background color based on status
   const getBackgroundColor = () => {
-    if (status === 'completed') {
+    if (status === 'Completed') {
       return '#e6f7e6'; // Light green for completed
     } else if (status === 'pending') {
       return '#f5f5f5'; // Light gray for pending
@@ -27,7 +27,7 @@ const RecordCard = ({
   
   // Determine the status text color
   const getStatusTextColor = () => {
-    if (status === 'completed') {
+    if (status === 'Completed') {
       return '#2e7d32'; // Dark green for completed
     } else if (status === 'pending') {
       return '#757575'; // Dark gray for pending

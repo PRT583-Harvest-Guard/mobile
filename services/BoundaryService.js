@@ -151,6 +151,10 @@ export const deleteBoundaryPoints = async (farmId) => {
   }
 };
 
+// Import the inspection observation service
+import { getInspectionObservationsByFarmId, updateInspectionObservation } from '@/services/InspectionObservationService';
+import { getInspectionSuggestionsByFarmId, deleteInspectionSuggestion } from '@/services/InspectionSuggestionService';
+
 export const saveBoundaryData = async (farmId, points) => {
   if (!db) {
     console.log('Database not initialized, initializing...');
@@ -185,6 +189,40 @@ export const saveBoundaryData = async (farmId, points) => {
     );
 
     console.log('Saved boundary points:', savedPoints);
+    
+    // Update inspection observations for this farm
+    try {
+      // Get all inspection observations for this farm
+      const observations = await getInspectionObservationsByFarmId(farmId);
+      
+      if (observations && observations.length > 0) {
+        console.log(`Updating ${observations.length} inspection observations for farm ${farmId}`);
+        
+        // Get the farm details
+        const farms = await getFarms();
+        const farm = farms.find(f => f.id === Number(farmId));
+        
+        if (farm) {
+          // Update each observation with the latest farm details
+          for (const observation of observations) {
+            await updateInspectionObservation(observation.id, {
+              plant_per_section: farm.plant_type || farm.crop_type || 'Unknown',
+              target_entity: farm.plant_type || farm.crop_type || 'Unknown',
+              farm_name: farm.name || 'Unknown Farm',
+              farm_size: farm.size || 0,
+              farm_location: farm.location || 'Unknown Location',
+              updated_at: new Date().toISOString()
+            });
+          }
+          
+          console.log('Successfully updated inspection observations with latest farm details');
+        }
+      }
+    } catch (error) {
+      // Log the error but don't fail the boundary save operation
+      console.error('Error updating inspection observations:', error);
+    }
+    
     return savedPoints;
   } catch (error) {
     console.error('Error saving boundary data:', error);
@@ -272,6 +310,21 @@ export const deleteFarm = async (farmId) => {
       'DELETE FROM observation_points WHERE farm_id = ?',
       [farmIdNum]
     );
+    
+    // Delete all inspection suggestions for this farm
+    try {
+      console.log(`Deleting inspection suggestions for farm ${farmIdNum}`);
+      const suggestions = await getInspectionSuggestionsByFarmId(farmIdNum);
+      console.log(`Found ${suggestions.length} inspection suggestions for farm ${farmIdNum}`);
+      
+      for (const suggestion of suggestions) {
+        await deleteInspectionSuggestion(suggestion.id);
+        console.log(`Deleted inspection suggestion with ID ${suggestion.id}`);
+      }
+    } catch (error) {
+      console.error('Error deleting inspection suggestions:', error);
+      // Continue with farm deletion even if suggestion deletion fails
+    }
     
     // Delete the farm
     await db.runAsync(
@@ -382,6 +435,32 @@ export const updateFarm = async (farmId, farmData) => {
       [farmId]
     );
     console.log('Size check after update:', sizeCheck[0]);
+    
+    // Update inspection observations for this farm
+    try {
+      // Get all inspection observations for this farm
+      const observations = await getInspectionObservationsByFarmId(farmId);
+      
+      if (observations && observations.length > 0) {
+        console.log(`Updating ${observations.length} inspection observations for farm ${farmId}`);
+        
+        // Update each observation with the latest farm details
+        for (const observation of observations) {
+          await updateInspectionObservation(observation.id, {
+            plant_per_section: plant_type || 'Unknown',
+            target_entity: plant_type || 'Unknown',
+            farm_name: name || 'Unknown Farm',
+            farm_size: sizeValue || 0,
+            updated_at: new Date().toISOString()
+          });
+        }
+        
+        console.log('Successfully updated inspection observations with latest farm details');
+      }
+    } catch (error) {
+      // Log the error but don't fail the farm update operation
+      console.error('Error updating inspection observations:', error);
+    }
     
     return updatedFarm[0];
   } catch (error) {

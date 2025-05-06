@@ -10,7 +10,7 @@ import {
   Dimensions
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router, Link } from 'expo-router';
+import { router, Link, useFocusEffect } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { PageHeader, CustomButton, FormField } from '@/components';
 import { Entities } from '@/constants/Entities';
@@ -113,36 +113,49 @@ export default function Suggestion() {
     `${level.confidence_level} - ${level.farmer_explanation}`
   );
 
-  useEffect(() => {
-    const initialize = async () => {
-      try {
-        setIsLoading(true);
-        
-        // Initialize the tables
-        await initInspectionSuggestionTable();
-        
-        // Load farms for dropdown
-        const farmsData = await getFarms();
-        
-        if (farmsData && Array.isArray(farmsData) && farmsData.length > 0) {
-          const farmOptions = farmsData.map(farm => farm.name);
-          setFarms(farmsData);
-          setHasFarms(true);
-        } else {
-          setFarms([]);
-          setHasFarms(false);
-        }
-        
-        setIsLoading(false);
-      } catch (error) {
-        console.error('Error initializing:', error);
-        Alert.alert('Error', 'Failed to load data');
-        setIsLoading(false);
+  const loadData = async () => {
+    try {
+      setIsLoading(true);
+      
+      // Initialize the tables
+      await initInspectionSuggestionTable();
+      
+      // Load farms for dropdown
+      const farmsData = await getFarms();
+      
+      if (farmsData && Array.isArray(farmsData) && farmsData.length > 0) {
+        const farmOptions = farmsData.map(farm => farm.name);
+        setFarms(farmsData);
+        setHasFarms(true);
+      } else {
+        setFarms([]);
+        setHasFarms(false);
       }
-    };
-    
-    initialize();
+      
+      setIsLoading(false);
+    } catch (error) {
+      console.error('Error initializing:', error);
+      Alert.alert('Error', 'Failed to load data');
+      setIsLoading(false);
+    }
+  };
+
+  // Load data when the component mounts
+  useEffect(() => {
+    loadData();
   }, []);
+  
+  // Also load data when the screen comes into focus
+  useFocusEffect(
+    React.useCallback(() => {
+      console.log('Suggestion screen focused, reloading data...');
+      loadData();
+      return () => {
+        // Cleanup function when screen goes out of focus
+        console.log('Suggestion screen unfocused');
+      };
+    }, [])
+  );
 
   // Check if all required fields are filled
   const isFormValid = () => {
@@ -183,14 +196,47 @@ export default function Suggestion() {
         density_of_plant: parseInt(densityOfPlant, 10)
       };
       
-      // Create the suggestion and observations
-      const result = await createInspectionSuggestionWithObservations(suggestionData);
+      // Create the suggestion and observations with user ID (using 1 as default for now)
+      const userId = 1; // In a real app, this would come from authentication context
       
-      console.log('Created suggestion with ID:', result.suggestionId);
-      console.log('Created observations:', result.observationIds);
+      // Add more detailed logging
+      console.log('Creating suggestion with data:', JSON.stringify(suggestionData));
+      console.log('Using user ID:', userId);
       
-      // Navigate to the task page
-      router.push("/inspection/task");
+      try {
+        const result = await createInspectionSuggestionWithObservations(suggestionData, userId);
+        
+        console.log('Created suggestion with ID:', result.suggestionId);
+        console.log('Created observations:', result.observationIds);
+        
+        // Add a delay before navigating to ensure data is saved
+        setTimeout(() => {
+          // Navigate to the history page instead of the task page
+          router.push("/(tabs)/history");
+        }, 1000);
+      } catch (error) {
+        // Check if the error is about missing boundary points
+        if (error.message.includes('boundary points')) {
+          Alert.alert(
+            "Boundary Points Required",
+            "Cannot create inspection without boundary points. Please add boundary points to the farm first.",
+            [
+              {
+                text: "Go to Farm",
+                onPress: () => router.push(`/farm-details/${farmId}`),
+              },
+              {
+                text: "OK",
+                style: "cancel"
+              }
+            ]
+          );
+        } else {
+          // For other errors, show the generic error message
+          Alert.alert("Error", error.message);
+        }
+        throw error; // Re-throw the error to be caught by the outer catch block
+      }
     } catch (error) {
       console.error('Error submitting suggestion:', error);
       Alert.alert('Error', error.message);

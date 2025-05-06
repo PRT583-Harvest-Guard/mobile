@@ -13,7 +13,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { Avatar, CustomButton } from '@/components';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { getProfile } from '@/services/ProfileService';
 import { getFarms } from '@/services/BoundaryService';
 import iconPrimary from '@/assets/images/icon-primary.png';
@@ -31,9 +31,22 @@ const Home = () => {
     { id: '2457', dueIn: 14, farm: 'East Field' }
   ];
 
+  // Load data when the component mounts
   useEffect(() => {
     loadData();
   }, []);
+  
+  // Also load data when the screen comes into focus
+  useFocusEffect(
+    React.useCallback(() => {
+      console.log('Home screen focused, reloading data...');
+      loadData();
+      return () => {
+        // Cleanup function when screen goes out of focus
+        console.log('Home screen unfocused');
+      };
+    }, [])
+  );
 
   const loadData = async () => {
     try {

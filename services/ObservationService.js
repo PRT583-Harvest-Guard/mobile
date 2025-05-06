@@ -22,9 +22,23 @@ export const initObservationPointsTable = async () => {
         name TEXT,
         segment INTEGER NOT NULL,
         created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        inspection_suggestion_id INTEGER DEFAULT NULL,
+        confidence_level TEXT DEFAULT NULL,
+        target_entity TEXT DEFAULT NULL,
         FOREIGN KEY (farm_id) REFERENCES farms(id) ON DELETE CASCADE
       )
     `);
+    
+    // Add new columns if they don't exist
+    try {
+      await db.execAsync(`ALTER TABLE observation_points ADD COLUMN inspection_suggestion_id INTEGER DEFAULT NULL`);
+      await db.execAsync(`ALTER TABLE observation_points ADD COLUMN confidence_level TEXT DEFAULT NULL`);
+      await db.execAsync(`ALTER TABLE observation_points ADD COLUMN target_entity TEXT DEFAULT NULL`);
+      console.log('Added new columns to observation_points table');
+    } catch (error) {
+      // Columns might already exist, ignore the error
+      console.log('New columns might already exist:', error.message);
+    }
     
     console.log('Observation points table created successfully');
   } catch (error) {
@@ -70,7 +84,18 @@ export const saveObservationPoint = async (point) => {
   if (!db) await initObservationPointsTable();
   
   try {
-    const { farm_id, latitude, longitude, segment, observation_id, observation_status, name } = point;
+    const { 
+      farm_id, 
+      latitude, 
+      longitude, 
+      segment, 
+      observation_id, 
+      observation_status, 
+      name,
+      inspection_suggestion_id,
+      confidence_level,
+      target_entity
+    } = point;
     
     // Ensure farm_id is a number
     const farmIdNum = Number(farm_id);
@@ -78,8 +103,9 @@ export const saveObservationPoint = async (point) => {
     // Insert the new point
     const result = await db.runAsync(
       `INSERT INTO observation_points 
-       (farm_id, latitude, longitude, segment, observation_id, observation_status, name)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+       (farm_id, latitude, longitude, segment, observation_id, observation_status, name, 
+        inspection_suggestion_id, confidence_level, target_entity)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         farmIdNum,
         latitude,
@@ -87,7 +113,10 @@ export const saveObservationPoint = async (point) => {
         segment,
         observation_id || null,
         observation_status || 'Nil',
-        name || `Section ${segment}`
+        name || `Section ${segment}`,
+        inspection_suggestion_id || null,
+        confidence_level || null,
+        target_entity || null
       ]
     );
 
@@ -139,8 +168,9 @@ export const saveObservationPoints = async (farmId, points) => {
     for (const point of points) {
       await db.runAsync(
         `INSERT INTO observation_points 
-         (farm_id, latitude, longitude, segment, observation_id, observation_status, name)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+         (farm_id, latitude, longitude, segment, observation_id, observation_status, name,
+          inspection_suggestion_id, confidence_level, target_entity)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           farmIdNum,
           point.latitude,
@@ -148,7 +178,10 @@ export const saveObservationPoints = async (farmId, points) => {
           point.segment,
           point.observation_id || null,
           point.observation_status || 'Nil',
-          point.name || `Section ${point.segment}`
+          point.name || `Section ${point.segment}`,
+          point.inspection_suggestion_id || null,
+          point.confidence_level || null,
+          point.target_entity || null
         ]
       );
     }
@@ -336,6 +369,73 @@ export const removeDuplicateObservationPoints = async (farmId) => {
       transactionActive = false;
     }
     console.error('Error removing duplicate observation points:', error);
+    throw error;
+  }
+};
+
+/**
+ * Update observation points with inspection suggestion data
+ * @param {number} farmId - Farm ID
+ * @param {number} inspectionSuggestionId - Inspection suggestion ID
+ * @param {string} confidenceLevel - Confidence level
+ * @param {string} targetEntity - Target entity
+ * @returns {Promise<Array>} - Array of updated observation points
+ */
+export const updateObservationPointsWithInspectionData = async (farmId, inspectionSuggestionId, confidenceLevel, targetEntity) => {
+  if (!db) await initObservationPointsTable();
+  
+  try {
+    // Ensure farmId is a number
+    const farmIdNum = Number(farmId);
+    
+    // Get all observation points for this farm
+    const points = await getObservationPoints(farmIdNum);
+    
+    if (points.length === 0) {
+      console.warn(`No observation points found for farm ID ${farmIdNum}`);
+      return [];
+    }
+    
+    console.log(`Updating ${points.length} observation points with inspection data`);
+    
+    // Only begin a transaction if one is not already active
+    if (!transactionActive) {
+      transactionActive = true;
+      await db.execAsync('BEGIN TRANSACTION');
+    }
+    
+    // Update each point
+    const updatedPoints = [];
+    for (const point of points) {
+      const updateData = {
+        inspection_suggestion_id: inspectionSuggestionId,
+        confidence_level: confidenceLevel,
+        target_entity: targetEntity
+      };
+      
+      const updatedPoint = await updateObservationPoint(point.id, updateData);
+      updatedPoints.push(updatedPoint);
+    }
+    
+    // Only commit if we started the transaction
+    if (transactionActive) {
+      await db.execAsync('COMMIT');
+      transactionActive = false;
+    }
+    
+    console.log(`Successfully updated ${updatedPoints.length} observation points`);
+    return updatedPoints;
+  } catch (error) {
+    // Only rollback if we started the transaction
+    if (transactionActive) {
+      try {
+        await db.execAsync('ROLLBACK');
+      } catch (rollbackError) {
+        console.error('Error rolling back transaction:', rollbackError);
+      }
+      transactionActive = false;
+    }
+    console.error('Error updating observation points with inspection data:', error);
     throw error;
   }
 };

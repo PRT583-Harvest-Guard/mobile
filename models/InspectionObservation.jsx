@@ -12,6 +12,7 @@ class InspectionObservation {
     this.confidence = data.confidence || '';
     this.section_id = data.section_id || null; // observation_id
     this.farm_id = data.farm_id || null;
+    this.user_id = data.user_id || null; // Added user_id field
     this.plant_per_section = data.plant_per_section || ''; // farm_crop_type
     this.status = data.status || 'pending'; // pending, completed, cancelled
     this.created_at = data.created_at || new Date().toISOString();
@@ -30,6 +31,7 @@ class InspectionObservation {
         confidence: this.confidence,
         section_id: this.section_id,
         farm_id: this.farm_id,
+        user_id: this.user_id, // Added user_id field
         plant_per_section: this.plant_per_section,
         status: this.status,
         updated_at: new Date().toISOString()
@@ -141,6 +143,45 @@ class InspectionObservation {
       throw error;
     }
   }
+  
+  /**
+   * Get all inspection observations by user ID
+   * @param {number} userId - The ID of the user
+   * @returns {Promise<Array<InspectionObservation>>} Array of inspection observations
+   */
+  static async findByUserId(userId) {
+    try {
+      const observations = await databaseService.getAll(
+        'InspectionObservations',
+        'user_id = ?',
+        [userId]
+      );
+      return observations.map(observation => new InspectionObservation(observation));
+    } catch (error) {
+      console.error('Error finding inspection observations for user:', error);
+      throw error;
+    }
+  }
+  
+  /**
+   * Get all inspection observations by user ID and status
+   * @param {number} userId - The ID of the user
+   * @param {string} status - The status to filter by (pending, completed, cancelled)
+   * @returns {Promise<Array<InspectionObservation>>} Array of inspection observations
+   */
+  static async findByUserIdAndStatus(userId, status) {
+    try {
+      const observations = await databaseService.getAll(
+        'InspectionObservations',
+        'user_id = ? AND status = ?',
+        [userId, status]
+      );
+      return observations.map(observation => new InspectionObservation(observation));
+    } catch (error) {
+      console.error('Error finding inspection observations for user and status:', error);
+      throw error;
+    }
+  }
 
   /**
    * Delete the inspection observation from the database
@@ -182,6 +223,7 @@ class InspectionObservation {
           confidence TEXT NOT NULL,
           section_id INTEGER,
           farm_id INTEGER,
+          user_id INTEGER,
           plant_per_section TEXT,
           status TEXT NOT NULL,
           created_at TEXT DEFAULT CURRENT_TIMESTAMP,

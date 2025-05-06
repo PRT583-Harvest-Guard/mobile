@@ -3,9 +3,9 @@
  * Handles operations related to inspection suggestions
  */
 import InspectionSuggestion from '@/models/InspectionSuggestion';
-import { getFarms } from '@/services/BoundaryService';
-import { createInspectionObservationsForFarm } from '@/services/InspectionObservationService';
-import { initInspectionObservationTable } from '@/services/InspectionObservationService';
+import { getFarms, getBoundaryData } from '@/services/BoundaryService';
+import { updateObservationPointsWithInspectionData } from '@/services/ObservationService';
+import { getObservationPoints } from '@/services/ObservationService';
 
 /**
  * Initialize the InspectionSuggestion table
@@ -14,8 +14,6 @@ import { initInspectionObservationTable } from '@/services/InspectionObservation
 export const initInspectionSuggestionTable = async () => {
   try {
     await InspectionSuggestion.initTable();
-    // Also initialize the InspectionObservation table
-    await initInspectionObservationTable();
   } catch (error) {
     console.error('Error initializing inspection suggestion table:', error);
     throw error;
@@ -40,23 +38,94 @@ export const createInspectionSuggestion = async (suggestionData) => {
 /**
  * Create a new inspection suggestion and create observations for all points in the farm
  * @param {Object} suggestionData - The suggestion data
+ * @param {number} userId - The ID of the user creating the suggestion (defaults to 1)
  * @returns {Promise<Object>} Object containing the suggestion ID and observation IDs
  */
-export const createInspectionSuggestionWithObservations = async (suggestionData) => {
+export const createInspectionSuggestionWithObservations = async (suggestionData, userId = 1) => {
   try {
+    console.log('createInspectionSuggestionWithObservations called with:', JSON.stringify(suggestionData), 'userId:', userId);
+    
     // Create the suggestion
     const suggestionId = await createInspectionSuggestion(suggestionData);
+    console.log('Suggestion created with ID:', suggestionId);
     
-    // Create observations for all points in the farm
-    const observationIds = await createInspectionObservationsForFarm(
-      suggestionId,
+    // Get boundary points to verify they exist
+    const boundaryPoints = await getBoundaryData(suggestionData.property_location);
+    console.log('Found boundary points:', boundaryPoints ? boundaryPoints.length : 0);
+    
+    if (!boundaryPoints || boundaryPoints.length === 0) {
+      console.warn('No boundary points found for farm ID:', suggestionData.property_location);
+      
+      // Delete the suggestion since we can't create observations without boundary points
+      try {
+        const suggestion = await InspectionSuggestion.findById(suggestionId);
+        if (suggestion) {
+          await suggestion.delete();
+          console.log(`Deleted suggestion with ID ${suggestionId} due to missing boundary points`);
+        }
+      } catch (deleteError) {
+        console.error('Error deleting suggestion:', deleteError);
+      }
+      
+      // Throw an error to stop the workflow
+      throw new Error('Cannot create inspection without boundary points. Please add boundary points to the farm first.');
+    }
+    
+    // Get observation points for the farm
+    console.log('Getting observation points for farm ID:', suggestionData.property_location);
+    const observationPoints = await getObservationPoints(suggestionData.property_location);
+    
+    if (!observationPoints || observationPoints.length === 0) {
+      console.warn('No observation points found for farm ID:', suggestionData.property_location);
+      
+      // Delete the suggestion since we can't update observation points
+      try {
+        const suggestion = await InspectionSuggestion.findById(suggestionId);
+        if (suggestion) {
+          await suggestion.delete();
+          console.log(`Deleted suggestion with ID ${suggestionId} due to missing observation points`);
+        }
+      } catch (deleteError) {
+        console.error('Error deleting suggestion:', deleteError);
+      }
+      
+      // Throw an error to stop the workflow
+      throw new Error('Cannot create inspection without observation points. Please add observation points to the farm first.');
+    }
+    
+    // Update observation points with inspection suggestion data
+    console.log('Updating observation points with inspection data');
+    const updatedPoints = await updateObservationPointsWithInspectionData(
       suggestionData.property_location,
-      suggestionData.confidence_level
+      suggestionId,
+      suggestionData.confidence_level,
+      suggestionData.target_entity
     );
+    
+    console.log(`Updated ${updatedPoints.length} observation points with inspection data`);
+    
+    // Verify points were updated
+    if (!updatedPoints || updatedPoints.length === 0) {
+      console.warn('No observation points were updated');
+      
+      // Delete the suggestion since we couldn't update observation points
+      try {
+        const suggestion = await InspectionSuggestion.findById(suggestionId);
+        if (suggestion) {
+          await suggestion.delete();
+          console.log(`Deleted suggestion with ID ${suggestionId} due to failure to update observation points`);
+        }
+      } catch (deleteError) {
+        console.error('Error deleting suggestion:', deleteError);
+      }
+      
+      // Throw an error to stop the workflow
+      throw new Error('Failed to update observation points. Please try again or contact support.');
+    }
     
     return {
       suggestionId,
-      observationIds
+      updatedPoints: updatedPoints.map(point => point.id)
     };
   } catch (error) {
     console.error('Error creating inspection suggestion with observations:', error);
