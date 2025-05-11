@@ -625,7 +625,8 @@ class ApiSyncService {
         if (credentials) {
           await this.authenticate(credentials);
         } else {
-          throw new Error('Not authenticated');
+          // Return a special error object that indicates authentication is required
+          return { authRequired: true, message: 'Not authenticated' };
         }
       }
       
@@ -646,7 +647,8 @@ class ApiSyncService {
             if (credentials) {
               await this.authenticate(credentials);
             } else {
-              throw new Error('Not authenticated');
+              // Return a special error object that indicates authentication is required
+              return { authRequired: true, message: 'Not authenticated' };
             }
           }
         }
@@ -684,16 +686,30 @@ class ApiSyncService {
             return this.apiRequest(endpoint, method, data, requiresAuth);
           }
           
-          throw new Error('Authentication failed');
+          // Return a special error object that indicates authentication is required
+          return { authRequired: true, message: 'Authentication failed' };
         }
         
-        const errorData = await response.json();
-        throw new Error(errorData.detail || `API request failed: ${response.status}`);
+        try {
+          const errorData = await response.json();
+          throw new Error(errorData.detail || `API request failed: ${response.status}`);
+        } catch (jsonError) {
+          // If we can't parse the error as JSON, return a special error object
+          return { authRequired: true, message: `API request failed: ${response.status}` };
+        }
       }
       
       return await response.json();
     } catch (error) {
       console.error('API request error:', error);
+      
+      // If the error is related to authentication, return a special error object
+      if (error.message.includes('Not authenticated') || 
+          error.message.includes('Authentication failed') ||
+          error.message.includes('401')) {
+        return { authRequired: true, message: error.message };
+      }
+      
       throw error;
     }
   }
@@ -777,6 +793,13 @@ class ApiSyncService {
     if (!res.ok) {
       const text = await res.text();
       console.error('Sync failed:', res.status, text);
+      
+      // Check if the error is due to authentication
+      if (res.status === 401) {
+        // Return a special error object that indicates authentication is required
+        return { authRequired: true, message: 'Authentication required' };
+      }
+      
       throw new Error(`Sync error ${res.status}`);
     }
   
@@ -1254,6 +1277,12 @@ class ApiSyncService {
         const responseText = await response.text();
         console.error('Farms sync response error:', response.status, responseText);
         
+        // Check if the error is due to authentication
+        if (response.status === 401) {
+          // Return a special error object that indicates authentication is required
+          return { authRequired: true, message: 'Authentication required' };
+        }
+        
         throw new Error(`API request failed: ${response.status} - ${responseText}`);
       }
       
@@ -1264,6 +1293,14 @@ class ApiSyncService {
       return responseData;
     } catch (error) {
       console.error('Farms sync error:', error);
+      
+      // If the error is related to authentication, return a special error object
+      if (error.message.includes('Not authenticated') || 
+          error.message.includes('Authentication failed') ||
+          error.message.includes('401')) {
+        return { authRequired: true, message: error.message };
+      }
+      
       throw error;
     }
   }
@@ -1302,6 +1339,12 @@ class ApiSyncService {
         const responseText = await response.text();
         console.error('Boundary points sync response error:', response.status, responseText);
         
+        // Check if the error is due to authentication
+        if (response.status === 401) {
+          // Return a special error object that indicates authentication is required
+          return { authRequired: true, message: 'Authentication required' };
+        }
+        
         throw new Error(`API request failed: ${response.status} - ${responseText}`);
       }
       
@@ -1312,6 +1355,14 @@ class ApiSyncService {
       return responseData;
     } catch (error) {
       console.error('Boundary points sync error:', error);
+      
+      // If the error is related to authentication, return a special error object
+      if (error.message.includes('Not authenticated') || 
+          error.message.includes('Authentication failed') ||
+          error.message.includes('401')) {
+        return { authRequired: true, message: error.message };
+      }
+      
       throw error;
     }
   }
@@ -1350,6 +1401,12 @@ class ApiSyncService {
         const responseText = await response.text();
         console.error('Observation points sync response error:', response.status, responseText);
         
+        // Check if the error is due to authentication
+        if (response.status === 401) {
+          // Return a special error object that indicates authentication is required
+          return { authRequired: true, message: 'Authentication required' };
+        }
+        
         throw new Error(`API request failed: ${response.status} - ${responseText}`);
       }
       
@@ -1360,6 +1417,14 @@ class ApiSyncService {
       return responseData;
     } catch (error) {
       console.error('Observation points sync error:', error);
+      
+      // If the error is related to authentication, return a special error object
+      if (error.message.includes('Not authenticated') || 
+          error.message.includes('Authentication failed') ||
+          error.message.includes('401')) {
+        return { authRequired: true, message: error.message };
+      }
+      
       throw error;
     }
   }
@@ -1398,6 +1463,12 @@ class ApiSyncService {
         const responseText = await response.text();
         console.error('Inspection suggestions sync response error:', response.status, responseText);
         
+        // Check if the error is due to authentication
+        if (response.status === 401) {
+          // Return a special error object that indicates authentication is required
+          return { authRequired: true, message: 'Authentication required' };
+        }
+        
         throw new Error(`API request failed: ${response.status} - ${responseText}`);
       }
       
@@ -1408,6 +1479,14 @@ class ApiSyncService {
       return responseData;
     } catch (error) {
       console.error('Inspection suggestions sync error:', error);
+      
+      // If the error is related to authentication, return a special error object
+      if (error.message.includes('Not authenticated') || 
+          error.message.includes('Authentication failed') ||
+          error.message.includes('401')) {
+        return { authRequired: true, message: error.message };
+      }
+      
       throw error;
     }
   }
@@ -1446,6 +1525,12 @@ class ApiSyncService {
         const responseText = await response.text();
         console.error('Inspection observations sync response error:', response.status, responseText);
         
+        // Check if the error is due to authentication
+        if (response.status === 401) {
+          // Return a special error object that indicates authentication is required
+          return { authRequired: true, message: 'Authentication required' };
+        }
+        
         throw new Error(`API request failed: ${response.status} - ${responseText}`);
       }
       
@@ -1456,6 +1541,14 @@ class ApiSyncService {
       return responseData;
     } catch (error) {
       console.error('Inspection observations sync error:', error);
+      
+      // If the error is related to authentication, return a special error object
+      if (error.message.includes('Not authenticated') || 
+          error.message.includes('Authentication failed') ||
+          error.message.includes('401')) {
+        return { authRequired: true, message: error.message };
+      }
+      
       throw error;
     }
   }
@@ -1482,6 +1575,12 @@ class ApiSyncService {
         const responseText = await response.text();
         console.error('Profile sync response error:', response.status, responseText);
         
+        // Check if the error is due to authentication
+        if (response.status === 401) {
+          // Return a special error object that indicates authentication is required
+          return { authRequired: true, message: 'Authentication required' };
+        }
+        
         throw new Error(`API request failed: ${response.status} - ${responseText}`);
       }
       
@@ -1495,6 +1594,14 @@ class ApiSyncService {
       return responseData;
     } catch (error) {
       console.error('Profile sync error:', error);
+      
+      // If the error is related to authentication, return a special error object
+      if (error.message.includes('Not authenticated') || 
+          error.message.includes('Authentication failed') ||
+          error.message.includes('401')) {
+        return { authRequired: true, message: error.message };
+      }
+      
       throw error;
     }
   }
