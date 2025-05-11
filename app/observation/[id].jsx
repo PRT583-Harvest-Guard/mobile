@@ -68,7 +68,8 @@ const ObservationDetailsScreen = () => {
       // and find the one with the matching ID
       const farmId = await getFarmIdFromObservationId(id);
       if (!farmId) {
-        console.error('Could not find farm ID for observation:', id);
+        // Silently handle the error without logging to console
+        setLoading(false);
         return;
       }
       

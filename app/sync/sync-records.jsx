@@ -130,6 +130,16 @@ const SyncRecords = () => {
       // Perform the sync
       const result = await apiSyncService.performFullSync();
       
+      // Check if authentication is required
+      if (result && result.authRequired) {
+        console.log('Authentication required:', result.message);
+        // Set isAuthenticated to false to show the login form
+        setIsAuthenticated(false);
+        setAuthError(result.message);
+        setIsSubmitting(false);
+        return;
+      }
+      
       // Get the sync stats from the service
       const stats = apiSyncService.getLastSyncStats();
       setSyncStats(stats);

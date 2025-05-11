@@ -1102,9 +1102,14 @@ class ApiSyncService {
         const credentials = await this.getStoredCredentials();
         
         if (credentials) {
-          await this.authenticate(credentials);
+          const authResult = await this.authenticate(credentials);
+          if (!authResult.success) {
+            // Authentication failed, return a special error object
+            return { authRequired: true, message: 'Authentication failed' };
+          }
         } else {
-          throw new Error('Not authenticated. Please log in to sync data.');
+          // No credentials, return a special error object
+          return { authRequired: true, message: 'Authentication required' };
         }
       }
       
@@ -1129,11 +1134,14 @@ class ApiSyncService {
     } catch (error) {
       console.error('Full sync error:', error);
       
-      // If the error is due to authentication, we need to prompt the user to log in
-      if (error.message.includes('Not authenticated') || error.message.includes('Authentication failed')) {
-        throw new Error('Authentication failed. Please log in to sync data.');
+      // If the error is due to authentication, return a special error object
+      if (error.message.includes('Not authenticated') || 
+          error.message.includes('Authentication failed') ||
+          error.message.includes('401')) {
+        return { authRequired: true, message: 'Authentication required' };
       }
       
+      // For other errors, still throw them
       Alert.alert('Sync Error', error.message);
       throw error;
     }

@@ -456,6 +456,33 @@ function History() {
               {isDeleting ? 'Deleting all suggestions...' : 'Loading...'}
             </Text>
           </View>
+        ) : farms.length === 0 ? (
+          /* No Farms Available */
+          <View style={styles.emptyContainer}>
+            <Feather name="home" size={48} color="#ccc" />
+            <Text style={styles.emptyText}>
+              No farms available. Please add a farm first.
+            </Text>
+            <TouchableOpacity 
+              style={styles.refreshButtonEmpty}
+              onPress={() => loadData()}
+              disabled={isDeleting}
+            >
+              <Feather name="refresh-cw" size={20} color="#666" />
+              <Text style={styles.refreshText}>Refresh</Text>
+            </TouchableOpacity>
+          </View>
+        ) : !selectedFarm ? (
+          /* No Farm Selected */
+          <View style={styles.emptyContainer}>
+            <Feather name="map" size={48} color="#ccc" />
+            <Text style={styles.emptyText}>
+              Please select a farm to view inspection history
+            </Text>
+            <Text style={styles.emptySubText}>
+              Use the dropdown above to select a farm
+            </Text>
+          </View>
         ) : showFarmObservations ? (
           /* Farm Observation Points List */
           <FlatList
@@ -705,6 +732,13 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#999',
     textAlign: 'center',
+  },
+  emptySubText: {
+    marginTop: 8,
+    fontSize: 14,
+    color: '#999',
+    textAlign: 'center',
+    fontStyle: 'italic',
   },
 });
 
