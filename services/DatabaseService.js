@@ -2,277 +2,14 @@
  * Database Service
  * Handles database operations for the Harvest Guard application
  * 
- * This is a mock implementation that uses in-memory storage instead of SQLite
- * to avoid the "Cannot convert null value to object" error
+ * This implementation uses SQLite via expo-sqlite to interact with the mobile.db database
  */
-
-// In-memory storage for tables with realistic sample data
-const inMemoryDb = {
-  users: [
-    {
-      id: 1,
-      username: 'farmer1',
-      email: 'farmer1@example.com',
-      password_hash: 'hashed_password',
-      created_at: new Date().toISOString()
-    }
-  ],
-  sessions: [],
-  farms: [
-    {
-      id: 1,
-      name: 'Green Valley Farm',
-      size: 15.5,
-      plant_type: 'Corn',
-      created_at: new Date().toISOString()
-    },
-    {
-      id: 2,
-      name: 'Sunset Orchards',
-      size: 8.2,
-      plant_type: 'Apples',
-      created_at: new Date().toISOString()
-    },
-    {
-      id: 3,
-      name: 'Riverside Plantation',
-      size: 22.7,
-      plant_type: 'Wheat',
-      created_at: new Date().toISOString()
-    }
-  ],
-  boundary_points: [
-    // Green Valley Farm boundary points
-    {
-      id: 1,
-      farm_id: 1,
-      latitude: 34.0522,
-      longitude: -118.2437,
-      timestamp: new Date().toISOString(),
-      description: 'North corner'
-    },
-    {
-      id: 2,
-      farm_id: 1,
-      latitude: 34.0523,
-      longitude: -118.2438,
-      timestamp: new Date().toISOString(),
-      description: 'East corner'
-    },
-    {
-      id: 3,
-      farm_id: 1,
-      latitude: 34.0524,
-      longitude: -118.2439,
-      timestamp: new Date().toISOString(),
-      description: 'South corner'
-    },
-    {
-      id: 4,
-      farm_id: 1,
-      latitude: 34.0525,
-      longitude: -118.2440,
-      timestamp: new Date().toISOString(),
-      description: 'West corner'
-    },
-    // Sunset Orchards boundary points
-    {
-      id: 5,
-      farm_id: 2,
-      latitude: 34.1522,
-      longitude: -118.3437,
-      timestamp: new Date().toISOString(),
-      description: 'North corner'
-    },
-    {
-      id: 6,
-      farm_id: 2,
-      latitude: 34.1523,
-      longitude: -118.3438,
-      timestamp: new Date().toISOString(),
-      description: 'East corner'
-    },
-    {
-      id: 7,
-      farm_id: 2,
-      latitude: 34.1524,
-      longitude: -118.3439,
-      timestamp: new Date().toISOString(),
-      description: 'South corner'
-    },
-    // Riverside Plantation boundary points
-    {
-      id: 8,
-      farm_id: 3,
-      latitude: 34.2522,
-      longitude: -118.4437,
-      timestamp: new Date().toISOString(),
-      description: 'North corner'
-    },
-    {
-      id: 9,
-      farm_id: 3,
-      latitude: 34.2523,
-      longitude: -118.4438,
-      timestamp: new Date().toISOString(),
-      description: 'East corner'
-    },
-    {
-      id: 10,
-      farm_id: 3,
-      latitude: 34.2524,
-      longitude: -118.4439,
-      timestamp: new Date().toISOString(),
-      description: 'South corner'
-    }
-  ],
-  observation_points: [],
-  inspection_suggestions: [
-    {
-      id: 1,
-      target_entity: 'Corn Borer',
-      confidence_level: '80%',
-      property_location: 1, // Green Valley Farm
-      area_size: 15.5,
-      density_of_plant: 120,
-      created_at: new Date().toISOString()
-    },
-    {
-      id: 2,
-      target_entity: 'Apple Maggot',
-      confidence_level: '75%',
-      property_location: 2, // Sunset Orchards
-      area_size: 8.2,
-      density_of_plant: 50,
-      created_at: new Date().toISOString()
-    },
-    {
-      id: 3,
-      target_entity: 'Wheat Rust',
-      confidence_level: '90%',
-      property_location: 3, // Riverside Plantation
-      area_size: 22.7,
-      density_of_plant: 200,
-      created_at: new Date().toISOString()
-    }
-  ],
-  inspection_observations: [
-    // Green Valley Farm observations
-    {
-      id: 1,
-      date: new Date().toISOString(),
-      inspection_id: 1, // Corn Borer suggestion
-      confidence: '80%',
-      section_id: 1, // North corner
-      farm_id: 1, // Green Valley Farm
-      plant_per_section: 'Corn',
-      status: 'pending',
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      target_entity: 'Corn Borer'
-    },
-    {
-      id: 2,
-      date: new Date().toISOString(),
-      inspection_id: 1, // Corn Borer suggestion
-      confidence: '80%',
-      section_id: 2, // East corner
-      farm_id: 1, // Green Valley Farm
-      plant_per_section: 'Corn',
-      status: 'completed',
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      target_entity: 'Corn Borer'
-    },
-    {
-      id: 3,
-      date: new Date().toISOString(),
-      inspection_id: 1, // Corn Borer suggestion
-      confidence: '80%',
-      section_id: 3, // South corner
-      farm_id: 1, // Green Valley Farm
-      plant_per_section: 'Corn',
-      status: 'pending',
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      target_entity: 'Corn Borer'
-    },
-    {
-      id: 4,
-      date: new Date().toISOString(),
-      inspection_id: 1, // Corn Borer suggestion
-      confidence: '80%',
-      section_id: 4, // West corner
-      farm_id: 1, // Green Valley Farm
-      plant_per_section: 'Corn',
-      status: 'completed',
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      target_entity: 'Corn Borer'
-    },
-    // Sunset Orchards observations
-    {
-      id: 5,
-      date: new Date().toISOString(),
-      inspection_id: 2, // Apple Maggot suggestion
-      confidence: '75%',
-      section_id: 5, // North corner
-      farm_id: 2, // Sunset Orchards
-      plant_per_section: 'Apples',
-      status: 'pending',
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      target_entity: 'Apple Maggot'
-    },
-    {
-      id: 6,
-      date: new Date().toISOString(),
-      inspection_id: 2, // Apple Maggot suggestion
-      confidence: '75%',
-      section_id: 6, // East corner
-      farm_id: 2, // Sunset Orchards
-      plant_per_section: 'Apples',
-      status: 'completed',
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      target_entity: 'Apple Maggot'
-    },
-    // Riverside Plantation observations
-    {
-      id: 7,
-      date: new Date().toISOString(),
-      inspection_id: 3, // Wheat Rust suggestion
-      confidence: '90%',
-      section_id: 8, // North corner
-      farm_id: 3, // Riverside Plantation
-      plant_per_section: 'Wheat',
-      status: 'pending',
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      target_entity: 'Wheat Rust'
-    },
-    {
-      id: 8,
-      date: new Date().toISOString(),
-      inspection_id: 3, // Wheat Rust suggestion
-      confidence: '90%',
-      section_id: 9, // East corner
-      farm_id: 3, // Riverside Plantation
-      plant_per_section: 'Wheat',
-      status: 'completed',
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      target_entity: 'Wheat Rust'
-    }
-  ]
-};
-
-// Counter for generating IDs
-let idCounter = 1;
+import * as SQLite from 'expo-sqlite';
 
 class DatabaseService {
   constructor() {
     this.initialized = false;
+    this.db = null;
   }
 
   /**
@@ -283,10 +20,14 @@ class DatabaseService {
     if (this.initialized) return;
 
     try {
-      console.log('Initializing in-memory database...');
-      // No actual initialization needed for in-memory database
+      console.log('Initializing SQLite database...');
+      this.db = await SQLite.openDatabaseAsync('mobile.db');
+      
+      // Create tables if they don't exist
+      await this.createTables();
+      
       this.initialized = true;
-      console.log('In-memory database initialized successfully');
+      console.log('SQLite database initialized successfully');
     } catch (error) {
       console.error('Database initialization error:', error);
       throw error;
@@ -294,10 +35,121 @@ class DatabaseService {
   }
 
   /**
-   * Execute a SQL-like query (mock implementation)
-   * @param {string} sql - SQL-like query string (ignored in this mock)
-   * @param {Array} params - Query parameters (ignored in this mock)
-   * @returns {Promise<Object>} Mock query result
+   * Create database tables if they don't exist
+   * @returns {Promise<void>}
+   */
+  async createTables() {
+    try {
+      // Create users table
+      await this.db.execAsync(`
+        CREATE TABLE IF NOT EXISTS users (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          username TEXT NOT NULL,
+          email TEXT,
+          password_hash TEXT,
+          created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
+      // Create sessions table
+      await this.db.execAsync(`
+        CREATE TABLE IF NOT EXISTS sessions (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER,
+          token TEXT,
+          created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+          expires_at TEXT,
+          FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        )
+      `);
+
+      // Create farms table
+      await this.db.execAsync(`
+        CREATE TABLE IF NOT EXISTS farms (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          name TEXT NOT NULL,
+          size REAL,
+          plant_type TEXT,
+          created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
+      // Create boundary_points table
+      await this.db.execAsync(`
+        CREATE TABLE IF NOT EXISTS boundary_points (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          farm_id INTEGER,
+          latitude REAL,
+          longitude REAL,
+          timestamp TEXT,
+          description TEXT,
+          FOREIGN KEY (farm_id) REFERENCES farms(id) ON DELETE CASCADE
+        )
+      `);
+
+      // Create observation_points table
+      await this.db.execAsync(`
+        CREATE TABLE IF NOT EXISTS observation_points (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          farm_id INTEGER,
+          latitude REAL,
+          longitude REAL,
+          observation_status TEXT,
+          name TEXT,
+          segment INTEGER,
+          inspection_suggestion_id INTEGER,
+          confidence_level TEXT,
+          target_entity TEXT,
+          created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (farm_id) REFERENCES farms(id) ON DELETE CASCADE
+        )
+      `);
+
+      // Create inspection_suggestions table
+      await this.db.execAsync(`
+        CREATE TABLE IF NOT EXISTS inspection_suggestions (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          target_entity TEXT NOT NULL,
+          confidence_level TEXT NOT NULL,
+          property_location INTEGER,
+          area_size REAL NOT NULL,
+          density_of_plant INTEGER NOT NULL,
+          created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+          updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (property_location) REFERENCES farms(id) ON DELETE CASCADE
+        )
+      `);
+
+      // Create inspection_observations table
+      await this.db.execAsync(`
+        CREATE TABLE IF NOT EXISTS inspection_observations (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          date TEXT NOT NULL,
+          inspection_id INTEGER,
+          confidence TEXT NOT NULL,
+          section_id INTEGER,
+          farm_id INTEGER,
+          plant_per_section TEXT,
+          status TEXT NOT NULL,
+          target_entity TEXT,
+          created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+          updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (farm_id) REFERENCES farms(id) ON DELETE CASCADE
+        )
+      `);
+
+      console.log('Database tables created successfully');
+    } catch (error) {
+      console.error('Error creating database tables:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Execute a SQL query
+   * @param {string} sql - SQL query string
+   * @param {Array} params - Query parameters
+   * @returns {Promise<Object>} Query result
    */
   async executeQuery(sql, params = []) {
     // Make sure the database is initialized
@@ -306,21 +158,16 @@ class DatabaseService {
         await this.initialize();
       } catch (error) {
         console.error('Failed to initialize database before query:', error);
-        return { rows: { length: 0, _array: [], item: () => null }, insertId: null, rowsAffected: 0 };
+        throw error;
       }
     }
     
-    // This is a mock implementation, so we don't actually execute SQL
-    // Just return a mock result
-    return {
-      rows: {
-        length: 0,
-        _array: [],
-        item: (index) => null
-      },
-      insertId: null,
-      rowsAffected: 0
-    };
+    try {
+      return await this.db.execAsync(sql, params);
+    } catch (error) {
+      console.error('Error executing query:', error);
+      throw error;
+    }
   }
 
   /**
@@ -335,27 +182,27 @@ class DatabaseService {
       await this.initialize();
     }
     
-    // Create a copy of the data with a new ID
-    const newRecord = {
-      ...data,
-      id: idCounter++
-    };
-    
-    // Add the record to the in-memory database
-    if (!inMemoryDb[table]) {
-      inMemoryDb[table] = [];
+    try {
+      // Build the SQL query
+      const columns = Object.keys(data).join(', ');
+      const placeholders = Object.keys(data).map(() => '?').join(', ');
+      const values = Object.values(data);
+      
+      const sql = `INSERT INTO ${table} (${columns}) VALUES (${placeholders})`;
+      
+      const result = await this.db.runAsync(sql, values);
+      return result.lastInsertRowId;
+    } catch (error) {
+      console.error(`Error inserting into ${table}:`, error);
+      throw error;
     }
-    
-    inMemoryDb[table].push(newRecord);
-    
-    return newRecord.id;
   }
 
   /**
    * Update a record in a table
    * @param {string} table - Table name
    * @param {Object} data - Data to update
-   * @param {string} whereClause - WHERE clause (ignored in this mock)
+   * @param {string} whereClause - WHERE clause
    * @param {Array} whereParams - WHERE parameters
    * @returns {Promise<number>} Number of rows affected
    */
@@ -365,34 +212,25 @@ class DatabaseService {
       await this.initialize();
     }
     
-    // In this mock implementation, we'll assume whereClause is always "id = ?"
-    // and whereParams[0] is the ID
-    const id = whereParams[0];
-    
-    // Find the record in the in-memory database
-    if (!inMemoryDb[table]) {
-      return 0;
+    try {
+      // Build the SQL query
+      const setClause = Object.keys(data).map(key => `${key} = ?`).join(', ');
+      const values = [...Object.values(data), ...whereParams];
+      
+      const sql = `UPDATE ${table} SET ${setClause} WHERE ${whereClause}`;
+      
+      const result = await this.db.runAsync(sql, values);
+      return result.rowsAffected;
+    } catch (error) {
+      console.error(`Error updating ${table}:`, error);
+      throw error;
     }
-    
-    const index = inMemoryDb[table].findIndex(record => record.id === id);
-    
-    if (index === -1) {
-      return 0;
-    }
-    
-    // Update the record
-    inMemoryDb[table][index] = {
-      ...inMemoryDb[table][index],
-      ...data
-    };
-    
-    return 1;
   }
 
   /**
    * Delete a record from a table
    * @param {string} table - Table name
-   * @param {string} whereClause - WHERE clause (ignored in this mock)
+   * @param {string} whereClause - WHERE clause
    * @param {Array} whereParams - WHERE parameters
    * @returns {Promise<number>} Number of rows affected
    */
@@ -402,27 +240,21 @@ class DatabaseService {
       await this.initialize();
     }
     
-    // In this mock implementation, we'll assume whereClause is always "id = ?"
-    // and whereParams[0] is the ID
-    const id = whereParams[0];
-    
-    // Find the record in the in-memory database
-    if (!inMemoryDb[table]) {
-      return 0;
+    try {
+      const sql = `DELETE FROM ${table} WHERE ${whereClause}`;
+      
+      const result = await this.db.runAsync(sql, whereParams);
+      return result.rowsAffected;
+    } catch (error) {
+      console.error(`Error deleting from ${table}:`, error);
+      throw error;
     }
-    
-    const initialLength = inMemoryDb[table].length;
-    
-    // Remove the record
-    inMemoryDb[table] = inMemoryDb[table].filter(record => record.id !== id);
-    
-    return initialLength - inMemoryDb[table].length;
   }
 
   /**
    * Query records from a table
-   * @param {string} sql - SQL query (ignored in this mock)
-   * @param {Array} params - Query parameters (ignored in this mock)
+   * @param {string} sql - SQL query
+   * @param {Array} params - Query parameters
    * @returns {Promise<Array>} Query results
    */
   async query(sql, params = []) {
@@ -431,15 +263,18 @@ class DatabaseService {
       await this.initialize();
     }
     
-    // This is a mock implementation, so we don't actually execute SQL
-    // Just return an empty array
-    return [];
+    try {
+      return await this.db.getAllAsync(sql, params);
+    } catch (error) {
+      console.error('Error querying database:', error);
+      throw error;
+    }
   }
 
   /**
    * Get a record by ID
    * @param {string} table - Table name
-   * @param {string} idField - ID field name (ignored in this mock)
+   * @param {string} idField - ID field name
    * @param {number} id - ID value
    * @returns {Promise<Object|null>} Record or null if not found
    */
@@ -449,12 +284,17 @@ class DatabaseService {
       await this.initialize();
     }
     
-    // Find the record in the in-memory database
-    if (!inMemoryDb[table]) {
-      return null;
+    try {
+      const results = await this.db.getAllAsync(
+        `SELECT * FROM ${table} WHERE ${idField} = ?`,
+        [id]
+      );
+      
+      return results.length > 0 ? results[0] : null;
+    } catch (error) {
+      console.error(`Error getting ${table} by ID:`, error);
+      throw error;
     }
-    
-    return inMemoryDb[table].find(record => record.id === id) || null;
   }
 
   /**
@@ -470,25 +310,25 @@ class DatabaseService {
       await this.initialize();
     }
     
-    // Return all records from the in-memory database
-    if (!inMemoryDb[table]) {
-      inMemoryDb[table] = [];
+    try {
+      let sql = `SELECT * FROM ${table}`;
+      
+      if (whereClause) {
+        sql += ` WHERE ${whereClause}`;
+      }
+      
+      return await this.db.getAllAsync(sql, whereParams);
+    } catch (error) {
+      console.error(`Error getting all from ${table}:`, error);
+      
+      // If the table doesn't exist yet, return an empty array
+      if (error.message && error.message.includes('no such table')) {
+        console.warn(`Table ${table} does not exist yet, returning empty array`);
+        return [];
+      }
+      
+      throw error;
     }
-    
-    // If no where clause, return all records
-    if (!whereClause) {
-      return [...inMemoryDb[table]];
-    }
-    
-    // Simple implementation of WHERE clause for status filtering
-    // This only supports "status = ?" type clauses
-    if (whereClause.includes('status = ?') && whereParams.length > 0) {
-      const status = whereParams[0];
-      return inMemoryDb[table].filter(record => record.status === status);
-    }
-    
-    // Default to returning all records
-    return [...inMemoryDb[table]];
   }
 }
 

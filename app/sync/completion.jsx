@@ -14,11 +14,30 @@ const Completion = () => {
   }
 
   useEffect(() => {
-    // Try to get sync stats from the API service
-    const stats = apiSyncService.getLastSyncStats();
-    if (stats) {
-      setSyncStats(stats);
-    }
+    const loadSyncData = async () => {
+      try {
+        // Try to get sync stats from the API service
+        const stats = apiSyncService.getLastSyncStats();
+        if (stats) {
+          setSyncStats(stats);
+          
+          // If the stats have a timestamp, use it
+          if (stats.timestamp) {
+            setSyncTime(new Date(stats.timestamp).toLocaleString());
+          } else {
+            // Otherwise, try to get the last sync time from the service
+            const lastSync = await apiSyncService.getLastSyncTime();
+            if (lastSync) {
+              setSyncTime(new Date(lastSync).toLocaleString());
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error loading sync data:', error);
+      }
+    };
+    
+    loadSyncData();
   }, []);
 
   return (

@@ -1,6 +1,14 @@
 import { PageHeader } from '@/components';
 import React, { useState, useEffect } from 'react'
-import { Alert, View, Text, TouchableOpacity, ActivityIndicator, TextInput } from 'react-native';
+import { 
+  Alert, 
+  View, 
+  Text, 
+  TouchableOpacity, 
+  ActivityIndicator, 
+  TextInput,
+  Switch
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LottieView from 'lottie-react-native';
 import Go from '@/assets/animations/hg-go.json'
@@ -8,6 +16,7 @@ import Loading from '@/assets/animations/hg-loading.json';
 import { router } from 'expo-router';
 import apiSyncService from '@/services/ApiSyncService';
 import AuthService from '@/services/AuthService';
+import NetInfo from '@react-native-community/netinfo';
 
 const SyncRecords = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -15,64 +24,133 @@ const SyncRecords = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [syncStats, setSyncStats] = useState(null);
+  const [isOnline, setIsOnline] = useState(true);
+  const [authError, setAuthError] = useState(null);
+  const [syncError, setSyncError] = useState(null);
+  const [lastSyncTime, setLastSyncTime] = useState(null);
 
-  // Check if user is already authenticated with the API
+  // Check network status and authentication status on component mount
   useEffect(() => {
-    const checkAuth = async () => {
+    const checkNetworkAndAuth = async () => {
       try {
-        const credentials = await apiSyncService.getStoredCredentials();
-        if (credentials) {
-          setIsAuthenticated(true);
+        // Check network status using NetInfo
+        const networkState = await NetInfo.fetch();
+        const isConnected = networkState.isConnected && networkState.isInternetReachable;
+        setIsOnline(isConnected);
+        apiSyncService.setOnlineStatus(isConnected);
+        
+        // Check if user is already authenticated with the API
+        // Use skipTokenVerification=true to prevent continuous token refresh and verification
+        const isAuth = await apiSyncService.isAuthenticated(true);
+        setIsAuthenticated(isAuth);
+        
+        // Get last sync time
+        const lastSync = await apiSyncService.getLastSyncTime();
+        if (lastSync) {
+          setLastSyncTime(new Date(lastSync).toLocaleString());
         }
       } catch (error) {
-        console.error('Error checking authentication:', error);
+        console.error('Error checking network and authentication:', error);
       }
     };
 
-    checkAuth();
+    checkNetworkAndAuth();
+    
+    // Set up network status listener
+    const unsubscribe = NetInfo.addEventListener(state => {
+      const isConnected = state.isConnected && state.isInternetReachable;
+      setIsOnline(isConnected);
+      apiSyncService.setOnlineStatus(isConnected);
+    });
+    
+    return () => {
+      // Clean up network status listener
+      unsubscribe();
+    };
   }, []);
 
   const authenticate = async () => {
     if (!username || !password) {
-      Alert.alert('Error', 'Please enter your username and password');
+      setAuthError('Please enter your username and password');
       return;
     }
-
+    
+    // Clear previous errors
+    setAuthError(null);
     setIsSubmitting(true);
+    
     try {
-      // First authenticate with local auth service
-      const localAuth = await AuthService.signIn({ username, password });
+      // Authenticate with the API
+      const authResult = await apiSyncService.authenticate({ 
+        username, 
+        password 
+      });
       
-      // Then authenticate with the API
-      await apiSyncService.authenticate({ username, password });
-      
-      setIsAuthenticated(true);
+      if (authResult.success) {
+        setIsAuthenticated(true);
+      } else {
+        setAuthError('Authentication failed. Please check your credentials.');
+      }
     } catch (error) {
-      Alert.alert('Authentication Error', error.message);
+      console.error('Authentication error:', error);
+      setAuthError(error.message || 'Authentication failed. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const submit = async () => {
-    setIsSubmitting(true);
+  const signOut = async () => {
     try {
+      await apiSyncService.signOut();
+      setIsAuthenticated(false);
+      setSyncStats(null);
+    } catch (error) {
+      console.error('Sign out error:', error);
+      Alert.alert('Sign Out Error', error.message);
+    }
+  };
+
+  const submit = async () => {
+    // Clear previous errors
+    setSyncError(null);
+    setIsSubmitting(true);
+    
+    try {
+      // Check if we're online
+      if (!isOnline) {
+        throw new Error('Cannot sync while offline. Please connect to the internet and try again.');
+      }
+      
+      // Check if the API is reachable
+      const isApiReachable = await apiSyncService.isApiReachable();
+      if (!isApiReachable) {
+        throw new Error('Cannot connect to the server. Please check your internet connection and try again.');
+      }
+      
       // Perform the sync
       const result = await apiSyncService.performFullSync();
       
-      // Set sync stats for display
-      setSyncStats({
-        farms: result.farms?.length || 0,
-        boundaryPoints: result.boundaryPoints?.length || 0,
-        observationPoints: result.observationPoints?.length || 0,
-        inspectionSuggestions: result.inspectionSuggestions?.length || 0,
-        inspectionObservations: result.inspectionObservations?.length || 0,
-      });
+      // Get the sync stats from the service
+      const stats = apiSyncService.getLastSyncStats();
+      setSyncStats(stats);
+      
+      // Update last sync time
+      const lastSync = await apiSyncService.getLastSyncTime();
+      if (lastSync) {
+        setLastSyncTime(new Date(lastSync).toLocaleString());
+      }
       
       // Navigate to completion page
       router.push("/sync/completion");
     } catch (error) {
-      Alert.alert("Sync Error", error.message);
+      console.error('Sync error:', error);
+      
+      // Handle network errors
+      if (error.message.includes('Network request failed')) {
+        setSyncError('Cannot connect to the server. Please check your internet connection and try again.');
+      } else {
+        setSyncError(error.message || 'Sync failed. Please try again.');
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -83,6 +161,17 @@ const SyncRecords = () => {
       <PageHeader
         title="Synchronise Inspection Records"
       />
+      {/* Network Status Indicator */}
+      <View className="w-full px-4 py-2 flex-row justify-between items-center bg-gray-100">
+        <View className="flex-row items-center">
+          <View className={`w-3 h-3 rounded-full mr-2 ${isOnline ? 'bg-green-500' : 'bg-red-500'}`} />
+          <Text className="text-sm">{isOnline ? 'Online' : 'Offline'}</Text>
+        </View>
+        {lastSyncTime && (
+          <Text className="text-xs text-gray-500">Last sync: {lastSyncTime}</Text>
+        )}
+      </View>
+      
       <View className="w-full flex-1 items-center justify-center px-4">
         {!isAuthenticated ? (
           // Authentication UI
@@ -90,13 +179,14 @@ const SyncRecords = () => {
             <Text className="text-xl text-center font-bold mb-6">Login to Django API</Text>
             
             <View className="mb-4">
-              <Text className="text-gray-700 mb-2">Username</Text>
+              <Text className="text-gray-700 mb-2">Phone Number</Text>
               <TextInput
                 className="border border-gray-300 rounded-md px-4 py-2 bg-white"
                 value={username}
                 onChangeText={setUsername}
-                placeholder="Enter your username"
+                placeholder="Enter your phone number (e.g. +61405120723)"
                 autoCapitalize="none"
+                keyboardType="phone-pad"
               />
             </View>
             
@@ -111,25 +201,48 @@ const SyncRecords = () => {
               />
             </View>
             
+            {authError && (
+              <View className="mb-4 p-3 bg-red-100 rounded-md">
+                <Text className="text-red-700">{authError}</Text>
+              </View>
+            )}
+            
             <TouchableOpacity
               className="bg-green-600 py-3 rounded-md items-center"
               onPress={authenticate}
-              disabled={isSubmitting}
+              disabled={isSubmitting || !isOnline}
             >
               {isSubmitting ? (
                 <ActivityIndicator color="#ffffff" />
               ) : (
-                <Text className="text-white font-bold">Login</Text>
+                <Text className="text-white font-bold">
+                  {isOnline ? 'Login' : 'Login (Offline Mode)'}
+                </Text>
               )}
             </TouchableOpacity>
+            
+            {!isOnline && (
+              <Text className="text-center text-sm text-gray-500 mt-4">
+                You are currently offline. You can still login with your local credentials.
+              </Text>
+            )}
           </View>
         ) : (
           // Sync UI
           <>
+            <View className="w-full flex-row justify-end mb-4">
+              <TouchableOpacity
+                className="bg-gray-200 px-4 py-2 rounded-md"
+                onPress={signOut}
+              >
+                <Text className="text-gray-700">Sign Out</Text>
+              </TouchableOpacity>
+            </View>
+            
             <TouchableOpacity
               className='w-[300px] h-[300px] items-center justify-center mb-5'
               onPress={submit}
-              disabled={isSubmitting}
+              disabled={isSubmitting || !isOnline}
             >
               <LottieView
                 source={!isSubmitting ? Go : Loading}
@@ -139,9 +252,24 @@ const SyncRecords = () => {
                 loop
               />
             </TouchableOpacity>
+            
             <Text className="text-2xl text-black font-psemibold mb-4">
               {!isSubmitting ? "Start Sync" : "Syncing Data..."}
             </Text>
+            
+            {syncError && (
+              <View className="mb-4 p-3 bg-red-100 rounded-md w-full max-w-md">
+                <Text className="text-red-700">{syncError}</Text>
+              </View>
+            )}
+            
+            {!isOnline && (
+              <View className="mb-4 p-3 bg-yellow-100 rounded-md w-full max-w-md">
+                <Text className="text-yellow-700">
+                  You are currently offline. Sync will be available when you reconnect to the internet.
+                </Text>
+              </View>
+            )}
             
             {syncStats && (
               <View className="bg-gray-50 p-4 rounded-lg w-full max-w-md">
