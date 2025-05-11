@@ -326,6 +326,33 @@ export const deleteFarm = async (farmId) => {
       // Continue with farm deletion even if suggestion deletion fails
     }
     
+    // Delete all inspection observations for this farm
+    try {
+      console.log(`Deleting inspection observations for farm ${farmIdNum}`);
+      const observations = await getInspectionObservationsByFarmId(farmIdNum);
+      console.log(`Found ${observations.length} inspection observations for farm ${farmIdNum}`);
+      
+      for (const observation of observations) {
+        await updateInspectionObservation(observation.id, { status: 'deleted' });
+        console.log(`Marked inspection observation with ID ${observation.id} as deleted`);
+      }
+      
+      // Also try to delete directly from the database table
+      try {
+        await db.runAsync(
+          'DELETE FROM inspection_observations WHERE farm_id = ?',
+          [farmIdNum]
+        );
+        console.log(`Deleted inspection observations for farm ${farmIdNum} directly from database`);
+      } catch (error) {
+        console.error('Error deleting inspection observations directly:', error);
+        // Continue with farm deletion even if direct deletion fails
+      }
+    } catch (error) {
+      console.error('Error deleting inspection observations:', error);
+      // Continue with farm deletion even if observation deletion fails
+    }
+    
     // Delete the farm
     await db.runAsync(
       'DELETE FROM farms WHERE id = ?',
