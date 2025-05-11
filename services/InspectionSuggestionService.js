@@ -123,9 +123,24 @@ export const createInspectionSuggestionWithObservations = async (suggestionData,
       throw new Error('Failed to update observation points. Please try again or contact support.');
     }
     
+    // Import the createInspectionObservationsForFarm function
+    const { createInspectionObservationsForFarm } = require('@/services/InspectionObservationService');
+    
+    // Create inspection observations for the farm
+    console.log('Creating inspection observations for farm');
+    const observationIds = await createInspectionObservationsForFarm(
+      suggestionId,
+      suggestionData.property_location,
+      suggestionData.confidence_level,
+      userId
+    );
+    
+    console.log(`Created ${observationIds.length} inspection observations`);
+    
     return {
       suggestionId,
-      updatedPoints: updatedPoints.map(point => point.id)
+      updatedPoints: updatedPoints.map(point => point.id),
+      observationIds
     };
   } catch (error) {
     console.error('Error creating inspection suggestion with observations:', error);

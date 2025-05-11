@@ -893,7 +893,10 @@ class ApiSyncService {
   async prepareInspectionSuggestionsForSync() {
     try {
       // Get all inspection suggestions from local database
-      const localInspectionSuggestions = await databaseService.getAll('inspection_suggestions');
+      // Note: The table name is 'InspectionSuggestions' with capital letters, not 'inspection_suggestions'
+      const localInspectionSuggestions = await databaseService.getAll('InspectionSuggestions');
+      
+      console.log('Retrieved inspection suggestions from database:', localInspectionSuggestions);
       
       // Format the inspection suggestions according to the Django API's expectations
       const formattedInspectionSuggestions = localInspectionSuggestions.map(suggestion => {
