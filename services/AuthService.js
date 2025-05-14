@@ -64,7 +64,10 @@ class AuthService {
       const API_BASE_URL = 'http://192.168.0.61:8001'; // This works for Android emulator
       const SIGNUP_ENDPOINT = '/api/auth/register/';
       
-      console.log('Attempting to sign up with API:', `${API_BASE_URL}${SIGNUP_ENDPOINT}`);
+      // Only log in development, not in production
+      if (__DEV__) {
+        console.log('Attempting to sign up with API:', `${API_BASE_URL}${SIGNUP_ENDPOINT}`);
+      }
       
       // The Django API expects phone_number, email, name, password, and password_confirm
       const response = await fetch(`${API_BASE_URL}${SIGNUP_ENDPOINT}`, {
@@ -82,11 +85,18 @@ class AuthService {
         }),
       });
       
-      console.log('API sign up response status:', response.status);
+      // Only log in development, not in production
+      if (__DEV__) {
+        console.log('API sign up response status:', response.status);
+      }
       
       // Get the response text first to see what's coming back
       const responseText = await response.text();
-      console.log('API sign up response text:', responseText);
+      
+      // Only log in development, not in production
+      if (__DEV__) {
+        console.log('API sign up response text:', responseText);
+      }
       
       // Try to parse as JSON if possible
       let data = {};
@@ -96,12 +106,18 @@ class AuthService {
           data = JSON.parse(responseText);
         }
       } catch (parseError) {
-        console.error('Error parsing response JSON:', parseError);
+        // Only log in development, not in production
+        if (__DEV__) {
+          console.log('Error parsing response JSON:', parseError);
+        }
       }
       
       if (!response.ok) {
-        console.error('API sign up failed with status:', response.status);
-        console.error('Response data:', data);
+        // Only log in development, not in production
+        if (__DEV__) {
+          console.log('API sign up failed with status:', response.status);
+          console.log('Response data:', data);
+        }
         
         // Try to extract error details
         if (data.detail) {
@@ -121,12 +137,17 @@ class AuthService {
         }
       }
       
-      // If we got here, the response was OK
-      console.log('API sign up successful');
+      // Only log in development, not in production
+      if (__DEV__) {
+        console.log('API sign up successful');
+      }
       
       return data;
     } catch (error) {
-      console.error('API sign up error:', error);
+      // Only log in development, not in production
+      if (__DEV__) {
+        console.log('API sign up error:', error.message);
+      }
       throw error;
     }
   }
@@ -144,7 +165,10 @@ class AuthService {
       const API_BASE_URL = 'http://192.168.0.61:8001'; // This works for Android emulator
       const LOGIN_ENDPOINT = '/api/auth/login/';
       
-      console.log('Attempting to sign in with API:', `${API_BASE_URL}${LOGIN_ENDPOINT}`);
+      // Only log in development, not in production
+      if (__DEV__) {
+        console.log('Attempting to sign in with API:', `${API_BASE_URL}${LOGIN_ENDPOINT}`);
+      }
       
       // Get device info
       const deviceInfo = Platform.OS === 'ios' 
@@ -165,11 +189,18 @@ class AuthService {
         }),
       });
       
-      console.log('API sign in response status:', response.status);
+      // Only log in development, not in production
+      if (__DEV__) {
+        console.log('API sign in response status:', response.status);
+      }
       
       // Get the response text first to see what's coming back
       const responseText = await response.text();
-      console.log('API sign in response text:', responseText);
+      
+      // Only log in development, not in production
+      if (__DEV__) {
+        console.log('API sign in response text:', responseText);
+      }
       
       // Try to parse as JSON if possible
       let data = {};
@@ -179,12 +210,18 @@ class AuthService {
           data = JSON.parse(responseText);
         }
       } catch (parseError) {
-        console.error('Error parsing response JSON:', parseError);
+        // Only log in development, not in production
+        if (__DEV__) {
+          console.error('Error parsing response JSON:', parseError);
+        }
       }
       
       if (!response.ok) {
-        console.error('API sign in failed with status:', response.status);
-        console.error('Response data:', data);
+        // Only log in development, not in production
+        if (__DEV__) {
+          console.log('API sign in failed with status:', response.status);
+          console.log('Response data:', data);
+        }
         
         // Try to extract error details
         if (data.detail) {
@@ -200,12 +237,17 @@ class AuthService {
         }
       }
       
-      // If we got here, the response was OK
-      console.log('API sign in successful');
+      // Only log in development, not in production
+      if (__DEV__) {
+        console.log('API sign in successful');
+      }
       
       return data;
     } catch (error) {
-      console.error('API sign in error:', error);
+      // Only log in development, not in production
+      if (__DEV__) {
+        console.log('API sign in error:', error.message);
+      }
       throw error;
     }
   }
@@ -221,7 +263,10 @@ class AuthService {
       const API_BASE_URL = 'http://192.168.0.61:8001'; // This works for Android emulator
       const LOGOUT_ENDPOINT = '/api/auth/logout/';
       
-      console.log('Attempting to sign out with API:', `${API_BASE_URL}${LOGOUT_ENDPOINT}`);
+      // Only log in development, not in production
+      if (__DEV__) {
+        console.log('Attempting to sign out with API:', `${API_BASE_URL}${LOGOUT_ENDPOINT}`);
+      }
       
       // The Django API expects refresh_token
       const response = await fetch(`${API_BASE_URL}${LOGOUT_ENDPOINT}`, {
@@ -235,11 +280,18 @@ class AuthService {
         }),
       });
       
-      console.log('API sign out response status:', response.status);
+      // Only log in development, not in production
+      if (__DEV__) {
+        console.log('API sign out response status:', response.status);
+      }
       
       // Get the response text first to see what's coming back
       const responseText = await response.text();
-      console.log('API sign out response text:', responseText);
+      
+      // Only log in development, not in production
+      if (__DEV__) {
+        console.log('API sign out response text:', responseText);
+      }
       
       // Try to parse as JSON if possible
       let data = {};
@@ -249,12 +301,18 @@ class AuthService {
           data = JSON.parse(responseText);
         }
       } catch (parseError) {
-        console.error('Error parsing response JSON:', parseError);
+        // Only log in development, not in production
+        if (__DEV__) {
+          console.log('Error parsing response JSON:', parseError);
+        }
       }
       
       if (!response.ok) {
-        console.error('API sign out failed with status:', response.status);
-        console.error('Response data:', data);
+        // Only log in development, not in production
+        if (__DEV__) {
+          console.log('API sign out failed with status:', response.status);
+          console.log('Response data:', data);
+        }
         
         // Try to extract error details
         if (data.detail) {
@@ -264,12 +322,17 @@ class AuthService {
         }
       }
       
-      // If we got here, the response was OK
-      console.log('API sign out successful');
+      // Only log in development, not in production
+      if (__DEV__) {
+        console.log('API sign out successful');
+      }
       
       return data;
     } catch (error) {
-      console.error('API sign out error:', error);
+      // Only log in development, not in production
+      if (__DEV__) {
+        console.log('API sign out error:', error.message);
+      }
       throw error;
     }
   }
@@ -285,7 +348,10 @@ class AuthService {
       const API_BASE_URL = 'http://192.168.0.61:8001'; // This works for Android emulator
       const REFRESH_ENDPOINT = '/api/auth/token/refresh/';
       
-      console.log('Attempting to refresh token with API:', `${API_BASE_URL}${REFRESH_ENDPOINT}`);
+      // Only log in development, not in production
+      if (__DEV__) {
+        console.log('Attempting to refresh token with API:', `${API_BASE_URL}${REFRESH_ENDPOINT}`);
+      }
       
       // The Django API expects refresh_token
       const response = await fetch(`${API_BASE_URL}${REFRESH_ENDPOINT}`, {
@@ -299,11 +365,18 @@ class AuthService {
         }),
       });
       
-      console.log('API token refresh response status:', response.status);
+      // Only log in development, not in production
+      if (__DEV__) {
+        console.log('API token refresh response status:', response.status);
+      }
       
       // Get the response text first to see what's coming back
       const responseText = await response.text();
-      console.log('API token refresh response text:', responseText);
+      
+      // Only log in development, not in production
+      if (__DEV__) {
+        console.log('API token refresh response text:', responseText);
+      }
       
       // Try to parse as JSON if possible
       let data = {};
@@ -313,12 +386,18 @@ class AuthService {
           data = JSON.parse(responseText);
         }
       } catch (parseError) {
-        console.error('Error parsing response JSON:', parseError);
+        // Only log in development, not in production
+        if (__DEV__) {
+          console.log('Error parsing response JSON:', parseError);
+        }
       }
       
       if (!response.ok) {
-        console.error('API token refresh failed with status:', response.status);
-        console.error('Response data:', data);
+        // Only log in development, not in production
+        if (__DEV__) {
+          console.log('API token refresh failed with status:', response.status);
+          console.log('Response data:', data);
+        }
         
         // Try to extract error details
         if (data.detail) {
@@ -328,12 +407,17 @@ class AuthService {
         }
       }
       
-      // If we got here, the response was OK
-      console.log('API token refresh successful');
+      // Only log in development, not in production
+      if (__DEV__) {
+        console.log('API token refresh successful');
+      }
       
       return data;
     } catch (error) {
-      console.error('API token refresh error:', error);
+      // Only log in development, not in production
+      if (__DEV__) {
+        console.log('API token refresh error:', error.message);
+      }
       throw error;
     }
   }
@@ -353,9 +437,15 @@ class AuthService {
       // First try to sign up with the API
       try {
         await this.signUpWithApi(userData);
-        console.log('API sign up successful, now signing up locally');
+        // Only log in development, not in production
+        if (__DEV__) {
+          console.log('API sign up successful, now signing up locally');
+        }
       } catch (apiError) {
-        console.error('API sign up failed, aborting local sign up:', apiError);
+        // Only log in development, not in production
+        if (__DEV__) {
+          console.log('API sign up failed, aborting local sign up:', apiError.message);
+        }
         throw apiError; // Re-throw the API error to stop the process
       }
       
@@ -365,7 +455,10 @@ class AuthService {
       // Check if username already exists
       const existingUser = await this.findUserByUsername(userData.username);
       if (existingUser) {
-        console.log('User already exists locally, skipping local sign up');
+        // Only log in development, not in production
+        if (__DEV__) {
+          console.log('User already exists locally, skipping local sign up');
+        }
         return true;
       }
 
@@ -381,10 +474,16 @@ class AuthService {
         userData.email
       );
 
-      console.log('Local sign up successful');
+      // Only log in development, not in production
+      if (__DEV__) {
+        console.log('Local sign up successful');
+      }
       return true;
     } catch (error) {
-      console.error('Sign up error:', error);
+      // Only log in development, not in production
+      if (__DEV__) {
+        console.log('Sign up error:', error.message);
+      }
       throw error;
     }
   }
@@ -401,7 +500,11 @@ class AuthService {
       // First try to sign in with the API
       try {
         const apiResponse = await this.signInWithApi(credentials);
-        console.log('API sign in successful:', apiResponse);
+        
+        // Only log in development, not in production
+        if (__DEV__) {
+          console.log('API sign in successful');
+        }
         
         // Store the tokens in secure storage
         // This would typically be done in ApiSyncService, but we'll do it here for completeness
@@ -420,7 +523,10 @@ class AuthService {
         
         // If the user doesn't exist locally, create them
         if (!user) {
-          console.log('User does not exist locally, creating local user');
+          // Only log in development, not in production
+          if (__DEV__) {
+            console.log('User does not exist locally, creating local user');
+          }
           
           // Hash the password
           const salt = bcrypt.genSaltSync(10);
@@ -459,7 +565,10 @@ class AuthService {
           }
         };
       } catch (apiError) {
-        console.error('API sign in failed, falling back to local sign in:', apiError);
+        // Only log in development, not in production
+        if (__DEV__) {
+          console.log('API sign in failed, falling back to local sign in');
+        }
         // Fall back to local sign in
       }
       
@@ -489,7 +598,10 @@ class AuthService {
         sessionToken
       };
     } catch (error) {
-      console.error('Sign in error:', error);
+      // Only log in development, not in production
+      if (__DEV__) {
+        console.log('Sign in error:', error.message);
+      }
       throw error;
     }
   }
@@ -506,14 +618,20 @@ class AuthService {
       if (refreshToken) {
         try {
           await this.signOutWithApi(refreshToken);
-          console.log('API sign out successful');
+          // Only log in development, not in production
+          if (__DEV__) {
+            console.log('API sign out successful');
+          }
           
           // Clear the tokens from secure storage
           const ApiSyncService = require('@/services/ApiSyncService').default;
           await ApiSyncService.clearTokensFromStorage();
           await ApiSyncService.clearCredentialsFromStorage();
         } catch (apiError) {
-          console.error('API sign out failed:', apiError);
+          // Only log in development, not in production
+          if (__DEV__) {
+            console.log('API sign out failed:', apiError.message);
+          }
           // Continue with local sign out even if API sign out fails
         }
       }
@@ -525,9 +643,15 @@ class AuthService {
         sessionToken
       );
       
-      console.log('Local sign out successful');
+      // Only log in development, not in production
+      if (__DEV__) {
+        console.log('Local sign out successful');
+      }
     } catch (error) {
-      console.error('Sign out error:', error);
+      // Only log in development, not in production
+      if (__DEV__) {
+        console.log('Sign out error:', error.message);
+      }
       throw error;
     }
   }
