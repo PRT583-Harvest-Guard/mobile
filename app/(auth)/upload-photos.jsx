@@ -104,7 +104,11 @@ export default function UploadBoundaryScreen() {
         <Text style={styles.breadcrumbActiveText}>Upload Boundary</Text>
       </View>
 
-      <View style={styles.content}>
+      <ScrollView 
+        style={styles.content}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={true}
+      >
         {farmData && (
           <View style={styles.farmInfoContainer}>
             <Text style={styles.farmName}>{farmData.name}</Text>
@@ -140,13 +144,15 @@ export default function UploadBoundaryScreen() {
           </View>
           
           {!drawOnMap ? (
-            <PhotoCapture
-              photos={boundaryStore.photos}
-              onCapture={(newPhotos) => boundaryStore.setPhotos(newPhotos)}
-              title="Capture boundary points"
-              titleStyles="text-black"
-              farmId={farmId}
-            />
+            <View style={styles.photoCaptureContainer}>
+              <PhotoCapture
+                photos={boundaryStore.photos}
+                onCapture={(newPhotos) => boundaryStore.setPhotos(newPhotos)}
+                title="Capture boundary points"
+                titleStyles="text-black"
+                farmId={farmId}
+              />
+            </View>
           ) : (
             <TouchableOpacity 
               style={styles.mapButton}
@@ -160,7 +166,15 @@ export default function UploadBoundaryScreen() {
             </TouchableOpacity>
           )}
         </View>
-      </View>
+        
+        {boundaryStore.photos.length >= 3 && (
+          <CustomButton
+            title="Save Boundary Points"
+            handlePress={handleSave}
+            containerStyles={styles.saveButton}
+          />
+        )}
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -367,5 +381,18 @@ const styles = StyleSheet.create({
   },
   deleteAllButton: {
     padding: 8,
+  },
+  scrollContent: {
+    paddingBottom: 30,
+    flexGrow: 1,
+  },
+  saveButton: {
+    marginTop: 20,
+    marginBottom: 20,
+    backgroundColor: '#1B4D3E',
+  },
+  photoCaptureContainer: {
+    height: 500, // Limit the height to ensure scrollability
+    marginBottom: 20,
   },
 });
