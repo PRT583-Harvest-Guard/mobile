@@ -51,6 +51,294 @@ class AuthService {
   }
 
   /**
+   * Sign up a new user with the API
+   * @param {Object} userData - User data for sign up
+   * @param {string} userData.username - Username (used as phone_number)
+   * @param {string} userData.email - Email
+   * @param {string} userData.password - Password
+   * @returns {Promise<Object>} The API response
+   */
+  static async signUpWithApi(userData) {
+    try {
+      // API base URL - replace with your actual Django API URL in production
+      const API_BASE_URL = 'http://192.168.0.61:8001'; // This works for Android emulator
+      const SIGNUP_ENDPOINT = '/api/auth/register/';
+      
+      console.log('Attempting to sign up with API:', `${API_BASE_URL}${SIGNUP_ENDPOINT}`);
+      
+      // The Django API expects phone_number, email, name, password, and password_confirm
+      const response = await fetch(`${API_BASE_URL}${SIGNUP_ENDPOINT}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({
+          phone_number: userData.username, // Using username as phone_number
+          email: userData.email,
+          name: userData.name || userData.username, // Use name if provided, otherwise use username
+          password: userData.password,
+          password_confirm: userData.password
+        }),
+      });
+      
+      console.log('API sign up response status:', response.status);
+      
+      // Get the response text first to see what's coming back
+      const responseText = await response.text();
+      console.log('API sign up response text:', responseText);
+      
+      // Try to parse as JSON if possible
+      let data = {};
+      
+      try {
+        if (responseText) {
+          data = JSON.parse(responseText);
+        }
+      } catch (parseError) {
+        console.error('Error parsing response JSON:', parseError);
+      }
+      
+      if (!response.ok) {
+        console.error('API sign up failed with status:', response.status);
+        console.error('Response data:', data);
+        
+        // Try to extract error details
+        if (data.detail) {
+          throw new Error(data.detail);
+        } else if (data.non_field_errors) {
+          throw new Error(data.non_field_errors.join(', '));
+        } else if (data.phone_number) {
+          throw new Error(`Phone number: ${data.phone_number.join(', ')}`);
+        } else if (data.email) {
+          throw new Error(`Email: ${data.email.join(', ')}`);
+        } else if (data.password) {
+          throw new Error(`Password: ${data.password.join(', ')}`);
+        } else if (data.password_confirm) {
+          throw new Error(`Password confirmation: ${data.password_confirm.join(', ')}`);
+        } else {
+          throw new Error(`API sign up failed with status ${response.status}`);
+        }
+      }
+      
+      // If we got here, the response was OK
+      console.log('API sign up successful');
+      
+      return data;
+    } catch (error) {
+      console.error('API sign up error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Sign in a user with the API
+   * @param {Object} credentials - User credentials
+   * @param {string} credentials.username - Username (used as phone_number)
+   * @param {string} credentials.password - Password
+   * @returns {Promise<Object>} The API response with tokens and user info
+   */
+  static async signInWithApi(credentials) {
+    try {
+      // API base URL - replace with your actual Django API URL in production
+      const API_BASE_URL = 'http://192.168.0.61:8001'; // This works for Android emulator
+      const LOGIN_ENDPOINT = '/api/auth/login/';
+      
+      console.log('Attempting to sign in with API:', `${API_BASE_URL}${LOGIN_ENDPOINT}`);
+      
+      // Get device info
+      const deviceInfo = Platform.OS === 'ios' 
+        ? `iOS ${Platform.Version}` 
+        : `Android ${Platform.Version}`;
+      
+      // The Django API expects phone_number, password, and optional device_info
+      const response = await fetch(`${API_BASE_URL}${LOGIN_ENDPOINT}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({
+          phone_number: credentials.username, // Using username as phone_number
+          password: credentials.password,
+          device_info: deviceInfo
+        }),
+      });
+      
+      console.log('API sign in response status:', response.status);
+      
+      // Get the response text first to see what's coming back
+      const responseText = await response.text();
+      console.log('API sign in response text:', responseText);
+      
+      // Try to parse as JSON if possible
+      let data = {};
+      
+      try {
+        if (responseText) {
+          data = JSON.parse(responseText);
+        }
+      } catch (parseError) {
+        console.error('Error parsing response JSON:', parseError);
+      }
+      
+      if (!response.ok) {
+        console.error('API sign in failed with status:', response.status);
+        console.error('Response data:', data);
+        
+        // Try to extract error details
+        if (data.detail) {
+          throw new Error(data.detail);
+        } else if (data.non_field_errors) {
+          throw new Error(data.non_field_errors.join(', '));
+        } else if (data.phone_number) {
+          throw new Error(`Phone number: ${data.phone_number.join(', ')}`);
+        } else if (data.password) {
+          throw new Error(`Password: ${data.password.join(', ')}`);
+        } else {
+          throw new Error(`API sign in failed with status ${response.status}`);
+        }
+      }
+      
+      // If we got here, the response was OK
+      console.log('API sign in successful');
+      
+      return data;
+    } catch (error) {
+      console.error('API sign in error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Sign out a user from the API
+   * @param {string} refreshToken - The refresh token to invalidate
+   * @returns {Promise<Object>} The API response
+   */
+  static async signOutWithApi(refreshToken) {
+    try {
+      // API base URL - replace with your actual Django API URL in production
+      const API_BASE_URL = 'http://192.168.0.61:8001'; // This works for Android emulator
+      const LOGOUT_ENDPOINT = '/api/auth/logout/';
+      
+      console.log('Attempting to sign out with API:', `${API_BASE_URL}${LOGOUT_ENDPOINT}`);
+      
+      // The Django API expects refresh_token
+      const response = await fetch(`${API_BASE_URL}${LOGOUT_ENDPOINT}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({
+          refresh_token: refreshToken
+        }),
+      });
+      
+      console.log('API sign out response status:', response.status);
+      
+      // Get the response text first to see what's coming back
+      const responseText = await response.text();
+      console.log('API sign out response text:', responseText);
+      
+      // Try to parse as JSON if possible
+      let data = {};
+      
+      try {
+        if (responseText) {
+          data = JSON.parse(responseText);
+        }
+      } catch (parseError) {
+        console.error('Error parsing response JSON:', parseError);
+      }
+      
+      if (!response.ok) {
+        console.error('API sign out failed with status:', response.status);
+        console.error('Response data:', data);
+        
+        // Try to extract error details
+        if (data.detail) {
+          throw new Error(data.detail);
+        } else {
+          throw new Error(`API sign out failed with status ${response.status}`);
+        }
+      }
+      
+      // If we got here, the response was OK
+      console.log('API sign out successful');
+      
+      return data;
+    } catch (error) {
+      console.error('API sign out error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Refresh the access token using the refresh token
+   * @param {string} refreshToken - The refresh token
+   * @returns {Promise<Object>} The API response with new tokens
+   */
+  static async refreshTokenWithApi(refreshToken) {
+    try {
+      // API base URL - replace with your actual Django API URL in production
+      const API_BASE_URL = 'http://192.168.0.61:8001'; // This works for Android emulator
+      const REFRESH_ENDPOINT = '/api/auth/token/refresh/';
+      
+      console.log('Attempting to refresh token with API:', `${API_BASE_URL}${REFRESH_ENDPOINT}`);
+      
+      // The Django API expects refresh_token
+      const response = await fetch(`${API_BASE_URL}${REFRESH_ENDPOINT}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({
+          refresh_token: refreshToken
+        }),
+      });
+      
+      console.log('API token refresh response status:', response.status);
+      
+      // Get the response text first to see what's coming back
+      const responseText = await response.text();
+      console.log('API token refresh response text:', responseText);
+      
+      // Try to parse as JSON if possible
+      let data = {};
+      
+      try {
+        if (responseText) {
+          data = JSON.parse(responseText);
+        }
+      } catch (parseError) {
+        console.error('Error parsing response JSON:', parseError);
+      }
+      
+      if (!response.ok) {
+        console.error('API token refresh failed with status:', response.status);
+        console.error('Response data:', data);
+        
+        // Try to extract error details
+        if (data.detail) {
+          throw new Error(data.detail);
+        } else {
+          throw new Error(`API token refresh failed with status ${response.status}`);
+        }
+      }
+      
+      // If we got here, the response was OK
+      console.log('API token refresh successful');
+      
+      return data;
+    } catch (error) {
+      console.error('API token refresh error:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Sign up a new user
    * @param {Object} userData - User data for sign up
    * @param {string} userData.username - Username
@@ -62,12 +350,23 @@ class AuthService {
    */
   static async signUp(userData) {
     try {
+      // First try to sign up with the API
+      try {
+        await this.signUpWithApi(userData);
+        console.log('API sign up successful, now signing up locally');
+      } catch (apiError) {
+        console.error('API sign up failed, aborting local sign up:', apiError);
+        throw apiError; // Re-throw the API error to stop the process
+      }
+      
+      // If API sign up was successful, proceed with local sign up
       const database = await this.getDatabase();
       
       // Check if username already exists
       const existingUser = await this.findUserByUsername(userData.username);
       if (existingUser) {
-        throw new Error('Username already exists');
+        console.log('User already exists locally, skipping local sign up');
+        return true;
       }
 
       // Hash the password
@@ -82,6 +381,7 @@ class AuthService {
         userData.email
       );
 
+      console.log('Local sign up successful');
       return true;
     } catch (error) {
       console.error('Sign up error:', error);
@@ -98,6 +398,72 @@ class AuthService {
    */
   static async signIn(credentials) {
     try {
+      // First try to sign in with the API
+      try {
+        const apiResponse = await this.signInWithApi(credentials);
+        console.log('API sign in successful:', apiResponse);
+        
+        // Store the tokens in secure storage
+        // This would typically be done in ApiSyncService, but we'll do it here for completeness
+        if (apiResponse.access_token && apiResponse.refresh_token) {
+          // We'll assume there's a method to save tokens in ApiSyncService
+          const ApiSyncService = require('@/services/ApiSyncService').default;
+          await ApiSyncService.saveTokensToStorage(apiResponse.access_token, apiResponse.refresh_token);
+          
+          // Also save the user credentials for later use
+          await ApiSyncService.saveCredentialsToStorage(credentials);
+        }
+        
+        // Check if the user exists locally
+        const database = await this.getDatabase();
+        let user = await this.findUserByUsername(credentials.username);
+        
+        // If the user doesn't exist locally, create them
+        if (!user) {
+          console.log('User does not exist locally, creating local user');
+          
+          // Hash the password
+          const salt = bcrypt.genSaltSync(10);
+          const hashedPassword = bcrypt.hashSync(credentials.password, salt);
+          
+          // Insert new user
+          const result = await database.runAsync(
+            'INSERT INTO users (username, password_hash, email) VALUES (?, ?, ?)',
+            credentials.username,
+            hashedPassword,
+            apiResponse.user?.email || `${credentials.username}@example.com`
+          );
+          
+          // Get the newly created user
+          user = await this.findUserByUsername(credentials.username);
+          
+          if (!user) {
+            throw new Error('Failed to create local user');
+          }
+        }
+        
+        // Generate and store session token
+        const sessionToken = await this.createSession(user.id);
+        
+        return {
+          user: {
+            id: user.id,
+            username: user.username,
+            email: user.email,
+            apiUser: apiResponse.user // Include the API user data
+          },
+          sessionToken,
+          apiTokens: {
+            accessToken: apiResponse.access_token,
+            refreshToken: apiResponse.refresh_token
+          }
+        };
+      } catch (apiError) {
+        console.error('API sign in failed, falling back to local sign in:', apiError);
+        // Fall back to local sign in
+      }
+      
+      // Local sign in
       const database = await this.getDatabase();
       const user = await this.findUserByUsername(credentials.username);
       
@@ -130,14 +496,40 @@ class AuthService {
 
   /**
    * Sign out the current user
+   * @param {string} sessionToken - The local session token
+   * @param {string} refreshToken - The API refresh token (optional)
    * @returns {Promise<void>}
    */
-  static async signOut(sessionToken) {
-    const database = await this.getDatabase();
-    await database.runAsync(
-      'DELETE FROM sessions WHERE token = ?',
-      sessionToken
-    );
+  static async signOut(sessionToken, refreshToken) {
+    try {
+      // First try to sign out from the API if a refresh token is provided
+      if (refreshToken) {
+        try {
+          await this.signOutWithApi(refreshToken);
+          console.log('API sign out successful');
+          
+          // Clear the tokens from secure storage
+          const ApiSyncService = require('@/services/ApiSyncService').default;
+          await ApiSyncService.clearTokensFromStorage();
+          await ApiSyncService.clearCredentialsFromStorage();
+        } catch (apiError) {
+          console.error('API sign out failed:', apiError);
+          // Continue with local sign out even if API sign out fails
+        }
+      }
+      
+      // Local sign out
+      const database = await this.getDatabase();
+      await database.runAsync(
+        'DELETE FROM sessions WHERE token = ?',
+        sessionToken
+      );
+      
+      console.log('Local sign out successful');
+    } catch (error) {
+      console.error('Sign out error:', error);
+      throw error;
+    }
   }
 
   static async findUserByUsername(username) {

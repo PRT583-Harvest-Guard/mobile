@@ -19,9 +19,14 @@ const API_BASE_URL = 'http://192.168.0.61:8001'; // This works for Android emula
 // API endpoints
 const ENDPOINTS = {
   // Authentication endpoints
-  JWT_CREATE: '/api/accounts/jwt/create/',
-  JWT_REFRESH: '/api/accounts/jwt/refresh/',
-  JWT_VERIFY: '/api/accounts/jwt/verify/',
+  LOGIN: '/api/auth/login/',
+  LOGOUT: '/api/auth/logout/',
+  REGISTER: '/api/auth/register/',
+  TOKEN_REFRESH: '/api/auth/token/refresh/',
+  FORGOT_PASSWORD: '/api/auth/forgot-password/',
+  RESET_PASSWORD: '/api/auth/reset-password/',
+  CHANGE_PASSWORD: '/api/auth/change-password/',
+  USER_INFO: '/api/auth/me/',
   
   // Data endpoints
   FARMS: '/api/farms/',
@@ -202,15 +207,17 @@ class ApiSyncService {
     }
     
     try {
-      console.log('Attempting to verify token with:', `${API_BASE_URL}${ENDPOINTS.JWT_VERIFY}`);
+      console.log('Attempting to verify token with:', `${API_BASE_URL}${ENDPOINTS.USER_INFO}`);
       
-      const response = await fetch(`${API_BASE_URL}${ENDPOINTS.JWT_VERIFY}`, {
-        method: 'POST',
+      // Instead of using a dedicated token verification endpoint, we'll try to get the user info
+      // If the token is valid, this should succeed
+      const response = await fetch(`${API_BASE_URL}${ENDPOINTS.USER_INFO}`, {
+        method: 'GET',
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
+          'Authorization': `JWT ${this.accessToken}`,
         },
-        body: JSON.stringify({ token: this.accessToken }),
       });
       
       console.log('Token verification response status:', response.status);
@@ -252,15 +259,15 @@ class ApiSyncService {
     if (!this.refreshToken) return false;
     
     try {
-      console.log('Attempting to refresh token with:', `${API_BASE_URL}${ENDPOINTS.JWT_REFRESH}`);
+      console.log('Attempting to refresh token with:', `${API_BASE_URL}${ENDPOINTS.TOKEN_REFRESH}`);
       
-      const response = await fetch(`${API_BASE_URL}${ENDPOINTS.JWT_REFRESH}`, {
+      const response = await fetch(`${API_BASE_URL}${ENDPOINTS.TOKEN_REFRESH}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
-        body: JSON.stringify({ refresh: this.refreshToken }),
+        body: JSON.stringify({ refresh_token: this.refreshToken }),
       });
       
       console.log('Token refresh response status:', response.status);
@@ -287,15 +294,16 @@ class ApiSyncService {
         throw new Error(data.detail || 'Failed to refresh token');
       }
       
-      if (!data.access) {
+      if (!data.access_token) {
         console.error('Token refresh response missing access token:', data);
         throw new Error('Refresh token response missing access token');
       }
       
       console.log('Token refresh successful, new access token received');
       
-      // Save the new access token
-      await this.saveTokensToStorage(data.access, this.refreshToken);
+      // Save the new access token and refresh token (if provided)
+      const newRefreshToken = data.refresh_token || this.refreshToken;
+      await this.saveTokensToStorage(data.access_token, newRefreshToken);
       
       return true;
     } catch (error) {
@@ -336,15 +344,21 @@ class ApiSyncService {
         throw new Error('Local authentication failed');
       }
       
+      // Get device info
+      const deviceInfo = Platform.OS === 'ios' 
+        ? `iOS ${Platform.Version}` 
+        : `Android ${Platform.Version}`;
+      
       // Online authentication with the API
-      console.log('Attempting to authenticate with API:', `${API_BASE_URL}${ENDPOINTS.JWT_CREATE}`);
+      console.log('Attempting to authenticate with API:', `${API_BASE_URL}${ENDPOINTS.LOGIN}`);
       console.log('Credentials:', JSON.stringify({
         phone_number: credentials.username, // Using username as phone_number
-        password: '********' // Masked for security
+        password: '********', // Masked for security
+        device_info: deviceInfo
       }));
       
       // The Django API expects phone_number instead of username
-      const response = await fetch(`${API_BASE_URL}${ENDPOINTS.JWT_CREATE}`, {
+      const response = await fetch(`${API_BASE_URL}${ENDPOINTS.LOGIN}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -352,7 +366,8 @@ class ApiSyncService {
         },
         body: JSON.stringify({
           phone_number: credentials.username, // Using username as phone_number
-          password: credentials.password
+          password: credentials.password,
+          device_info: deviceInfo
         }),
       });
       
@@ -383,6 +398,10 @@ class ApiSyncService {
           throw new Error(data.detail);
         } else if (data.non_field_errors) {
           throw new Error(data.non_field_errors.join(', '));
+        } else if (data.phone_number) {
+          throw new Error(`Phone number: ${data.phone_number.join(', ')}`);
+        } else if (data.password) {
+          throw new Error(`Password: ${data.password.join(', ')}`);
         } else {
           throw new Error(`Authentication failed with status ${response.status}`);
         }
@@ -392,7 +411,7 @@ class ApiSyncService {
       console.log('Authentication successful, tokens received');
       
       // Save tokens
-      await this.saveTokensToStorage(data.access, data.refresh);
+      await this.saveTokensToStorage(data.access_token, data.refresh_token);
       
       // Save credentials for later use
       await this.saveCredentialsToStorage(credentials);
@@ -406,7 +425,8 @@ class ApiSyncService {
           await AuthService.signUp({
             username: credentials.username,
             password: credentials.password,
-            email: credentials.email || `${credentials.username}@example.com`,
+            email: data.user?.email || `${credentials.username}@example.com`,
+            name: data.user?.name || credentials.username
           });
           
           // Try to sign in again
@@ -421,9 +441,10 @@ class ApiSyncService {
         success: true,
         message: 'Authenticated with API',
         tokens: {
-          access: data.access,
-          refresh: data.refresh,
+          access: data.access_token,
+          refresh: data.refresh_token,
         },
+        user: data.user
       };
     } catch (error) {
       console.error('API authentication error:', error);
