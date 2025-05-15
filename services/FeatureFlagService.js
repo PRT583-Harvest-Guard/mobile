@@ -1,4 +1,5 @@
 import * as SQLite from 'expo-sqlite';
+import config from '@/config/env';
 
 let db;
 
@@ -7,8 +8,8 @@ let db;
  */
 export const initFeatureFlagsTable = async () => {
   try {
-    db = await SQLite.openDatabaseAsync('mobile.db');
-    
+    db = await SQLite.openDatabaseAsync(config.db.name);
+
     // Create feature_flags table
     await db.execAsync(`
       CREATE TABLE IF NOT EXISTS feature_flags (
@@ -19,13 +20,13 @@ export const initFeatureFlagsTable = async () => {
         created_at TEXT DEFAULT CURRENT_TIMESTAMP
       )
     `);
-    
+
     // Insert default feature flags if they don't exist
     await db.execAsync(`
       INSERT OR IGNORE INTO feature_flags (name, enabled, description)
       VALUES ('delete_farm', 0, 'Allow farmers to delete their farms and all associated data')
     `);
-    
+
     console.log('Feature flags table initialized successfully');
   } catch (error) {
     console.error('Error initializing feature flags table:', error);
@@ -39,7 +40,7 @@ export const initFeatureFlagsTable = async () => {
  */
 export const getFeatureFlags = async () => {
   if (!db) await initFeatureFlagsTable();
-  
+
   try {
     const flags = await db.getAllAsync('SELECT * FROM feature_flags');
     return flags;
@@ -56,17 +57,17 @@ export const getFeatureFlags = async () => {
  */
 export const getFeatureFlag = async (name) => {
   if (!db) await initFeatureFlagsTable();
-  
+
   try {
     const flags = await db.getAllAsync(
       'SELECT * FROM feature_flags WHERE name = ?',
       [name]
     );
-    
+
     if (flags.length === 0) {
       return null;
     }
-    
+
     return flags[0];
   } catch (error) {
     console.error(`Error getting feature flag '${name}':`, error);
@@ -97,13 +98,13 @@ export const isFeatureEnabled = async (name) => {
  */
 export const updateFeatureFlag = async (name, enabled) => {
   if (!db) await initFeatureFlagsTable();
-  
+
   try {
     await db.runAsync(
       'UPDATE feature_flags SET enabled = ? WHERE name = ?',
       [enabled ? 1 : 0, name]
     );
-    
+
     return true;
   } catch (error) {
     console.error(`Error updating feature flag '${name}':`, error);

@@ -1,4 +1,5 @@
 import * as SQLite from 'expo-sqlite';
+import config from '@/config/env';
 
 let db;
 
@@ -7,8 +8,8 @@ let db;
  */
 export const initObservationsTable = async () => {
   try {
-    db = await SQLite.openDatabaseAsync('mobile.db');
-    
+    db = await SQLite.openDatabaseAsync(config.db.name);
+
     // Create observations table
     await db.execAsync(`
       CREATE TABLE IF NOT EXISTS observations (
@@ -24,13 +25,13 @@ export const initObservationsTable = async () => {
         FOREIGN KEY (observation_point_id) REFERENCES observation_points(id) ON DELETE CASCADE
       )
     `);
-    
+
     // Check if picture_uri column exists, if not add it
     try {
       // First check if the column exists
       const tableInfo = await db.getAllAsync("PRAGMA table_info(observations)");
       const pictureUriColumnExists = tableInfo.some(column => column.name === 'picture_uri');
-      
+
       if (!pictureUriColumnExists) {
         console.log('Adding picture_uri column to observations table');
         await db.execAsync(`
@@ -42,7 +43,7 @@ export const initObservationsTable = async () => {
       console.error('Error checking/adding picture_uri column:', error);
       // Continue execution even if this fails
     }
-    
+
     console.log('Observations table created/updated successfully');
   } catch (error) {
     console.error('Error initializing observations table:', error);
@@ -57,20 +58,20 @@ export const initObservationsTable = async () => {
  */
 export const getObservations = async (observationPointId) => {
   if (!db) await initObservationsTable();
-  
+
   try {
     // Ensure observationPointId is a number
     const pointId = Number(observationPointId);
-    
+
     // Get observations
     const observations = await db.getAllAsync(`
       SELECT * FROM observations 
       WHERE observation_point_id = ?
       ORDER BY created_at DESC
     `, [pointId]);
-    
+
     console.log(`Found ${observations.length} observations for point ID ${pointId}`);
-    
+
     return observations;
   } catch (error) {
     console.error('Error getting observations:', error);
@@ -85,22 +86,22 @@ export const getObservations = async (observationPointId) => {
  */
 export const saveObservation = async (observation) => {
   if (!db) await initObservationsTable();
-  
+
   try {
-    const { 
-      farm_id, 
-      observation_point_id, 
-      identifier, 
-      detection, 
-      severity, 
+    const {
+      farm_id,
+      observation_point_id,
+      identifier,
+      detection,
+      severity,
       notes,
       picture_uri
     } = observation;
-    
+
     // Ensure IDs are numbers
     const farmId = Number(farm_id);
     const pointId = Number(observation_point_id);
-    
+
     // Insert the new observation
     const result = await db.runAsync(
       `INSERT INTO observations 
@@ -146,32 +147,32 @@ export const saveObservation = async (observation) => {
  */
 export const updateObservation = async (observationId, data) => {
   if (!db) await initObservationsTable();
-  
+
   try {
     // Build SET clause
     const setClause = Object.keys(data)
       .map(key => `${key} = ?`)
       .join(', ');
-    
+
     // Build parameters array
     const params = [...Object.values(data), observationId];
-    
+
     // Update the observation
     await db.runAsync(
       `UPDATE observations SET ${setClause} WHERE id = ?`,
       params
     );
-    
+
     // Get the updated observation
     const updatedObservation = await db.getAllAsync(
       'SELECT * FROM observations WHERE id = ?',
       [observationId]
     );
-    
+
     if (!updatedObservation || updatedObservation.length === 0) {
       throw new Error('Observation not found after update');
     }
-    
+
     return updatedObservation[0];
   } catch (error) {
     console.error('Error updating observation:', error);
@@ -186,14 +187,14 @@ export const updateObservation = async (observationId, data) => {
  */
 export const deleteObservation = async (observationId) => {
   if (!db) await initObservationsTable();
-  
+
   try {
     // Delete the observation
     await db.runAsync(
       'DELETE FROM observations WHERE id = ?',
       [observationId]
     );
-    
+
     return true;
   } catch (error) {
     console.error('Error deleting observation:', error);
@@ -208,11 +209,11 @@ export const deleteObservation = async (observationId) => {
  */
 export const getLatestObservation = async (observationPointId) => {
   if (!db) await initObservationsTable();
-  
+
   try {
     // Ensure observationPointId is a number
     const pointId = Number(observationPointId);
-    
+
     // Get the latest observation
     const observations = await db.getAllAsync(`
       SELECT * FROM observations 
@@ -220,11 +221,11 @@ export const getLatestObservation = async (observationPointId) => {
       ORDER BY created_at DESC
       LIMIT 1
     `, [pointId]);
-    
+
     if (observations.length === 0) {
       return null;
     }
-    
+
     return observations[0];
   } catch (error) {
     console.error('Error getting latest observation:', error);
