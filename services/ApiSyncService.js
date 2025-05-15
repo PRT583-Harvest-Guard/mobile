@@ -4,6 +4,7 @@
  */
 import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
+import config from '@/config/env';
 import AuthService from './AuthService';
 import databaseService from './DatabaseService';
 import { Alert } from 'react-native';
@@ -12,46 +13,14 @@ import { Alert } from 'react-native';
 // For development, use your computer's local network IP address
 // For example: 'http://192.168.1.100:8001'
 // Or use ngrok for testing: 'https://your-ngrok-url.ngrok.io'
-const API_BASE_URL = 'http://192.168.0.61:8001'; // This works for Android emulator
-// const API_BASE_URL = 'http://localhost:8001'; // This works for iOS simulator
-// const API_BASE_URL = 'http://0.0.0.0:8001'; // This works for local development
+// Config on .env file
+const API_BASE_URL = config.api.baseUrl;
 
 // API endpoints
-const ENDPOINTS = {
-  // Authentication endpoints
-  LOGIN: '/api/auth/login/',
-  LOGOUT: '/api/auth/logout/',
-  REGISTER: '/api/auth/register/',
-  TOKEN_REFRESH: '/api/auth/token/refresh/',
-  FORGOT_PASSWORD: '/api/auth/forgot-password/',
-  RESET_PASSWORD: '/api/auth/reset-password/',
-  CHANGE_PASSWORD: '/api/auth/change-password/',
-  USER_INFO: '/api/auth/me/',
-  
-  // Data endpoints
-  FARMS: '/api/farms/',
-  BOUNDARY_POINTS: '/api/boundary-points/',
-  OBSERVATION_POINTS: '/api/observation-points/',
-  OBSERVATION_POINTS_SYNC: '/api/observation-points/sync/',
-  OBSERVATION_POINTS_PENDING: '/api/observation-points/pending_sync/',
-  INSPECTION_SUGGESTIONS: '/api/inspection-suggestions/',
-  INSPECTION_SUGGESTIONS_SYNC: '/api/inspection-suggestions/sync/',
-  INSPECTION_SUGGESTIONS_PENDING: '/api/inspection-suggestions/pending_sync/',
-  INSPECTION_OBSERVATIONS: '/api/inspection-observations/',
-  PROFILE: '/api/profile/profile/',
-  PROFILE_SYNC: '/api/profile/profile/sync/',
-  
-  // Main sync endpoint
-  SYNC_DATA: '/api/sync-data/',
-};
+const ENDPOINTS = config.api.endpoints;
 
 // Secure storage keys
-const STORAGE_KEYS = {
-  ACCESS_TOKEN: 'harvestguard_access_token',
-  REFRESH_TOKEN: 'harvestguard_refresh_token',
-  USER_CREDENTIALS: 'harvestguard_user_credentials',
-  LAST_SYNC_TIME: 'harvestguard_last_sync_time',
-};
+const STORAGE_KEYS = config.auth.storageKeys;
 
 class ApiSyncService {
   constructor() {
@@ -69,14 +38,14 @@ class ApiSyncService {
    */
   async initialize() {
     if (this.isInitialized) return;
-    
+
     try {
       // Initialize the database service
       await databaseService.initialize();
-      
+
       // Try to load tokens from secure storage
       await this.loadTokensFromStorage();
-      
+
       this.isInitialized = true;
       console.log('API Sync Service initialized');
     } catch (error) {
@@ -93,11 +62,11 @@ class ApiSyncService {
     try {
       this.accessToken = await SecureStore.getItemAsync(STORAGE_KEYS.ACCESS_TOKEN);
       this.refreshToken = await SecureStore.getItemAsync(STORAGE_KEYS.REFRESH_TOKEN);
-      
+
       if (this.accessToken && this.refreshToken) {
         // Verify the access token
         const isValid = await this.verifyToken();
-        
+
         if (!isValid) {
           // Try to refresh the token
           await this.refreshAccessToken();
@@ -121,7 +90,7 @@ class ApiSyncService {
     try {
       await SecureStore.setItemAsync(STORAGE_KEYS.ACCESS_TOKEN, accessToken);
       await SecureStore.setItemAsync(STORAGE_KEYS.REFRESH_TOKEN, refreshToken);
-      
+
       this.accessToken = accessToken;
       this.refreshToken = refreshToken;
     } catch (error) {
@@ -138,7 +107,7 @@ class ApiSyncService {
     try {
       await SecureStore.deleteItemAsync(STORAGE_KEYS.ACCESS_TOKEN);
       await SecureStore.deleteItemAsync(STORAGE_KEYS.REFRESH_TOKEN);
-      
+
       this.accessToken = null;
       this.refreshToken = null;
     } catch (error) {
@@ -171,11 +140,11 @@ class ApiSyncService {
   async getStoredCredentials() {
     try {
       const credentialsJson = await SecureStore.getItemAsync(STORAGE_KEYS.USER_CREDENTIALS);
-      
+
       if (credentialsJson) {
         return JSON.parse(credentialsJson);
       }
-      
+
       return null;
     } catch (error) {
       console.error('Error getting credentials from storage:', error);
@@ -205,13 +174,13 @@ class ApiSyncService {
       console.log('No access token to verify');
       return false;
     }
-    
+
     try {
-      console.log('Attempting to verify token with:', `${API_BASE_URL}${ENDPOINTS.USER_INFO}`);
-      
+      console.log('Attempting to verify token with:', `${API_BASE_URL}${ENDPOINTS.userInfo}`);
+
       // Instead of using a dedicated token verification endpoint, we'll try to get the user info
       // If the token is valid, this should succeed
-      const response = await fetch(`${API_BASE_URL}${ENDPOINTS.USER_INFO}`, {
+      const response = await fetch(`${API_BASE_URL}${ENDPOINTS.userInfo}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -219,16 +188,16 @@ class ApiSyncService {
           'Authorization': `JWT ${this.accessToken}`,
         },
       });
-      
+
       console.log('Token verification response status:', response.status);
-      
+
       // Get the response text first to see what's coming back
       const responseText = await response.text();
       console.log('Token verification response text:', responseText);
-      
+
       // Try to parse as JSON if possible
       let data = {};
-      
+
       try {
         if (responseText) {
           data = JSON.parse(responseText);
@@ -236,13 +205,13 @@ class ApiSyncService {
       } catch (parseError) {
         console.error('Error parsing token verification response JSON:', parseError);
       }
-      
+
       if (!response.ok) {
         console.error('Token verification failed with status:', response.status);
         console.error('Response data:', data);
         return false;
       }
-      
+
       console.log('Token verification successful');
       return true;
     } catch (error) {
@@ -257,11 +226,11 @@ class ApiSyncService {
    */
   async refreshAccessToken() {
     if (!this.refreshToken) return false;
-    
+
     try {
-      console.log('Attempting to refresh token with:', `${API_BASE_URL}${ENDPOINTS.TOKEN_REFRESH}`);
-      
-      const response = await fetch(`${API_BASE_URL}${ENDPOINTS.TOKEN_REFRESH}`, {
+      console.log('Attempting to refresh token with:', `${API_BASE_URL}${ENDPOINTS.tokenRefresh}`);
+
+      const response = await fetch(`${API_BASE_URL}${ENDPOINTS.tokenRefresh}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -269,16 +238,16 @@ class ApiSyncService {
         },
         body: JSON.stringify({ refresh_token: this.refreshToken }),
       });
-      
+
       console.log('Token refresh response status:', response.status);
-      
+
       // Get the response text first to see what's coming back
       const responseText = await response.text();
       console.log('Token refresh response text:', responseText);
-      
+
       // Try to parse as JSON if possible
       let data = {};
-      
+
       try {
         if (responseText) {
           data = JSON.parse(responseText);
@@ -287,31 +256,31 @@ class ApiSyncService {
         console.error('Error parsing refresh token response JSON:', parseError);
         throw new Error('Failed to parse refresh token response');
       }
-      
+
       if (!response.ok) {
         console.error('Token refresh failed with status:', response.status);
         console.error('Response data:', data);
         throw new Error(data.detail || 'Failed to refresh token');
       }
-      
+
       if (!data.access_token) {
         console.error('Token refresh response missing access token:', data);
         throw new Error('Refresh token response missing access token');
       }
-      
+
       console.log('Token refresh successful, new access token received');
-      
+
       // Save the new access token and refresh token (if provided)
       const newRefreshToken = data.refresh_token || this.refreshToken;
       await this.saveTokensToStorage(data.access_token, newRefreshToken);
-      
+
       return true;
     } catch (error) {
       console.error('Token refresh error:', error);
-      
+
       // Clear tokens if refresh failed
       await this.clearTokensFromStorage();
-      
+
       return false;
     }
   }
@@ -329,36 +298,36 @@ class ApiSyncService {
       if (!this.isOnline) {
         // Try to authenticate locally
         const localAuth = await AuthService.signIn(credentials);
-        
+
         if (localAuth) {
           // Save credentials for later API authentication
           await this.saveCredentialsToStorage(credentials);
-          
+
           return {
             success: true,
             message: 'Authenticated locally (offline mode)',
             user: localAuth.user,
           };
         }
-        
+
         throw new Error('Local authentication failed');
       }
-      
+
       // Get device info
-      const deviceInfo = Platform.OS === 'ios' 
-        ? `iOS ${Platform.Version}` 
+      const deviceInfo = Platform.OS === 'ios'
+        ? `iOS ${Platform.Version}`
         : `Android ${Platform.Version}`;
-      
+
       // Online authentication with the API
-      console.log('Attempting to authenticate with API:', `${API_BASE_URL}${ENDPOINTS.LOGIN}`);
+      console.log('Attempting to authenticate with API:', `${API_BASE_URL}${ENDPOINTS.login}`);
       console.log('Credentials:', JSON.stringify({
         phone_number: credentials.username, // Using username as phone_number
         password: '********', // Masked for security
         device_info: deviceInfo
       }));
-      
+
       // The Django API expects phone_number instead of username
-      const response = await fetch(`${API_BASE_URL}${ENDPOINTS.LOGIN}`, {
+      const response = await fetch(`${API_BASE_URL}${ENDPOINTS.login}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -370,17 +339,17 @@ class ApiSyncService {
           device_info: deviceInfo
         }),
       });
-      
+
       console.log('Authentication response status:', response.status);
-      
+
       // Get the response text first to see what's coming back
       const responseText = await response.text();
       console.log('Authentication response text:', responseText);
-      
+
       // Try to parse as JSON if possible
       let errorData = {};
       let data = {};
-      
+
       try {
         if (responseText) {
           data = JSON.parse(responseText);
@@ -388,11 +357,11 @@ class ApiSyncService {
       } catch (parseError) {
         console.error('Error parsing response JSON:', parseError);
       }
-      
+
       if (!response.ok) {
         console.error('Authentication failed with status:', response.status);
         console.error('Response data:', data);
-        
+
         // Try to extract error details
         if (data.detail) {
           throw new Error(data.detail);
@@ -406,16 +375,16 @@ class ApiSyncService {
           throw new Error(`Authentication failed with status ${response.status}`);
         }
       }
-      
+
       // If we got here, the response was OK
       console.log('Authentication successful, tokens received');
-      
+
       // Save tokens
       await this.saveTokensToStorage(data.access_token, data.refresh_token);
-      
+
       // Save credentials for later use
       await this.saveCredentialsToStorage(credentials);
-      
+
       // Try to authenticate locally as well
       try {
         await AuthService.signIn(credentials);
@@ -428,7 +397,7 @@ class ApiSyncService {
             email: data.user?.email || `${credentials.username}@example.com`,
             name: data.user?.name || credentials.username
           });
-          
+
           // Try to sign in again
           await AuthService.signIn(credentials);
         } catch (localSignUpError) {
@@ -436,7 +405,7 @@ class ApiSyncService {
           // Continue anyway, since API auth succeeded
         }
       }
-      
+
       return {
         success: true,
         message: 'Authenticated with API',
@@ -448,15 +417,15 @@ class ApiSyncService {
       };
     } catch (error) {
       console.error('API authentication error:', error);
-      
+
       // If API auth fails, try local auth as fallback
       try {
         const localAuth = await AuthService.signIn(credentials);
-        
+
         if (localAuth) {
           // Save credentials for later API authentication
           await this.saveCredentialsToStorage(credentials);
-          
+
           return {
             success: true,
             message: 'Authenticated locally (API auth failed)',
@@ -466,7 +435,7 @@ class ApiSyncService {
       } catch (localAuthError) {
         console.error('Local authentication error:', localAuthError);
       }
-      
+
       throw error;
     }
   }
@@ -479,10 +448,10 @@ class ApiSyncService {
     try {
       // Clear tokens
       await this.clearTokensFromStorage();
-      
+
       // Clear credentials
       await this.clearCredentialsFromStorage();
-      
+
       // Sign out locally
       const credentials = await this.getStoredCredentials();
       if (credentials) {
@@ -506,27 +475,27 @@ class ApiSyncService {
       if (skipTokenVerification) {
         return true;
       }
-      
+
       // Verify the access token only once
       const isValid = await this.verifyToken();
-      
+
       if (isValid) {
         return true;
       }
-      
+
       // Try to refresh the token only once
       return await this.refreshAccessToken();
     }
-    
+
     // Check if we have stored credentials
     const credentials = await this.getStoredCredentials();
-    
+
     if (credentials) {
       // If we're skipping token verification, just return true
       if (skipTokenVerification) {
         return true;
       }
-      
+
       // Try to authenticate with the stored credentials only once
       try {
         await this.authenticate(credentials);
@@ -535,7 +504,7 @@ class ApiSyncService {
         console.error('Authentication with stored credentials failed:', error);
       }
     }
-    
+
     return false;
   }
 
@@ -546,7 +515,7 @@ class ApiSyncService {
   setOnlineStatus(isOnline) {
     this.isOnline = isOnline;
   }
-  
+
   /**
    * Check if the API is reachable
    * @returns {Promise<boolean>} Whether the API is reachable
@@ -554,23 +523,23 @@ class ApiSyncService {
   async isApiReachable() {
     try {
       console.log('Checking if API is reachable:', API_BASE_URL);
-      
+
       // Try to make a simple request to the API
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
-      
+
       // Try a few different endpoints to see if any of them are reachable
       let response;
-      
+
       try {
         // First try the root URL
         response = await fetch(`${API_BASE_URL}`, {
           method: 'GET',
           signal: controller.signal
         });
-        
+
         console.log('API root URL response status:', response.status);
-        
+
         if (response.status !== 0) {
           clearTimeout(timeoutId);
           return true;
@@ -578,16 +547,16 @@ class ApiSyncService {
       } catch (rootError) {
         console.error('Error checking API root URL:', rootError);
       }
-      
+
       try {
         // Then try the accounts endpoint
         response = await fetch(`${API_BASE_URL}/api/accounts/`, {
           method: 'GET',
           signal: controller.signal
         });
-        
+
         console.log('API accounts endpoint response status:', response.status);
-        
+
         if (response.status !== 0) {
           clearTimeout(timeoutId);
           return true;
@@ -595,24 +564,24 @@ class ApiSyncService {
       } catch (accountsError) {
         console.error('Error checking API accounts endpoint:', accountsError);
       }
-      
+
       try {
         // Finally try the JWT verify endpoint
-        response = await fetch(`${API_BASE_URL}${ENDPOINTS.JWT_VERIFY}`, {
+        response = await fetch(`${API_BASE_URL}${ENDPOINTS.jwtVerify}`, {
           method: 'GET',
           signal: controller.signal
         });
-        
+
         console.log('API JWT verify endpoint response status:', response.status);
-        
+
         clearTimeout(timeoutId);
-        
+
         // Even if we get a 405 Method Not Allowed, it means the server is reachable
         return response.status !== 0;
       } catch (jwtError) {
         console.error('Error checking API JWT verify endpoint:', jwtError);
       }
-      
+
       clearTimeout(timeoutId);
       return false;
     } catch (error) {
@@ -635,14 +604,14 @@ class ApiSyncService {
     if (!this.isOnline) {
       throw new Error('Cannot make API request while offline');
     }
-    
+
     // Check if we need authentication
     if (requiresAuth && !skipTokenRefresh) {
       // Check if we have a valid token
       if (!this.accessToken) {
         // Try to authenticate
         const credentials = await this.getStoredCredentials();
-        
+
         if (credentials) {
           await this.authenticate(credentials);
         } else {
@@ -650,21 +619,21 @@ class ApiSyncService {
           return { authRequired: true, message: 'Not authenticated' };
         }
       }
-      
+
       // Only verify the token if we're not skipping token refresh
       // This is to prevent infinite loops of token verification and refresh
       if (!skipTokenRefresh) {
         // Verify the token, but don't do this in a loop
         const isValid = await this.verifyToken();
-        
+
         if (!isValid) {
           // Try to refresh the token once
           const refreshed = await this.refreshAccessToken();
-          
+
           if (!refreshed) {
             // Try to authenticate again
             const credentials = await this.getStoredCredentials();
-            
+
             if (credentials) {
               await this.authenticate(credentials);
             } else {
@@ -675,7 +644,7 @@ class ApiSyncService {
         }
       }
     }
-    
+
     try {
       const options = {
         method,
@@ -683,34 +652,34 @@ class ApiSyncService {
           'Content-Type': 'application/json',
         },
       };
-      
+
       // Add authentication header if required
       if (requiresAuth && this.accessToken) {
         options.headers['Authorization'] = `JWT ${this.accessToken}`; // Use JWT instead of Bearer as per Django SIMPLE_JWT config
       }
-      
+
       // Add request body if needed
       if (data && (method === 'POST' || method === 'PUT' || method === 'PATCH')) {
         options.body = JSON.stringify(data);
       }
-      
+
       const response = await fetch(`${API_BASE_URL}${endpoint}`, options);
-      
+
       if (!response.ok) {
         // Check if the error is due to authentication
         if (response.status === 401) {
           // Try to refresh the token
           const refreshed = await this.refreshAccessToken();
-          
+
           if (refreshed) {
             // Retry the request with the new token
             return this.apiRequest(endpoint, method, data, requiresAuth);
           }
-          
+
           // Return a special error object that indicates authentication is required
           return { authRequired: true, message: 'Authentication failed' };
         }
-        
+
         try {
           const errorData = await response.json();
           throw new Error(errorData.detail || `API request failed: ${response.status}`);
@@ -719,18 +688,18 @@ class ApiSyncService {
           return { authRequired: true, message: `API request failed: ${response.status}` };
         }
       }
-      
+
       return await response.json();
     } catch (error) {
       console.error('API request error:', error);
-      
+
       // If the error is related to authentication, return a special error object
-      if (error.message.includes('Not authenticated') || 
-          error.message.includes('Authentication failed') ||
-          error.message.includes('401')) {
+      if (error.message.includes('Not authenticated') ||
+        error.message.includes('Authentication failed') ||
+        error.message.includes('401')) {
         return { authRequired: true, message: error.message };
       }
-      
+
       throw error;
     }
   }
@@ -749,48 +718,48 @@ class ApiSyncService {
       if (creds) await this.authenticate(creds);
       else throw new Error('Not authenticated – please log in');
     }
-  
+
     // 2) prepare each array with the exact keys the DRF view expects:
-    const farms               = await this.prepareFarmsForSync();                // [{ id, name, plant_type, size }]
-    const boundary_points     = (await this.prepareBoundaryPointsForSync()).map(bp => ({
-      id:           bp.id,
-      farm_id:      bp.farm,           // rename `farm` ➔ `farm_id`
-      latitude:     bp.latitude,
-      longitude:    bp.longitude,
-      description:  bp.description || '',
-      timestamp:    bp.timestamp,      // if you want to sync timestamps too
+    const farms = await this.prepareFarmsForSync();                // [{ id, name, plant_type, size }]
+    const boundary_points = (await this.prepareBoundaryPointsForSync()).map(bp => ({
+      id: bp.id,
+      farm_id: bp.farm,           // rename `farm` ➔ `farm_id`
+      latitude: bp.latitude,
+      longitude: bp.longitude,
+      description: bp.description || '',
+      timestamp: bp.timestamp,      // if you want to sync timestamps too
     }));
-    const observation_points  = (await this.prepareObservationPointsForSync()).map(op => ({
-      id:                  op.id,
-      farm_id:             op.farm_id,
-      latitude:            op.latitude,
-      longitude:           op.longitude,
-      observation_status:  op.observation_status,
-      name:                op.name,
-      segment:             op.segment,
+    const observation_points = (await this.prepareObservationPointsForSync()).map(op => ({
+      id: op.id,
+      farm_id: op.farm_id,
+      latitude: op.latitude,
+      longitude: op.longitude,
+      observation_status: op.observation_status,
+      name: op.name,
+      segment: op.segment,
       inspection_suggestion_id: op.inspection_suggestion_id,
-      confidence_level:    op.confidence_level,
-      target_entity:       op.target_entity,
+      confidence_level: op.confidence_level,
+      target_entity: op.target_entity,
     }));
     const inspection_suggestions = (await this.prepareInspectionSuggestionsForSync()).map(s => ({
-      id:                s.id,
-      target_entity:     s.target_entity,
-      confidence_level:  s.confidence_level,
+      id: s.id,
+      target_entity: s.target_entity,
+      confidence_level: s.confidence_level,
       property_location: s.property_location,
-      area_size:         s.area_size,
-      density_of_plant:  s.density_of_plant,
+      area_size: s.area_size,
+      density_of_plant: s.density_of_plant,
     }));
     const inspection_observations = (await this.prepareInspectionObservationsForSync()).map(o => ({
-      id:                   o.id,
-      date:                 o.date,
+      id: o.id,
+      date: o.date,
       inspection_suggestion_id: o.inspection,  // align with your DRF logic
-      farm_id:              o.farm,
-      plant_per_section:    o.plant_per_section,
-      status:               o.status,
-      target_entity:        o.target_entity,
-      severity:             o.severity,
+      farm_id: o.farm,
+      plant_per_section: o.plant_per_section,
+      status: o.status,
+      target_entity: o.target_entity,
+      severity: o.severity,
     }));
-  
+
     const payload = {
       farms,
       boundary_points,
@@ -798,46 +767,46 @@ class ApiSyncService {
       inspection_suggestions,
       inspection_observations,
     };
-  
+
     console.log('🔄 Bulk-sync payload', payload);
-  
+
     // 3) fire a single POST
-    const res = await fetch(`${API_BASE_URL}${ENDPOINTS.SYNC_DATA}`, {
-      method:  'POST',
+    const res = await fetch(`${API_BASE_URL}${ENDPOINTS.syncData}`, {
+      method: 'POST',
       headers: {
-        'Content-Type':  'application/json',
+        'Content-Type': 'application/json',
         'Authorization': `JWT ${this.accessToken}`,
       },
       body: JSON.stringify(payload),
     });
-  
+
     if (!res.ok) {
       const text = await res.text();
       console.error('Sync failed:', res.status, text);
-      
+
       // Check if the error is due to authentication
       if (res.status === 401) {
         // Return a special error object that indicates authentication is required
         return { authRequired: true, message: 'Authentication required' };
       }
-      
+
       throw new Error(`Sync error ${res.status}`);
     }
-  
+
     const data = await res.json();
     console.log('✅ Bulk-sync response', data);
-  
+
     // 4) dispatch to your existing processors
     const r = data.results;
-    if (r.farms)                await this.processFarmsSyncResponse(r.farms);
-    if (r.boundary_points)      await this.processBoundaryPointsSyncResponse(r.boundary_points);
-    if (r.observation_points)   await this.processObservationPointsSyncResponse(r.observation_points);
-    if (r.inspection_suggestions)   await this.processInspectionSuggestionsSyncResponse(r.inspection_suggestions);
-    if (r.inspection_observations)  await this.processInspectionObservationsSyncResponse(r.inspection_observations);
-  
+    if (r.farms) await this.processFarmsSyncResponse(r.farms);
+    if (r.boundary_points) await this.processBoundaryPointsSyncResponse(r.boundary_points);
+    if (r.observation_points) await this.processObservationPointsSyncResponse(r.observation_points);
+    if (r.inspection_suggestions) await this.processInspectionSuggestionsSyncResponse(r.inspection_suggestions);
+    if (r.inspection_observations) await this.processInspectionObservationsSyncResponse(r.inspection_observations);
+
     // 5) save last‐sync timestamp
     await this.saveLastSyncTime();
-  
+
     return data;
   }
 
@@ -849,7 +818,7 @@ class ApiSyncService {
     try {
       // Get all farms from local database
       const localFarms = await databaseService.getAll('farms');
-      
+
       // Format the farms according to the Django API's expectations
       const formattedFarms = localFarms.map(farm => {
         return {
@@ -860,7 +829,7 @@ class ApiSyncService {
           // The user will be set on the server side based on the authenticated user
         };
       });
-      
+
       console.log('Prepared farms for sync:', formattedFarms);
       return formattedFarms;
     } catch (error) {
@@ -877,7 +846,7 @@ class ApiSyncService {
     try {
       // Get all boundary points from local database
       const localBoundaryPoints = await databaseService.getAll('boundary_points');
-      
+
       // Format the boundary points according to the Django API's expectations
       const formattedBoundaryPoints = localBoundaryPoints.map(point => {
         return {
@@ -888,7 +857,7 @@ class ApiSyncService {
           description: point.description || ''
         };
       });
-      
+
       console.log('Prepared boundary points for sync:', formattedBoundaryPoints);
       return formattedBoundaryPoints;
     } catch (error) {
@@ -905,7 +874,7 @@ class ApiSyncService {
     try {
       // Get all observation points from local database
       const localObservationPoints = await databaseService.getAll('observation_points');
-      
+
       // Format the observation points according to the Django API's expectations
       const formattedObservationPoints = localObservationPoints.map(point => {
         return {
@@ -921,7 +890,7 @@ class ApiSyncService {
           target_entity: point.target_entity || null
         };
       });
-      
+
       console.log('Prepared observation points for sync:', formattedObservationPoints);
       return formattedObservationPoints;
     } catch (error) {
@@ -939,14 +908,14 @@ class ApiSyncService {
       // Get all inspection suggestions from local database
       // Note: The table name is 'InspectionSuggestions' with capital letters, not 'inspection_suggestions'
       const localInspectionSuggestions = await databaseService.getAll('InspectionSuggestions');
-      
+
       console.log('Retrieved inspection suggestions from database:', localInspectionSuggestions);
-      
+
       // Format the inspection suggestions according to the Django API's expectations
       const formattedInspectionSuggestions = localInspectionSuggestions.map(suggestion => {
         // Log the suggestion to see what's in it
         console.log('Raw inspection suggestion:', suggestion);
-        
+
         // Use the property_location field directly from the raw data
         // This is already set in the database
         return {
@@ -959,7 +928,7 @@ class ApiSyncService {
           // The user will be set on the server side based on the authenticated user
         };
       });
-      
+
       console.log('Prepared inspection suggestions for sync:', formattedInspectionSuggestions);
       return formattedInspectionSuggestions;
     } catch (error) {
@@ -976,7 +945,7 @@ class ApiSyncService {
     try {
       // Get all inspection observations from local database
       const localInspectionObservations = await databaseService.getAll('inspection_observations');
-      
+
       // Format the inspection observations according to the Django API's expectations
       const formattedInspectionObservations = localInspectionObservations.map(observation => {
         return {
@@ -993,7 +962,7 @@ class ApiSyncService {
           // The user will be set on the server side based on the authenticated user
         };
       });
-      
+
       console.log('Prepared inspection observations for sync:', formattedInspectionObservations);
       return formattedInspectionObservations;
     } catch (error) {
@@ -1012,22 +981,22 @@ class ApiSyncService {
     if (response.results && response.results.farms) {
       await this.processFarmsSyncResponse(response.results.farms);
     }
-    
+
     // Process boundary points
     if (response.results && response.results.boundary_points) {
       await this.processBoundaryPointsSyncResponse(response.results.boundary_points);
     }
-    
+
     // Process observation points
     if (response.results && response.results.observation_points) {
       await this.processObservationPointsSyncResponse(response.results.observation_points);
     }
-    
+
     // Process inspection suggestions
     if (response.results && response.results.inspection_suggestions) {
       await this.processInspectionSuggestionsSyncResponse(response.results.inspection_suggestions);
     }
-    
+
     // Process inspection observations
     if (response.results && response.results.inspection_observations) {
       await this.processInspectionObservationsSyncResponse(response.results.inspection_observations);
@@ -1132,19 +1101,19 @@ class ApiSyncService {
     try {
       // Initialize the service
       await this.initialize();
-      
+
       // Check if we're online
       if (!this.isOnline) {
         throw new Error('Cannot sync while offline');
       }
-      
+
       // Check if we're authenticated, but skip token verification to prevent continuous token refresh
       const isAuth = await this.isAuthenticated(true);
-      
+
       if (!isAuth) {
         // We need to re-authenticate
         const credentials = await this.getStoredCredentials();
-        
+
         if (credentials) {
           const authResult = await this.authenticate(credentials);
           if (!authResult.success) {
@@ -1156,10 +1125,10 @@ class ApiSyncService {
           return { authRequired: true, message: 'Authentication required' };
         }
       }
-      
+
       // Perform the sync
       const result = await this.syncAll();
-      
+
       // Store the sync stats
       this.lastSyncStats = {
         farms: result.results?.farms?.created || 0,
@@ -1169,22 +1138,22 @@ class ApiSyncService {
         inspectionObservations: result.results?.inspection_observations?.created || 0,
         timestamp: new Date().toISOString(),
       };
-      
+
       console.log('Sync stats:', this.lastSyncStats);
-      
+
       console.log('Sync completed successfully:', result);
-      
+
       return result;
     } catch (error) {
       console.error('Full sync error:', error);
-      
+
       // If the error is due to authentication, return a special error object
-      if (error.message.includes('Not authenticated') || 
-          error.message.includes('Authentication failed') ||
-          error.message.includes('401')) {
+      if (error.message.includes('Not authenticated') ||
+        error.message.includes('Authentication failed') ||
+        error.message.includes('401')) {
         return { authRequired: true, message: 'Authentication required' };
       }
-      
+
       // For other errors, still throw them
       Alert.alert('Sync Error', error.message);
       throw error;
@@ -1200,28 +1169,28 @@ class ApiSyncService {
     try {
       // Initialize the service
       await this.initialize();
-      
+
       // Check if we're online
       if (!this.isOnline) {
         throw new Error('Cannot sync while offline');
       }
-      
+
       // Check if we're authenticated, but skip token verification to prevent continuous token refresh
       const isAuth = await this.isAuthenticated(true);
-      
+
       if (!isAuth) {
         // We need to re-authenticate
         const credentials = await this.getStoredCredentials();
-        
+
         if (credentials) {
           await this.authenticate(credentials);
         } else {
           throw new Error('Not authenticated. Please log in to sync data.');
         }
       }
-      
+
       let result;
-      
+
       switch (dataType) {
         case 'farms':
           result = await this.syncFarms();
@@ -1244,18 +1213,18 @@ class ApiSyncService {
         default:
           throw new Error(`Unknown data type: ${dataType}`);
       }
-      
+
       console.log(`Sync of ${dataType} completed successfully:`, result);
-      
+
       return result;
     } catch (error) {
       console.error(`Sync of ${dataType} error:`, error);
-      
+
       // If the error is due to authentication, we need to prompt the user to log in
       if (error.message.includes('Not authenticated') || error.message.includes('Authentication failed')) {
         throw new Error('Authentication failed. Please log in to sync data.');
       }
-      
+
       Alert.alert('Sync Error', error.message);
       throw error;
     }
@@ -1268,10 +1237,10 @@ class ApiSyncService {
   async syncFarms() {
     try {
       const farms = await this.prepareFarmsForSync();
-      
+
       // Log the request data
       console.log('Syncing farms with data:', { farms });
-      
+
       // Make a direct fetch request to the farms sync endpoint
       // The Django API expects the data to be structured differently
       // Instead of sending an array of farms, we need to send the farm data directly
@@ -1290,38 +1259,38 @@ class ApiSyncService {
           inspection_observations: []
         })
       };
-      
-      const response = await fetch(`${API_BASE_URL}${ENDPOINTS.SYNC_DATA}`, options);
-      
+
+      const response = await fetch(`${API_BASE_URL}${ENDPOINTS.syncData}`, options);
+
       if (!response.ok) {
         // Get the response text to see what's coming back
         const responseText = await response.text();
         console.error('Farms sync response error:', response.status, responseText);
-        
+
         // Check if the error is due to authentication
         if (response.status === 401) {
           // Return a special error object that indicates authentication is required
           return { authRequired: true, message: 'Authentication required' };
         }
-        
+
         throw new Error(`API request failed: ${response.status} - ${responseText}`);
       }
-      
+
       const responseData = await response.json();
       console.log('Farms sync response data:', responseData);
-      
+
       await this.processFarmsSyncResponse(responseData);
       return responseData;
     } catch (error) {
       console.error('Farms sync error:', error);
-      
+
       // If the error is related to authentication, return a special error object
-      if (error.message.includes('Not authenticated') || 
-          error.message.includes('Authentication failed') ||
-          error.message.includes('401')) {
+      if (error.message.includes('Not authenticated') ||
+        error.message.includes('Authentication failed') ||
+        error.message.includes('401')) {
         return { authRequired: true, message: error.message };
       }
-      
+
       throw error;
     }
   }
@@ -1333,10 +1302,10 @@ class ApiSyncService {
   async syncBoundaryPoints() {
     try {
       const boundaryPoints = await this.prepareBoundaryPointsForSync();
-      
+
       // Log the request data
       console.log('Syncing boundary points with data:', { boundary_points: boundaryPoints });
-      
+
       // Make a direct fetch request to the main sync endpoint
       const options = {
         method: 'POST',
@@ -1352,38 +1321,38 @@ class ApiSyncService {
           inspection_observations: []
         })
       };
-      
-      const response = await fetch(`${API_BASE_URL}${ENDPOINTS.SYNC_DATA}`, options);
-      
+
+      const response = await fetch(`${API_BASE_URL}${syncData}`, options);
+
       if (!response.ok) {
         // Get the response text to see what's coming back
         const responseText = await response.text();
         console.error('Boundary points sync response error:', response.status, responseText);
-        
+
         // Check if the error is due to authentication
         if (response.status === 401) {
           // Return a special error object that indicates authentication is required
           return { authRequired: true, message: 'Authentication required' };
         }
-        
+
         throw new Error(`API request failed: ${response.status} - ${responseText}`);
       }
-      
+
       const responseData = await response.json();
       console.log('Boundary points sync response data:', responseData);
-      
+
       await this.processBoundaryPointsSyncResponse(responseData);
       return responseData;
     } catch (error) {
       console.error('Boundary points sync error:', error);
-      
+
       // If the error is related to authentication, return a special error object
-      if (error.message.includes('Not authenticated') || 
-          error.message.includes('Authentication failed') ||
-          error.message.includes('401')) {
+      if (error.message.includes('Not authenticated') ||
+        error.message.includes('Authentication failed') ||
+        error.message.includes('401')) {
         return { authRequired: true, message: error.message };
       }
-      
+
       throw error;
     }
   }
@@ -1395,10 +1364,10 @@ class ApiSyncService {
   async syncObservationPoints() {
     try {
       const observationPoints = await this.prepareObservationPointsForSync();
-      
+
       // Log the request data
       console.log('Syncing observation points with data:', { observation_points: observationPoints });
-      
+
       // Make a direct fetch request to the main sync endpoint
       const options = {
         method: 'POST',
@@ -1414,38 +1383,38 @@ class ApiSyncService {
           inspection_observations: []
         })
       };
-      
-      const response = await fetch(`${API_BASE_URL}${ENDPOINTS.SYNC_DATA}`, options);
-      
+
+      const response = await fetch(`${API_BASE_URL}${ENDPOINTS.syncData}`, options);
+
       if (!response.ok) {
         // Get the response text to see what's coming back
         const responseText = await response.text();
         console.error('Observation points sync response error:', response.status, responseText);
-        
+
         // Check if the error is due to authentication
         if (response.status === 401) {
           // Return a special error object that indicates authentication is required
           return { authRequired: true, message: 'Authentication required' };
         }
-        
+
         throw new Error(`API request failed: ${response.status} - ${responseText}`);
       }
-      
+
       const responseData = await response.json();
       console.log('Observation points sync response data:', responseData);
-      
+
       await this.processObservationPointsSyncResponse(responseData);
       return responseData;
     } catch (error) {
       console.error('Observation points sync error:', error);
-      
+
       // If the error is related to authentication, return a special error object
-      if (error.message.includes('Not authenticated') || 
-          error.message.includes('Authentication failed') ||
-          error.message.includes('401')) {
+      if (error.message.includes('Not authenticated') ||
+        error.message.includes('Authentication failed') ||
+        error.message.includes('401')) {
         return { authRequired: true, message: error.message };
       }
-      
+
       throw error;
     }
   }
@@ -1457,10 +1426,10 @@ class ApiSyncService {
   async syncInspectionSuggestions() {
     try {
       const inspectionSuggestions = await this.prepareInspectionSuggestionsForSync();
-      
+
       // Log the request data
       console.log('Syncing inspection suggestions with data:', { inspection_suggestions: inspectionSuggestions });
-      
+
       // Make a direct fetch request to the main sync endpoint
       const options = {
         method: 'POST',
@@ -1476,38 +1445,38 @@ class ApiSyncService {
           inspection_observations: []
         })
       };
-      
-      const response = await fetch(`${API_BASE_URL}${ENDPOINTS.SYNC_DATA}`, options);
-      
+
+      const response = await fetch(`${API_BASE_URL}${ENDPOINTS.syncData}`, options);
+
       if (!response.ok) {
         // Get the response text to see what's coming back
         const responseText = await response.text();
         console.error('Inspection suggestions sync response error:', response.status, responseText);
-        
+
         // Check if the error is due to authentication
         if (response.status === 401) {
           // Return a special error object that indicates authentication is required
           return { authRequired: true, message: 'Authentication required' };
         }
-        
+
         throw new Error(`API request failed: ${response.status} - ${responseText}`);
       }
-      
+
       const responseData = await response.json();
       console.log('Inspection suggestions sync response data:', responseData);
-      
+
       await this.processInspectionSuggestionsSyncResponse(responseData);
       return responseData;
     } catch (error) {
       console.error('Inspection suggestions sync error:', error);
-      
+
       // If the error is related to authentication, return a special error object
-      if (error.message.includes('Not authenticated') || 
-          error.message.includes('Authentication failed') ||
-          error.message.includes('401')) {
+      if (error.message.includes('Not authenticated') ||
+        error.message.includes('Authentication failed') ||
+        error.message.includes('401')) {
         return { authRequired: true, message: error.message };
       }
-      
+
       throw error;
     }
   }
@@ -1519,10 +1488,10 @@ class ApiSyncService {
   async syncInspectionObservations() {
     try {
       const inspectionObservations = await this.prepareInspectionObservationsForSync();
-      
+
       // Log the request data
       console.log('Syncing inspection observations with data:', { inspection_observations: inspectionObservations });
-      
+
       // Make a direct fetch request to the main sync endpoint
       const options = {
         method: 'POST',
@@ -1538,38 +1507,38 @@ class ApiSyncService {
           inspection_observations: inspectionObservations
         })
       };
-      
-      const response = await fetch(`${API_BASE_URL}${ENDPOINTS.SYNC_DATA}`, options);
-      
+
+      const response = await fetch(`${API_BASE_URL}${ENDPOINTS.syncData}`, options);
+
       if (!response.ok) {
         // Get the response text to see what's coming back
         const responseText = await response.text();
         console.error('Inspection observations sync response error:', response.status, responseText);
-        
+
         // Check if the error is due to authentication
         if (response.status === 401) {
           // Return a special error object that indicates authentication is required
           return { authRequired: true, message: 'Authentication required' };
         }
-        
+
         throw new Error(`API request failed: ${response.status} - ${responseText}`);
       }
-      
+
       const responseData = await response.json();
       console.log('Inspection observations sync response data:', responseData);
-      
+
       await this.processInspectionObservationsSyncResponse(responseData);
       return responseData;
     } catch (error) {
       console.error('Inspection observations sync error:', error);
-      
+
       // If the error is related to authentication, return a special error object
-      if (error.message.includes('Not authenticated') || 
-          error.message.includes('Authentication failed') ||
-          error.message.includes('401')) {
+      if (error.message.includes('Not authenticated') ||
+        error.message.includes('Authentication failed') ||
+        error.message.includes('401')) {
         return { authRequired: true, message: error.message };
       }
-      
+
       throw error;
     }
   }
@@ -1588,41 +1557,41 @@ class ApiSyncService {
           'Authorization': `JWT ${this.accessToken}`
         }
       };
-      
-      const response = await fetch(`${API_BASE_URL}${ENDPOINTS.PROFILE_SYNC}`, options);
-      
+
+      const response = await fetch(`${API_BASE_URL}${ENDPOINTS.profileSync}`, options);
+
       if (!response.ok) {
         // Get the response text to see what's coming back
         const responseText = await response.text();
         console.error('Profile sync response error:', response.status, responseText);
-        
+
         // Check if the error is due to authentication
         if (response.status === 401) {
           // Return a special error object that indicates authentication is required
           return { authRequired: true, message: 'Authentication required' };
         }
-        
+
         throw new Error(`API request failed: ${response.status} - ${responseText}`);
       }
-      
+
       const responseData = await response.json();
       console.log('Profile sync response data:', responseData);
-      
+
       // Process the response
       // This is a placeholder - in a real app, you would update the local database
       console.log('Processing profile sync response:', responseData);
-      
+
       return responseData;
     } catch (error) {
       console.error('Profile sync error:', error);
-      
+
       // If the error is related to authentication, return a special error object
-      if (error.message.includes('Not authenticated') || 
-          error.message.includes('Authentication failed') ||
-          error.message.includes('401')) {
+      if (error.message.includes('Not authenticated') ||
+        error.message.includes('Authentication failed') ||
+        error.message.includes('401')) {
         return { authRequired: true, message: error.message };
       }
-      
+
       throw error;
     }
   }

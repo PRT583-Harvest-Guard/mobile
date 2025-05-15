@@ -84,7 +84,7 @@ export const updateProfile = async (userId = 1, profileData) => {
     
     // Check if profile exists
     const existingProfile = await getProfile(userId);
-    
+
     if (!existingProfile) {
       // Create new profile
       const { first_name, last_name, phone_number, address, picture_uri } = profileData;
@@ -119,7 +119,7 @@ export const updateProfile = async (userId = 1, profileData) => {
         [userId]
       );
     }
-    
+
     // Get updated profile
     return await getProfile(userId);
   } catch (error) {
@@ -142,7 +142,7 @@ export const deleteProfile = async (userId = 1) => {
       'user_id = ?',
       [userId]
     );
-    
+
     return true;
   } catch (error) {
     if (__DEV__) console.error('Error deleting profile:', error);

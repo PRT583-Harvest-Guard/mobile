@@ -4,6 +4,7 @@
  */
 import databaseService from './DatabaseService';
 import { getBoundaryData } from './BoundaryService';
+import config from '@/config/env';
 
 // Flag to track if a transaction is active
 let transactionActive = false;
@@ -15,7 +16,7 @@ let transactionActive = false;
 export const initObservationPointsTable = async () => {
   try {
     await databaseService.initialize();
-    
+
     // Create observation_points table
     await databaseService.executeQuery(`
       CREATE TABLE IF NOT EXISTS observation_points (
@@ -34,7 +35,7 @@ export const initObservationPointsTable = async () => {
         FOREIGN KEY (farm_id) REFERENCES farms(id) ON DELETE CASCADE
       )
     `);
-    
+
     // Add new columns if they don't exist
     try {
       await databaseService.executeQuery(`ALTER TABLE observation_points ADD COLUMN inspection_suggestion_id INTEGER DEFAULT NULL`);
@@ -45,7 +46,7 @@ export const initObservationPointsTable = async () => {
       // Columns might already exist, ignore the error
       if (__DEV__) console.log('New columns might already exist:', error.message);
     }
-    
+
     if (__DEV__) console.log('Observation points table created successfully');
   } catch (error) {
     if (__DEV__) console.error('Error initializing observation points table:', error);
@@ -61,10 +62,10 @@ export const initObservationPointsTable = async () => {
 export const getObservationPoints = async (farmId) => {
   try {
     await databaseService.initialize();
-    
+
     // Ensure farmId is a number
     const farmIdNum = Number(farmId);
-    
+
     // Get observation points
     const points = await databaseService.getAll(
       'observation_points',
@@ -72,9 +73,9 @@ export const getObservationPoints = async (farmId) => {
       [farmIdNum],
       'ORDER BY segment'
     );
-    
+
     if (__DEV__) console.log(`Found ${points.length} observation points for farm ID ${farmIdNum}`);
-    
+
     return points;
   } catch (error) {
     if (__DEV__) console.error('Error getting observation points:', error);
@@ -90,23 +91,23 @@ export const getObservationPoints = async (farmId) => {
 export const saveObservationPoint = async (point) => {
   try {
     await databaseService.initialize();
-    
-    const { 
-      farm_id, 
-      latitude, 
-      longitude, 
-      segment, 
-      observation_id, 
-      observation_status, 
+
+    const {
+      farm_id,
+      latitude,
+      longitude,
+      segment,
+      observation_id,
+      observation_status,
       name,
       inspection_suggestion_id,
       confidence_level,
       target_entity
     } = point;
-    
+
     // Ensure farm_id is a number
     const farmIdNum = Number(farm_id);
-    
+
     // Insert the new point
     const pointId = await databaseService.insert('observation_points', {
       farm_id: farmIdNum,
@@ -138,25 +139,25 @@ export const saveObservationPoint = async (point) => {
 export const saveObservationPoints = async (farmId, points) => {
   try {
     await databaseService.initialize();
-    
+
     // Ensure farmId is a number
     const farmIdNum = Number(farmId);
-    
+
     // Check if farm already has observation points
     const existingPoints = await getObservationPoints(farmIdNum);
     if (existingPoints.length > 0) {
       if (__DEV__) console.log(`Farm ${farmIdNum} already has ${existingPoints.length} observation points. Skipping save.`);
       return existingPoints;
     }
-    
+
     if (__DEV__) console.log(`Saving ${points.length} new observation points for farm ${farmIdNum}`);
-    
+
     // Only begin a transaction if one is not already active
     if (!transactionActive) {
       transactionActive = true;
       await databaseService.executeQuery('BEGIN TRANSACTION');
     }
-    
+
     // Insert each point
     for (const point of points) {
       await databaseService.insert('observation_points', {
@@ -172,13 +173,13 @@ export const saveObservationPoints = async (farmId, points) => {
         target_entity: point.target_entity || null
       });
     }
-    
+
     // Only commit if we started the transaction
     if (transactionActive) {
       await databaseService.executeQuery('COMMIT');
       transactionActive = false;
     }
-    
+
     // Get all saved points
     return await getObservationPoints(farmIdNum);
   } catch (error) {
@@ -205,7 +206,7 @@ export const saveObservationPoints = async (farmId, points) => {
 export const updateObservationPoint = async (pointId, data) => {
   try {
     await databaseService.initialize();
-    
+
     // Update the point
     await databaseService.update(
       'observation_points',
@@ -213,14 +214,14 @@ export const updateObservationPoint = async (pointId, data) => {
       'id = ?',
       [pointId]
     );
-    
+
     // Get the updated point
     const updatedPoint = await databaseService.getById('observation_points', 'id', pointId);
-    
+
     if (!updatedPoint) {
       throw new Error('Point not found after update');
     }
-    
+
     return updatedPoint;
   } catch (error) {
     if (__DEV__) console.error('Error updating observation point:', error);
@@ -236,17 +237,17 @@ export const updateObservationPoint = async (pointId, data) => {
 export const deleteObservationPoints = async (farmId) => {
   try {
     await databaseService.initialize();
-    
+
     // Ensure farmId is a number
     const farmIdNum = Number(farmId);
-    
+
     // Delete all points for the farm
     await databaseService.delete(
       'observation_points',
       'farm_id = ?',
       [farmIdNum]
     );
-    
+
     return true;
   } catch (error) {
     if (__DEV__) console.error('Error deleting observation points:', error);
@@ -263,20 +264,20 @@ export const deleteObservationPoints = async (farmId) => {
 export const removeDuplicateObservationPoints = async (farmId) => {
   try {
     await databaseService.initialize();
-    
+
     // Ensure farmId is a number
     const farmIdNum = Number(farmId);
-    
+
     // Get all points for this farm
     const points = await getObservationPoints(farmIdNum);
-    
+
     if (points.length === 0) {
       if (__DEV__) console.log(`No observation points found for farm ID ${farmIdNum}`);
       return true;
     }
-    
+
     if (__DEV__) console.log(`Found ${points.length} observation points for farm ID ${farmIdNum}`);
-    
+
     // Group points by segment
     const pointsBySegment = {};
     points.forEach(point => {
@@ -285,7 +286,7 @@ export const removeDuplicateObservationPoints = async (farmId) => {
       }
       pointsBySegment[point.segment].push(point);
     });
-    
+
     // Check if there are any duplicates to remove
     let hasDuplicates = false;
     for (const segment in pointsBySegment) {
@@ -294,28 +295,28 @@ export const removeDuplicateObservationPoints = async (farmId) => {
         break;
       }
     }
-    
+
     // If no duplicates, return early
     if (!hasDuplicates) {
       if (__DEV__) console.log('No duplicate points found');
       return true;
     }
-    
+
     // Only begin a transaction if one is not already active
     if (!transactionActive) {
       transactionActive = true;
       await databaseService.executeQuery('BEGIN TRANSACTION');
     }
-    
+
     // For each segment, keep only the first point and delete the rest
     for (const segment in pointsBySegment) {
       const segmentPoints = pointsBySegment[segment];
       if (segmentPoints.length > 1) {
         if (__DEV__) console.log(`Found ${segmentPoints.length} duplicate points for segment ${segment}`);
-        
+
         // Keep the first point
         const pointToKeep = segmentPoints[0];
-        
+
         // Delete all other points for this segment
         for (let i = 1; i < segmentPoints.length; i++) {
           await databaseService.delete(
@@ -324,17 +325,17 @@ export const removeDuplicateObservationPoints = async (farmId) => {
             [segmentPoints[i].id]
           );
         }
-        
+
         if (__DEV__) console.log(`Kept point ID ${pointToKeep.id} for segment ${segment}, deleted ${segmentPoints.length - 1} duplicates`);
       }
     }
-    
+
     // Only commit if we started the transaction
     if (transactionActive) {
       await databaseService.executeQuery('COMMIT');
       transactionActive = false;
     }
-    
+
     return true;
   } catch (error) {
     // Only rollback if we started the transaction
@@ -362,26 +363,26 @@ export const removeDuplicateObservationPoints = async (farmId) => {
 export const updateObservationPointsWithInspectionData = async (farmId, inspectionSuggestionId, confidenceLevel, targetEntity) => {
   try {
     await databaseService.initialize();
-    
+
     // Ensure farmId is a number
     const farmIdNum = Number(farmId);
-    
+
     // Get all observation points for this farm
     const points = await getObservationPoints(farmIdNum);
-    
+
     if (points.length === 0) {
       if (__DEV__) console.warn(`No observation points found for farm ID ${farmIdNum}`);
       return [];
     }
-    
+
     if (__DEV__) console.log(`Updating ${points.length} observation points with inspection data`);
-    
+
     // Only begin a transaction if one is not already active
     if (!transactionActive) {
       transactionActive = true;
       await databaseService.executeQuery('BEGIN TRANSACTION');
     }
-    
+
     // Update each point
     const updatedPoints = [];
     for (const point of points) {
@@ -390,17 +391,17 @@ export const updateObservationPointsWithInspectionData = async (farmId, inspecti
         confidence_level: confidenceLevel,
         target_entity: targetEntity
       };
-      
+
       const updatedPoint = await updateObservationPoint(point.id, updateData);
       updatedPoints.push(updatedPoint);
     }
-    
+
     // Only commit if we started the transaction
     if (transactionActive) {
       await databaseService.executeQuery('COMMIT');
       transactionActive = false;
     }
-    
+
     if (__DEV__) console.log(`Successfully updated ${updatedPoints.length} observation points`);
     return updatedPoints;
   } catch (error) {
@@ -429,31 +430,31 @@ export const updateObservationPointsWithInspectionData = async (farmId, inspecti
 export const getOrGenerateObservationPoints = async (farmId, numSegments = 6) => {
   try {
     await databaseService.initialize();
-    
+
     // Ensure farmId is a number
     const farmIdNum = Number(farmId);
-    
+
     // First, remove any duplicate points
     await removeDuplicateObservationPoints(farmIdNum);
-    
+
     // Check if farm already has observation points
     const existingPoints = await getObservationPoints(farmIdNum);
-    
+
     if (existingPoints.length > 0) {
       if (__DEV__) console.log(`Found ${existingPoints.length} existing observation points for farm ID ${farmIdNum}`);
       return existingPoints;
     }
-    
+
     // No existing points, need to generate them
     if (__DEV__) console.log(`No observation points found for farm ID ${farmIdNum}, generating...`);
-    
+
     // Get boundary points to generate the farm polygon
     const boundaryPoints = await getBoundaryData(farmIdNum);
-    
+
     if (!boundaryPoints || boundaryPoints.length < 3) {
       // Import Alert from react-native
       const { Alert } = require('react-native');
-      
+
       // Show a popup alert
       Alert.alert(
         "Boundary Points Required",
@@ -465,10 +466,10 @@ export const getOrGenerateObservationPoints = async (farmId, numSegments = 6) =>
           }
         ]
       );
-      
+
       return [];
     }
-    
+
     // We'll let the BoundaryMap component generate the points
     // This function will be called by the component after generation
     return [];

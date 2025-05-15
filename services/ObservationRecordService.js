@@ -27,13 +27,13 @@ export const initObservationsTable = async () => {
         FOREIGN KEY (observation_point_id) REFERENCES observation_points(id) ON DELETE CASCADE
       )
     `);
-    
+
     // Check if picture_uri column exists, if not add it
     try {
       // First check if the column exists
       const tableInfo = await databaseService.query("PRAGMA table_info(observations)");
       const pictureUriColumnExists = tableInfo.some(column => column.name === 'picture_uri');
-      
+
       if (!pictureUriColumnExists) {
         if (__DEV__) console.log('Adding picture_uri column to observations table');
         await databaseService.executeQuery(`
@@ -64,7 +64,7 @@ export const getObservations = async (observationPointId) => {
     
     // Ensure observationPointId is a number
     const pointId = Number(observationPointId);
-    
+
     // Get observations
     const observations = await databaseService.query(`
       SELECT * FROM observations 
@@ -99,11 +99,11 @@ export const saveObservation = async (observation) => {
       notes,
       picture_uri
     } = observation;
-    
+
     // Ensure IDs are numbers
     const farmId = Number(farm_id);
     const pointId = Number(observation_point_id);
-    
+
     // Insert the new observation
     const observationId = await databaseService.insert('observations', {
       farm_id: farmId,
@@ -183,7 +183,7 @@ export const deleteObservation = async (observationId) => {
       'id = ?',
       [observationId]
     );
-    
+
     return true;
   } catch (error) {
     if (__DEV__) console.error('Error deleting observation:', error);
@@ -202,7 +202,7 @@ export const getLatestObservation = async (observationPointId) => {
     
     // Ensure observationPointId is a number
     const pointId = Number(observationPointId);
-    
+
     // Get the latest observation
     const observations = await databaseService.query(`
       SELECT * FROM observations 
@@ -210,11 +210,11 @@ export const getLatestObservation = async (observationPointId) => {
       ORDER BY created_at DESC
       LIMIT 1
     `, [pointId]);
-    
+
     if (observations.length === 0) {
       return null;
     }
-    
+
     return observations[0];
   } catch (error) {
     if (__DEV__) console.error('Error getting latest observation:', error);

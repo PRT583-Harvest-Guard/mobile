@@ -17,7 +17,7 @@ import { getInspectionSuggestionsByFarmId, deleteInspectionSuggestion } from '@/
 export const createFarm = async (farmData) => {
   try {
     await databaseService.initialize();
-    
+
     const { name, size, plant_type } = farmData;
     return await databaseService.insert('farms', {
       name,
@@ -75,26 +75,26 @@ export const saveBoundaryData = async (farmId, points) => {
 
     // Verify the points were saved
     const savedPoints = await databaseService.getAll(
-      'boundary_points', 
-      'farm_id = ?', 
+      'boundary_points',
+      'farm_id = ?',
       [farmId],
       'ORDER BY timestamp'
     );
 
     if (__DEV__) console.log(`Saved ${savedPoints.length} boundary points for farm ${farmId}`);
-    
+
     // Update inspection observations for this farm
     try {
       // Get all inspection observations for this farm
       const observations = await getInspectionObservationsByFarmId(farmId);
-      
+
       if (observations && observations.length > 0) {
         if (__DEV__) console.log(`Updating ${observations.length} inspection observations for farm ${farmId}`);
-        
+
         // Get the farm details
         const farms = await getFarms();
         const farm = farms.find(f => f.id === Number(farmId));
-        
+
         if (farm) {
           // Update each observation with the latest farm details
           for (const observation of observations) {
@@ -107,7 +107,7 @@ export const saveBoundaryData = async (farmId, points) => {
               updated_at: new Date().toISOString()
             });
           }
-          
+
           if (__DEV__) console.log('Successfully updated inspection observations with latest farm details');
         }
       }
@@ -115,7 +115,7 @@ export const saveBoundaryData = async (farmId, points) => {
       // Log the error but don't fail the boundary save operation
       if (__DEV__) console.error('Error updating inspection observations:', error);
     }
-    
+
     return savedPoints;
   } catch (error) {
     if (__DEV__) console.error('Error saving boundary data:', error);
@@ -131,29 +131,29 @@ export const saveBoundaryData = async (farmId, points) => {
 export const getBoundaryData = async (farmId) => {
   try {
     await databaseService.initialize();
-    
+
     // Ensure farmId is a number
     const farmIdNum = Number(farmId);
-    
+
     // Verify the farm exists
     const existingFarm = await databaseService.getById('farms', 'id', farmIdNum);
-    
+
     if (!existingFarm) {
       if (__DEV__) console.warn('No farm found with ID:', farmIdNum);
       // Don't throw an error, just return empty array
       return [];
     }
-    
+
     // Get boundary points
     const points = await databaseService.getAll(
-      'boundary_points', 
-      'farm_id = ?', 
+      'boundary_points',
+      'farm_id = ?',
       [farmIdNum],
       'ORDER BY timestamp'
     );
-    
+
     if (__DEV__) console.log(`Found ${points.length} boundary points for farm ID ${farmIdNum}`);
-    
+
     return points;
   } catch (error) {
     if (__DEV__) console.error('Error getting boundary data:', error);
@@ -169,31 +169,31 @@ export const getBoundaryData = async (farmId) => {
 export const deleteFarm = async (farmId) => {
   try {
     await databaseService.initialize();
-    
+
     // Ensure farmId is a number
     const farmIdNum = Number(farmId);
-    
+
     // First, verify the farm exists
     const existingFarm = await databaseService.getById('farms', 'id', farmIdNum);
-    
+
     if (!existingFarm) {
       throw new Error('No farm found with the given ID');
     }
-    
+
     // Begin transaction
     await databaseService.executeQuery('BEGIN TRANSACTION');
-    
+
     // Delete all boundary points for this farm
     await databaseService.delete('boundary_points', 'farm_id = ?', [farmIdNum]);
-    
+
     // Delete all observation points for this farm
     await databaseService.delete('observation_points', 'farm_id = ?', [farmIdNum]);
-    
+
     // Delete all inspection suggestions for this farm
     try {
       if (__DEV__) console.log(`Deleting inspection suggestions for farm ${farmIdNum}`);
       const suggestions = await getInspectionSuggestionsByFarmId(farmIdNum);
-      
+
       for (const suggestion of suggestions) {
         await deleteInspectionSuggestion(suggestion.id);
       }
@@ -201,29 +201,29 @@ export const deleteFarm = async (farmId) => {
       if (__DEV__) console.error('Error deleting inspection suggestions:', error);
       // Continue with farm deletion even if suggestion deletion fails
     }
-    
+
     // Delete all inspection observations for this farm
     try {
       if (__DEV__) console.log(`Deleting inspection observations for farm ${farmIdNum}`);
       const observations = await getInspectionObservationsByFarmId(farmIdNum);
-      
+
       for (const observation of observations) {
         await updateInspectionObservation(observation.id, { status: 'deleted' });
       }
-      
+
       // Also try to delete directly from the database table
       await databaseService.delete('inspection_observations', 'farm_id = ?', [farmIdNum]);
     } catch (error) {
       if (__DEV__) console.error('Error deleting inspection observations:', error);
       // Continue with farm deletion even if observation deletion fails
     }
-    
+
     // Delete the farm
     await databaseService.delete('farms', 'id = ?', [farmIdNum]);
-    
+
     // Commit transaction
     await databaseService.executeQuery('COMMIT');
-    
+
     if (__DEV__) console.log(`Farm ${farmIdNum} and all associated data deleted successfully`);
     return true;
   } catch (error) {
@@ -247,13 +247,13 @@ export const deleteFarm = async (farmId) => {
 export const updateFarmSize = async (farmId, newSize) => {
   try {
     await databaseService.initialize();
-    
+
     // Convert to number explicitly
     const sizeValue = Number(newSize);
-    
+
     // Update the farm size
     await databaseService.update('farms', { size: sizeValue }, 'id = ?', [farmId]);
-    
+
     // Get the updated farm
     return await databaseService.getById('farms', 'id', farmId);
   } catch (error) {
@@ -271,19 +271,19 @@ export const updateFarmSize = async (farmId, newSize) => {
 export const updateFarm = async (farmId, farmData) => {
   try {
     await databaseService.initialize();
-    
+
     const { name, size, plant_type } = farmData;
-    
+
     // First, verify the farm exists
     const existingFarm = await databaseService.getById('farms', 'id', farmId);
-    
+
     if (!existingFarm) {
       throw new Error('No farm found with the given ID');
     }
-    
+
     // Convert size to number
     const sizeValue = size !== null ? Number(size) : null;
-    
+
     // Update the farm
     await databaseService.update(
       'farms',
@@ -295,18 +295,18 @@ export const updateFarm = async (farmId, farmData) => {
       'id = ?',
       [farmId]
     );
-    
+
     // Get the updated farm
     const updatedFarm = await databaseService.getById('farms', 'id', farmId);
-    
+
     // Update inspection observations for this farm
     try {
       // Get all inspection observations for this farm
       const observations = await getInspectionObservationsByFarmId(farmId);
-      
+
       if (observations && observations.length > 0) {
         if (__DEV__) console.log(`Updating ${observations.length} inspection observations for farm ${farmId}`);
-        
+
         // Update each observation with the latest farm details
         for (const observation of observations) {
           await updateInspectionObservation(observation.id, {
@@ -317,14 +317,14 @@ export const updateFarm = async (farmId, farmData) => {
             updated_at: new Date().toISOString()
           });
         }
-        
+
         if (__DEV__) console.log('Successfully updated inspection observations with latest farm details');
       }
     } catch (error) {
       // Log the error but don't fail the farm update operation
       if (__DEV__) console.error('Error updating inspection observations:', error);
     }
-    
+
     return updatedFarm;
   } catch (error) {
     if (__DEV__) console.error('Error in updateFarm:', error);
@@ -341,7 +341,7 @@ export const updateFarm = async (farmId, farmData) => {
 export const updateBoundaryPoint = async (pointId, description) => {
   try {
     await databaseService.initialize();
-    
+
     // Update the boundary point
     await databaseService.update(
       'boundary_points',
@@ -365,7 +365,7 @@ export const updateBoundaryPoint = async (pointId, description) => {
 export const deleteAllBoundaryPoints = async (farmId) => {
   try {
     await databaseService.initialize();
-    
+
     await databaseService.delete('boundary_points', 'farm_id = ?', [farmId]);
     return true;
   } catch (error) {
@@ -383,13 +383,13 @@ export const deleteAllBoundaryPoints = async (farmId) => {
 export const saveBoundaryPoint = async (farmId, point) => {
   try {
     await databaseService.initialize();
-    
+
     // Ensure farmId is a number
     const farmIdNum = Number(farmId);
-    
+
     // Verify the farm exists
     const existingFarm = await databaseService.getById('farms', 'id', farmIdNum);
-    
+
     if (!existingFarm) {
       throw new Error(`No farm found with ID: ${farmIdNum}`);
     }

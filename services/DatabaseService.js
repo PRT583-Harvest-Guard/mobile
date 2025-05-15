@@ -2,9 +2,10 @@
  * Database Service
  * Handles database operations for the Harvest Guard application
  * 
- * This implementation uses SQLite via expo-sqlite to interact with the mobile.db database
+ * This implementation uses SQLite via expo-sqlite to interact with the mobile database
  */
 import * as SQLite from 'expo-sqlite';
+import config from '@/config/env';
 
 class DatabaseService {
   constructor() {
@@ -21,11 +22,11 @@ class DatabaseService {
 
     try {
       console.log('Initializing SQLite database...');
-      this.db = await SQLite.openDatabaseAsync('mobile.db');
-      
+      this.db = await SQLite.openDatabaseAsync(config.db.name);
+
       // Create tables if they don't exist
       await this.createTables();
-      
+
       this.initialized = true;
       console.log('SQLite database initialized successfully');
     } catch (error) {
@@ -161,7 +162,7 @@ class DatabaseService {
         throw error;
       }
     }
-    
+
     try {
       return await this.db.execAsync(sql, params);
     } catch (error) {
@@ -181,15 +182,15 @@ class DatabaseService {
     if (!this.initialized) {
       await this.initialize();
     }
-    
+
     try {
       // Build the SQL query
       const columns = Object.keys(data).join(', ');
       const placeholders = Object.keys(data).map(() => '?').join(', ');
       const values = Object.values(data);
-      
+
       const sql = `INSERT INTO ${table} (${columns}) VALUES (${placeholders})`;
-      
+
       const result = await this.db.runAsync(sql, values);
       return result.lastInsertRowId;
     } catch (error) {
@@ -211,14 +212,14 @@ class DatabaseService {
     if (!this.initialized) {
       await this.initialize();
     }
-    
+
     try {
       // Build the SQL query
       const setClause = Object.keys(data).map(key => `${key} = ?`).join(', ');
       const values = [...Object.values(data), ...whereParams];
-      
+
       const sql = `UPDATE ${table} SET ${setClause} WHERE ${whereClause}`;
-      
+
       const result = await this.db.runAsync(sql, values);
       return result.rowsAffected;
     } catch (error) {
@@ -239,10 +240,10 @@ class DatabaseService {
     if (!this.initialized) {
       await this.initialize();
     }
-    
+
     try {
       const sql = `DELETE FROM ${table} WHERE ${whereClause}`;
-      
+
       const result = await this.db.runAsync(sql, whereParams);
       return result.rowsAffected;
     } catch (error) {
@@ -262,7 +263,7 @@ class DatabaseService {
     if (!this.initialized) {
       await this.initialize();
     }
-    
+
     try {
       return await this.db.getAllAsync(sql, params);
     } catch (error) {
@@ -283,13 +284,13 @@ class DatabaseService {
     if (!this.initialized) {
       await this.initialize();
     }
-    
+
     try {
       const results = await this.db.getAllAsync(
         `SELECT * FROM ${table} WHERE ${idField} = ?`,
         [id]
       );
-      
+
       return results.length > 0 ? results[0] : null;
     } catch (error) {
       console.error(`Error getting ${table} by ID:`, error);
@@ -309,24 +310,24 @@ class DatabaseService {
     if (!this.initialized) {
       await this.initialize();
     }
-    
+
     try {
       let sql = `SELECT * FROM ${table}`;
-      
+
       if (whereClause) {
         sql += ` WHERE ${whereClause}`;
       }
-      
+
       return await this.db.getAllAsync(sql, whereParams);
     } catch (error) {
       console.error(`Error getting all from ${table}:`, error);
-      
+
       // If the table doesn't exist yet, return an empty array
       if (error.message && error.message.includes('no such table')) {
         console.warn(`Table ${table} does not exist yet, returning empty array`);
         return [];
       }
-      
+
       throw error;
     }
   }
