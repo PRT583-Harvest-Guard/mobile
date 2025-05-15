@@ -22,7 +22,7 @@ export const initFeatureFlagsTable = async () => {
         created_at TEXT DEFAULT CURRENT_TIMESTAMP
       )
     `);
-    
+
     // Insert default feature flags if they don't exist
     await databaseService.executeQuery(`
       INSERT OR IGNORE INTO feature_flags (name, enabled, description)
@@ -103,7 +103,7 @@ export const updateFeatureFlag = async (name, enabled) => {
       'name = ?',
       [name]
     );
-    
+
     return true;
   } catch (error) {
     if (__DEV__) console.error(`Error updating feature flag '${name}':`, error);

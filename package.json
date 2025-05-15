@@ -3,6 +3,7 @@
   "main": "expo-router/entry",
   "version": "1.0.0",
   "scripts": {
+    "prestart": "node ./scripts/generate-config.js",
     "start": "expo start",
     "reset-project": "node ./scripts/reset-project.js",
     "android": "expo run:android",
@@ -28,6 +29,7 @@
     "@react-navigation/stack": "^7.2.10",
     "@turf/turf": "^7.2.0",
     "@types/react": "~19.0.10",
+    "dotenv": "^16.5.0",
     "expo": "^53.0.7",
     "expo-asset": "~11.1.5",
     "expo-blur": "~14.1.4",

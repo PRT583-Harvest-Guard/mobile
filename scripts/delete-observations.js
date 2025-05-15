@@ -1,16 +1,17 @@
 /**
  * Script to delete all inspection observations from the database
  */
+import config from '@/config/env';
 const SQLite = require('expo-sqlite');
 
 // Open the database
-const db = SQLite.openDatabase('mobile.db');
+const db = SQLite.openDatabase(config.db.name);
 
 // Function to delete all inspection observations
 const deleteAllObservations = async () => {
   return new Promise((resolve, reject) => {
     console.log('Starting deletion of all inspection observations...');
-    
+
     // Delete all inspection observations
     db.transaction(tx => {
       tx.executeSql(
