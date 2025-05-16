@@ -1,43 +1,42 @@
-import React, { useEffect } from "react";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { Redirect, router } from "expo-router";
-import { LogBox, ScrollView, Text, View } from "react-native";
-import { Logo, CustomButton } from '@/components';
-import { useGlobalContext } from "@/context/GlobalProvider";
+// app/index.jsx
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator } from 'react-native';
+import { Redirect } from 'expo-router';
 
-// LogBox.ignoreLogs(['Warning: ...']);
-// LogBox.ignoreAllLogs();
+import AppSplash from '@/components/layouts/AppSplash';
+import { palette } from '@/styles/colors';
+import logo from '@/assets/images/icon.png';
+import initStuff from '@/services/initStuff';
 
-function App() {
-  const { isLoggedIn, isLoading } = useGlobalContext();
-  
+export default function Splash() {
+  const [ready, setReady] = useState(false);
+  const [loggedIn, setLoggedIn] = useState(false);
+
   useEffect(() => {
-    if (!isLoading && isLoggedIn) {
-      const timeout = setTimeout(() => {
-        router.replace("/(tabs)/home")
-      }, 1500)
+    (async () => {
+      const delay = (ms) => new Promise(res => setTimeout(res, ms));
+      await delay(2000);
+      const isLogged = await initStuff();
+      setLoggedIn(isLogged);
+      setReady(true);
 
-      return () => clearTimeout(timeout);
-    }
-  }, [isLoading, isLoggedIn])
+    })();
+  }, []);
 
-  return (
-    <SafeAreaView className="bg-primary h-full">
-      <ScrollView 
-      contentContainerStyle={{ height: "100%" }}
-      showsVerticalScrollIndicator={false}
-      >
-        <View className="w-full min-h-[85vh] items-center justify-center px-6">
-          <Logo containerStyles="w-96 h-96" />
-          <CustomButton
-            title="Continue With Mobile"
-            containerStyles="w-full mt-7"
-            handlePress={() => { router.push("/(auth)/sign-in") }}
-          />
-        </View>
-      </ScrollView>
-    </SafeAreaView>
-  );
+
+  // not ready → show Splash
+  if (!ready) {
+    return (
+      <AppSplash logoSrc={logo} tagline="Powered by CDU">
+        <ActivityIndicator
+          size="large"
+          color={palette.textLight}
+          style={{ marginTop: 32 }}
+        />
+      </AppSplash>
+    );
+  }
+
+  // main page
+  return <Redirect href={loggedIn ? '/(tabs)/home' : '/(auth)/sign-in'} />;
 }
-
-export default App;
