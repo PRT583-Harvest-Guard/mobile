@@ -6,7 +6,6 @@ import {
   ActivityIndicator, 
   TouchableOpacity, 
   ScrollView,
-  StyleSheet,
   Modal,
   Linking
 } from 'react-native';
@@ -92,14 +91,14 @@ const Home = () => {
   const primaryFarm = getPrimaryFarm();
 
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+    <SafeAreaView className="flex-1 bg-[#f5f7fa]">
+      <ScrollView className="p-4">
         {/* Header Card */}
-        <View style={styles.headerCard}>
-          <View style={styles.userSection}>
+        <View className="bg-white rounded-xl p-4 mb-4 shadow-sm">
+          <View className="flex-row items-center">
             {/* Avatar */}
             <TouchableOpacity 
-              style={styles.avatarContainer}
+              className="w-[60px] h-[60px] rounded-full overflow-hidden mr-4"
               onPress={() => router.push('/profile/edit-profile')}
               activeOpacity={0.7}
             >
@@ -114,34 +113,34 @@ const Home = () => {
             </TouchableOpacity>
             
             {/* User Info */}
-            <View style={styles.userInfo}>
-              <Text style={styles.welcomeText}>
+            <View className="flex-1">
+              <Text className="text-sm text-[#666] font-pregular">
                 Welcome,
               </Text>
-              <Text style={styles.userName}>
+              <Text className="text-[22px] font-pbold text-[#333] mb-1">
                 {loading ? 'Loading...' : getUserName()}
               </Text>
               
               {primaryFarm ? (
                 <TouchableOpacity 
-                  style={styles.farmInfo}
+                  className="bg-[#f0f8ff] py-[6px] px-[10px] rounded-md self-start flex-row items-center border border-[#e0f0ff]"
                   onPress={() => router.push(`/farm-details/${primaryFarm.id}`)}
                   activeOpacity={0.7}
                 >
-                  <Feather name="map-pin" size={12} color="#0066cc" style={styles.farmIcon} />
-                  <Text style={styles.farmInfoText}>
+                  <Feather name="map-pin" size={12} color="#0066cc" className="mr-1" />
+                  <Text className="text-xs text-[#0066cc] font-pmedium">
                     Crop: {primaryFarm.plant_type || 'Not specified'} | Size: {primaryFarm.size || '0'} ha
                   </Text>
-                  <Feather name="chevron-right" size={12} color="#0066cc" style={styles.farmArrow} />
+                  <Feather name="chevron-right" size={12} color="#0066cc" className="ml-1" />
                 </TouchableOpacity>
               ) : (
                 <TouchableOpacity 
-                  style={[styles.farmInfo, styles.addFarmButton]}
+                  className="bg-[#fff8f0] py-[6px] px-[10px] rounded-md self-start flex-row items-center border border-[#ffe0c0]"
                   onPress={() => router.push('/(tabs)/farm')}
                   activeOpacity={0.7}
                 >
-                  <Feather name="plus-circle" size={12} color="#E9762B" style={styles.farmIcon} />
-                  <Text style={[styles.farmInfoText, styles.addFarmText]}>
+                  <Feather name="plus-circle" size={12} color="#E9762B" className="mr-1" />
+                  <Text className="text-xs text-[#E9762B] font-pmedium">
                     Add Farm
                   </Text>
                 </TouchableOpacity>
@@ -151,28 +150,28 @@ const Home = () => {
         </View>
         
         {/* Hero Section */}
-        <View style={styles.heroSection}>
-          <Text style={styles.heroText}>
+        <View className="bg-white rounded-xl p-4 mb-4 flex-row items-center justify-between shadow-sm">
+          <Text className="text-lg font-pbold text-[#333] flex-1 mr-4">
             Boost your yield with Harvest Guard!
           </Text>
           <Image
             source={iconPrimary}
-            style={styles.heroImage}
+            className="w-20 h-20"
             resizeMode="contain"
           />
         </View>
         
         {/* Upcoming Inspections */}
-        <View style={styles.inspectionsCard}>
-          <View style={styles.cardHeader}>
+        <View className="bg-white rounded-xl p-4 mb-4 shadow-sm">
+          <View className="flex-row items-center mb-3">
             <Feather name="calendar" size={20} color="#E9762B" />
-            <Text style={styles.cardTitle}>Upcoming Inspections</Text>
+            <Text className="text-lg font-pbold text-[#333] ml-2">Upcoming Inspections</Text>
           </View>
           
           {upcomingInspections.map(inspection => (
-            <View key={inspection.id} style={styles.inspectionItem}>
-              <View style={styles.inspectionDot} />
-              <Text style={styles.inspectionText}>
+            <View key={inspection.id} className="flex-row items-center py-2 border-b border-[#f0f0f0]">
+              <View className="w-2 h-2 rounded-full bg-secondary mr-3" />
+              <Text className="text-sm text-[#333] font-pregular">
                 Inspection #{inspection.id} – due in {inspection.dueIn} day{inspection.dueIn !== 1 ? 's' : ''}
               </Text>
             </View>
@@ -180,29 +179,29 @@ const Home = () => {
         </View>
         
         {/* Action Buttons */}
-        <View style={styles.actionsContainer}>
+        <View className="mb-4">
           <TouchableOpacity 
-            style={styles.actionButton}
+            className="flex-row items-center bg-secondary rounded-lg p-4 mb-3 shadow-sm"
             onPress={() => router.push("/inspection/suggestion")}
           >
-            <Feather name="search" size={24} color="#fff" style={styles.actionIcon} />
-            <Text style={styles.actionText}>Suggest Next Inspection</Text>
+            <Feather name="search" size={24} color="#fff" className="mr-3" />
+            <Text className="text-base font-pbold text-white">Suggest Next Inspection</Text>
           </TouchableOpacity>
           
           <TouchableOpacity 
-            style={[styles.actionButton, styles.secondaryButton]}
+            className="flex-row items-center bg-primary rounded-lg p-4 mb-3 shadow-sm"
             onPress={() => router.push("/sync/sync-records")}
           >
-            <Feather name="refresh-cw" size={24} color="#fff" style={styles.actionIcon} />
-            <Text style={styles.actionText}>Sync Data</Text>
+            <Feather name="refresh-cw" size={24} color="#fff" className="mr-3" />
+            <Text className="text-base font-pbold text-white">Sync Data</Text>
           </TouchableOpacity>
           
           <TouchableOpacity 
-            style={[styles.actionButton, styles.tertiaryButton]}
+            className="flex-row items-center bg-[#4A6FA5] rounded-lg p-4 mb-3 shadow-sm"
             onPress={() => setSupportModalVisible(true)}
           >
-            <Feather name="help-circle" size={24} color="#fff" style={styles.actionIcon} />
-            <Text style={styles.actionText}>Support</Text>
+            <Feather name="help-circle" size={24} color="#fff" className="mr-3" />
+            <Text className="text-base font-pbold text-white">Support</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -214,10 +213,10 @@ const Home = () => {
         visible={supportModalVisible}
         onRequestClose={() => setSupportModalVisible(false)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Contact Support</Text>
+        <View className="flex-1 bg-black/50 justify-center items-center p-5">
+          <View className="bg-white rounded-2xl w-full max-w-[400px] shadow-md overflow-hidden">
+            <View className="flex-row justify-between items-center p-4 border-b border-[#eee]">
+              <Text className="text-xl font-pbold text-[#333]">Contact Support</Text>
               <TouchableOpacity 
                 onPress={() => setSupportModalVisible(false)}
                 hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
@@ -226,65 +225,65 @@ const Home = () => {
               </TouchableOpacity>
             </View>
             
-            <View style={styles.modalBody}>
+            <View className="p-5 items-center">
               <Image 
                 source={iconPrimary}
-                style={styles.supportLogo}
+                className="w-20 h-20 mb-4"
                 resizeMode="contain"
               />
               
-              <Text style={styles.supportText}>
+              <Text className="text-base text-[#666] text-center mb-6 font-pregular">
                 Need help with Harvest Guard? Our support team is ready to assist you.
               </Text>
               
               <TouchableOpacity 
-                style={styles.contactItem}
+                className="flex-row items-center bg-[#f9f9f9] rounded-xl p-4 mb-3 w-full"
                 onPress={() => Linking.openURL('mailto:support@harvestguard.com')}
               >
-                <View style={styles.contactIconContainer}>
+                <View className="w-10 h-10 rounded-full bg-[#e6f0ed] justify-center items-center mr-3">
                   <Feather name="mail" size={20} color="#1B4D3E" />
                 </View>
-                <View style={styles.contactTextContainer}>
-                  <Text style={styles.contactLabel}>Email</Text>
-                  <Text style={styles.contactValue}>support@harvestguard.com</Text>
+                <View className="flex-1">
+                  <Text className="text-sm text-[#666] font-pregular">Email</Text>
+                  <Text className="text-base text-[#333] font-pmedium">support@harvestguard.com</Text>
                 </View>
                 <Feather name="external-link" size={16} color="#999" />
               </TouchableOpacity>
               
               <TouchableOpacity 
-                style={styles.contactItem}
+                className="flex-row items-center bg-[#f9f9f9] rounded-xl p-4 mb-3 w-full"
                 onPress={() => Linking.openURL('tel:+61234567890')}
               >
-                <View style={styles.contactIconContainer}>
+                <View className="w-10 h-10 rounded-full bg-[#e6f0ed] justify-center items-center mr-3">
                   <Feather name="phone" size={20} color="#1B4D3E" />
                 </View>
-                <View style={styles.contactTextContainer}>
-                  <Text style={styles.contactLabel}>Phone</Text>
-                  <Text style={styles.contactValue}>+61 2 3456 7890</Text>
+                <View className="flex-1">
+                  <Text className="text-sm text-[#666] font-pregular">Phone</Text>
+                  <Text className="text-base text-[#333] font-pmedium">+61 2 3456 7890</Text>
                 </View>
                 <Feather name="external-link" size={16} color="#999" />
               </TouchableOpacity>
               
               <TouchableOpacity 
-                style={styles.contactItem}
+                className="flex-row items-center bg-[#f9f9f9] rounded-xl p-4 mb-3 w-full"
                 onPress={() => Linking.openURL('https://harvestguard.com/support')}
               >
-                <View style={styles.contactIconContainer}>
+                <View className="w-10 h-10 rounded-full bg-[#e6f0ed] justify-center items-center mr-3">
                   <Feather name="globe" size={20} color="#1B4D3E" />
                 </View>
-                <View style={styles.contactTextContainer}>
-                  <Text style={styles.contactLabel}>Support Center</Text>
-                  <Text style={styles.contactValue}>harvestguard.com/support</Text>
+                <View className="flex-1">
+                  <Text className="text-sm text-[#666] font-pregular">Support Center</Text>
+                  <Text className="text-base text-[#333] font-pmedium">harvestguard.com/support</Text>
                 </View>
                 <Feather name="external-link" size={16} color="#999" />
               </TouchableOpacity>
             </View>
             
             <TouchableOpacity 
-              style={styles.closeButton}
+              className="bg-primary p-4 items-center"
               onPress={() => setSupportModalVisible(false)}
             >
-              <Text style={styles.closeButtonText}>Close</Text>
+              <Text className="text-white text-base font-pbold">Close</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -293,271 +292,5 @@ const Home = () => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f5f7fa',
-  },
-  scrollContent: {
-    padding: 16,
-  },
-  headerCard: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  userSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  avatarContainer: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    overflow: 'hidden',
-    marginRight: 16,
-  },
-  userInfo: {
-    flex: 1,
-  },
-  welcomeText: {
-    fontSize: 14,
-    color: '#666',
-    fontFamily: 'Poppins-Regular',
-  },
-  userName: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#333',
-    fontFamily: 'Poppins-Bold',
-    marginBottom: 4,
-  },
-  farmInfo: {
-    backgroundColor: '#f0f8ff',
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    borderRadius: 6,
-    alignSelf: 'flex-start',
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#e0f0ff',
-  },
-  farmInfoText: {
-    fontSize: 12,
-    color: '#0066cc',
-    fontFamily: 'Poppins-Medium',
-  },
-  farmIcon: {
-    marginRight: 4,
-  },
-  farmArrow: {
-    marginLeft: 4,
-  },
-  addFarmButton: {
-    backgroundColor: '#fff8f0',
-    borderColor: '#ffe0c0',
-  },
-  addFarmText: {
-    color: '#E9762B',
-  },
-  heroSection: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  heroText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-    fontFamily: 'Poppins-Bold',
-    flex: 1,
-    marginRight: 16,
-  },
-  heroImage: {
-    width: 80,
-    height: 80,
-  },
-  inspectionsCard: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  cardTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-    fontFamily: 'Poppins-Bold',
-    marginLeft: 8,
-  },
-  inspectionItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-  },
-  inspectionDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#E9762B',
-    marginRight: 12,
-  },
-  inspectionText: {
-    fontSize: 14,
-    color: '#333',
-    fontFamily: 'Poppins-Regular',
-  },
-  actionsContainer: {
-    marginBottom: 16,
-  },
-  actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#E9762B',
-    borderRadius: 8,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  secondaryButton: {
-    backgroundColor: '#1B4D3E',
-  },
-  tertiaryButton: {
-    backgroundColor: '#4A6FA5',
-  },
-  actionIcon: {
-    marginRight: 12,
-  },
-  actionText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#fff',
-    fontFamily: 'Poppins-Bold',
-  },
-  // Modal styles
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  modalContent: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    width: '100%',
-    maxWidth: 400,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-    overflow: 'hidden',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333',
-    fontFamily: 'Poppins-Bold',
-  },
-  modalBody: {
-    padding: 20,
-    alignItems: 'center',
-  },
-  supportLogo: {
-    width: 80,
-    height: 80,
-    marginBottom: 16,
-  },
-  supportText: {
-    fontSize: 16,
-    color: '#666',
-    textAlign: 'center',
-    marginBottom: 24,
-    fontFamily: 'Poppins-Regular',
-  },
-  contactItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#f9f9f9',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    width: '100%',
-  },
-  contactIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#e6f0ed',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  contactTextContainer: {
-    flex: 1,
-  },
-  contactLabel: {
-    fontSize: 14,
-    color: '#666',
-    fontFamily: 'Poppins-Regular',
-  },
-  contactValue: {
-    fontSize: 16,
-    color: '#333',
-    fontFamily: 'Poppins-Medium',
-  },
-  closeButton: {
-    backgroundColor: '#1B4D3E',
-    padding: 16,
-    alignItems: 'center',
-  },
-  closeButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-    fontFamily: 'Poppins-Bold',
-  },
-});
 
 export default Home;
