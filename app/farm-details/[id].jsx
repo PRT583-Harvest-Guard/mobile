@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, Alert, ActivityIndicator, TouchableOpacity, Modal } from 'react-native';
+import { View, Text, ScrollView, Alert, ActivityIndicator, TouchableOpacity, Modal } from 'react-native';
 import { useLocalSearchParams, router, Link, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
@@ -160,13 +160,13 @@ const FarmDetailsScreen = () => {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.headerContainer}>
+      <SafeAreaView className="flex-1 bg-white">
+        <View className="bg-primary py-4 px-2 rounded-b-xl shadow-sm">
           <PageHeader title="Farm Details" textColor="white" />
         </View>
-        <View style={styles.loadingContainer}>
+        <View className="flex-1 justify-center items-center">
           <ActivityIndicator size="large" color="#E9762B" />
-          <Text style={styles.loadingText}>Loading farm details...</Text>
+          <Text className="mt-4 text-base text-[#666]">Loading farm details...</Text>
         </View>
       </SafeAreaView>
     );
@@ -174,17 +174,17 @@ const FarmDetailsScreen = () => {
 
   if (!farm) {
     return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.headerContainer}>
+      <SafeAreaView className="flex-1 bg-white">
+        <View className="bg-primary py-4 px-2 rounded-b-xl shadow-sm">
           <PageHeader title="Farm Details" textColor="white" />
         </View>
-        <View style={styles.errorContainer}>
+        <View className="flex-1 justify-center items-center p-5">
           <Feather name="alert-circle" size={48} color="#ff4444" />
-          <Text style={styles.errorText}>Farm not found</Text>
+          <Text className="my-4 text-lg text-red">Farm not found</Text>
           <CustomButton
             title="Go Back"
             handlePress={() => router.back()}
-            containerStyles={styles.button}
+            containerStyles="w-[200px] mt-4"
           />
         </View>
       </SafeAreaView>
@@ -226,37 +226,37 @@ const FarmDetailsScreen = () => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.headerContainer}>
+    <SafeAreaView className="flex-1 bg-white">
+      <View className="bg-primary py-4 px-2 rounded-b-xl shadow-sm">
         <PageHeader title="Farm Details" textColor="white" />
       </View>
       
-      <View style={styles.breadcrumbContainer}>
-        <Link href="/(tabs)/home" style={styles.breadcrumbLink}>
-          <Text style={styles.breadcrumbText}>Home</Text>
+      <View className="flex-row items-center px-4 py-3 bg-[#f5f5f5] border-b border-[#e0e0e0] flex-wrap">
+        <Link href="/(tabs)/home" className="mr-1">
+          <Text className="text-sm text-primary font-medium">Home</Text>
         </Link>
-        <Text style={styles.breadcrumbSeparator}> &gt; </Text>
+        <Text className="text-sm text-[#999] mr-1"> &gt; </Text>
         
-        <Link href="/(tabs)/farm" style={styles.breadcrumbLink}>
-          <Text style={styles.breadcrumbText}>Farm</Text>
+        <Link href="/(tabs)/farm" className="mr-1">
+          <Text className="text-sm text-primary font-medium">Farm</Text>
         </Link>
-        <Text style={styles.breadcrumbSeparator}> &gt; </Text>
+        <Text className="text-sm text-[#999] mr-1"> &gt; </Text>
         
-        <Text style={styles.breadcrumbActiveText}>Farm Details</Text>
+        <Text className="text-sm text-secondary font-pbold">Farm Details</Text>
       </View>
       
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={styles.card}>
-          <Text style={styles.farmName}>{farm.name}</Text>
-          <View style={styles.buttonContainer}>
-            <TouchableOpacity onPress={handleEditFarm} style={styles.editButton}>
+      <ScrollView className="p-4">
+        <View className="bg-[#f9f9f9] rounded-xl p-4 mb-4 shadow-sm">
+          <Text className="text-2xl font-pbold text-[#333]">{farm.name}</Text>
+          <View className="absolute top-4 right-4 flex-row">
+            <TouchableOpacity onPress={handleEditFarm} className="p-2 mr-2">
               <Feather name="edit" size={24} color="#E9762B" />
             </TouchableOpacity>
             
             {deleteEnabled && (
               <TouchableOpacity 
                 onPress={() => setDeleteConfirmVisible(true)} 
-                style={styles.deleteButton}
+                className="p-2"
               >
                 <Feather name="trash-2" size={24} color="#ff4444" />
               </TouchableOpacity>
@@ -264,18 +264,18 @@ const FarmDetailsScreen = () => {
           </View>
         </View>
 
-        <View style={styles.card}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Farm Boundary</Text>
+        <View className="bg-[#f9f9f9] rounded-xl p-4 mb-4 shadow-sm">
+          <View className="flex-row justify-between items-center mb-3">
+            <Text className="text-lg font-pbold text-[#333]">Farm Boundary</Text>
             <TouchableOpacity
-              style={styles.boundaryButton}
+              className="flex-row items-center bg-secondary/10 px-[10px] py-[5px] rounded-md border border-secondary/30"
               onPress={() => router.push({
                 pathname: "/(auth)/upload-photos",
                 params: { farmId: farm.id }
               })}
             >
               <Feather name="edit-2" size={14} color="#E9762B" />
-              <Text style={styles.boundaryButtonText}>Boundary</Text>
+              <Text className="text-xs font-pbold text-secondary ml-1">Boundary</Text>
             </TouchableOpacity>
           </View>
           {boundaryPoints.length > 0 ? (
@@ -283,7 +283,7 @@ const FarmDetailsScreen = () => {
               <BoundaryMap
                 points={boundaryPoints}
                 observationPoints={observationPoints}
-                style={styles.boundaryMap}
+                style={{ width: '100%', height: 200 }}
                 showPoints={true}
                 numSegments={6}
                 boundaryWidth={2}
@@ -293,23 +293,23 @@ const FarmDetailsScreen = () => {
                 pointColor={'black'}
                 onMarkerUpdated={handleMarkersUpdated}
               />
-              <Text style={styles.boundaryInfoText}>
+              <Text className="text-sm text-[#666] italic text-center mt-2">
                 {boundaryPoints.length} boundary points define this farm's perimeter
               </Text>
             </>
           ) : (
-            <Text style={styles.emptyText}>No boundary points defined</Text>
+            <Text className="text-base text-[#999] italic text-center my-4">No boundary points defined</Text>
           )}
         </View>
-        <View style={styles.card}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Observation Points</Text>
+        <View className="bg-[#f9f9f9] rounded-xl p-4 mb-4 shadow-sm">
+          <View className="flex-row justify-between items-center mb-3">
+            <Text className="text-lg font-pbold text-[#333]">Observation Points</Text>
             <TouchableOpacity
-              style={styles.refreshButton}
+              className="flex-row items-center bg-secondary/10 px-[10px] py-[5px] rounded-md border border-secondary/30"
               onPress={loadObservationPoints}
             >
               <Feather name="refresh-cw" size={14} color="#E9762B" />
-              <Text style={styles.refreshButtonText}>Refresh</Text>
+              <Text className="text-xs font-pbold text-secondary ml-1">Refresh</Text>
             </TouchableOpacity>
           </View>
           <MapSections markers={observationPoints.length > 0 ? observationPoints : (markers.length > 0 ? markers : [])} />
@@ -323,40 +323,40 @@ const FarmDetailsScreen = () => {
         visible={deleteConfirmVisible}
         onRequestClose={() => setDeleteConfirmVisible(false)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Delete Farm</Text>
+        <View className="flex-1 bg-black/50 justify-center items-center p-5">
+          <View className="bg-white rounded-xl w-full max-w-[400px] shadow-md overflow-hidden">
+            <View className="p-4 border-b border-[#eee]">
+              <Text className="text-lg font-pbold text-[#333]">Delete Farm</Text>
             </View>
             
-            <View style={styles.modalBody}>
-              <Feather name="alert-triangle" size={48} color="#ff4444" style={styles.warningIcon} />
-              <Text style={styles.warningText}>
+            <View className="p-4 items-center">
+              <Feather name="alert-triangle" size={48} color="#ff4444" className="mb-4" />
+              <Text className="text-lg font-pbold text-[#333] text-center mb-2">
                 Are you sure you want to delete this farm?
               </Text>
-              <Text style={styles.warningSubtext}>
+              <Text className="text-sm text-[#666] text-center">
                 This will permanently delete all farm data, including boundaries, observation points, and observations. This action cannot be undone.
               </Text>
             </View>
             
-            <View style={styles.modalFooter}>
+            <View className="flex-row justify-end p-4 border-t border-[#eee]">
               <TouchableOpacity 
-                style={styles.cancelButton}
+                className="bg-[#f0f0f0] py-[10px] px-4 rounded-lg mr-2"
                 onPress={() => setDeleteConfirmVisible(false)}
                 disabled={deleting}
               >
-                <Text style={styles.cancelButtonText}>Cancel</Text>
+                <Text className="text-[#666] text-base font-pbold">Cancel</Text>
               </TouchableOpacity>
               
               <TouchableOpacity 
-                style={styles.deleteConfirmButton}
+                className="bg-red py-[10px] px-4 rounded-lg"
                 onPress={handleDeleteFarm}
                 disabled={deleting}
               >
                 {deleting ? (
                   <ActivityIndicator size="small" color="#fff" />
                 ) : (
-                  <Text style={styles.deleteConfirmButtonText}>Delete</Text>
+                  <Text className="text-white text-base font-pbold">Delete</Text>
                 )}
               </TouchableOpacity>
             </View>
@@ -367,248 +367,5 @@ const FarmDetailsScreen = () => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-  headerContainer: {
-    backgroundColor: '#1B4D3E',
-    paddingVertical: 16,
-    paddingHorizontal: 8,
-    borderBottomLeftRadius: 15,
-    borderBottomRightRadius: 15,
-    marginBottom: 0,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  breadcrumbContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#f5f5f5',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
-    flexWrap: 'wrap',
-  },
-  breadcrumbLink: {
-    marginRight: 4,
-  },
-  breadcrumbText: {
-    fontSize: 14,
-    color: '#1B4D3E',
-    fontWeight: '500',
-  },
-  breadcrumbSeparator: {
-    fontSize: 14,
-    color: '#999',
-    marginRight: 4,
-  },
-  breadcrumbActiveText: {
-    fontSize: 14,
-    color: '#E9762B',
-    fontWeight: 'bold',
-  },
-  scrollContent: {
-    padding: 16,
-  },
-  card: {
-    backgroundColor: '#f9f9f9',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  farmName: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  buttonContainer: {
-    position: 'absolute',
-    top: 16,
-    right: 16,
-    flexDirection: 'row',
-  },
-  editButton: {
-    padding: 8,
-    marginRight: 8,
-  },
-  deleteButton: {
-    padding: 8,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  boundaryButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(233, 118, 43, 0.1)',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: 'rgba(233, 118, 43, 0.3)',
-  },
-  boundaryButtonText: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: '#E9762B',
-    marginLeft: 4,
-  },
-  refreshButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(233, 118, 43, 0.1)',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: 'rgba(233, 118, 43, 0.3)',
-  },
-  refreshButtonText: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: '#E9762B',
-    marginLeft: 4,
-  },
-  boundaryMap: {
-    width: '100%',
-    height: 200,
-  },
-  boundaryInfoText: {
-    fontSize: 14,
-    color: '#666',
-    fontStyle: 'italic',
-    textAlign: 'center',
-    marginTop: 8,
-  },
-  emptyText: {
-    fontSize: 16,
-    color: '#999',
-    fontStyle: 'italic',
-    textAlign: 'center',
-    marginVertical: 16,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: '#666',
-  },
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  errorText: {
-    fontSize: 18,
-    color: '#ff4444',
-    marginVertical: 16,
-  },
-  button: {
-    marginTop: 16,
-    width: 200,
-  },
-  // Modal styles
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  modalContent: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    width: '100%',
-    maxWidth: 400,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  modalHeader: {
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  modalBody: {
-    padding: 16,
-    alignItems: 'center',
-  },
-  warningIcon: {
-    marginBottom: 16,
-  },
-  warningText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  warningSubtext: {
-    fontSize: 14,
-    color: '#666',
-    textAlign: 'center',
-  },
-  modalFooter: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    padding: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#eee',
-  },
-  cancelButton: {
-    backgroundColor: '#f0f0f0',
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    marginRight: 8,
-  },
-  cancelButtonText: {
-    color: '#666',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  deleteConfirmButton: {
-    backgroundColor: '#ff4444',
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-  },
-  deleteConfirmButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-});
 
 export default FarmDetailsScreen;
