@@ -248,11 +248,7 @@ const FarmDetailsScreen = () => {
       <ScrollView className="p-4">
         <View className="bg-[#f9f9f9] rounded-xl p-4 mb-4 shadow-sm">
           <Text className="text-2xl font-pbold text-[#333]">{farm.name}</Text>
-          <View className="absolute top-4 right-4 flex-row">
-            <TouchableOpacity onPress={handleEditFarm} className="p-2 mr-2">
-              <Feather name="edit" size={24} color="#E9762B" />
-            </TouchableOpacity>
-            
+          <View className="absolute top-4 right-4 flex-row">            
             {deleteEnabled && (
               <TouchableOpacity 
                 onPress={() => setDeleteConfirmVisible(true)} 
