@@ -1,9 +1,9 @@
 import React from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  ScrollView, 
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
   TouchableOpacity,
   Image,
   Alert
@@ -39,8 +39,8 @@ const Settings = () => {
   };
 
   const renderSettingItem = (icon, title, subtitle, onPress, isDestructive = false) => (
-    <TouchableOpacity 
-      style={styles.settingItem} 
+    <TouchableOpacity
+      style={styles.settingItem}
       onPress={onPress}
       activeOpacity={0.7}
     >
@@ -60,91 +60,91 @@ const Settings = () => {
       <View style={styles.headerContainer}>
         <PageHeader title="Settings" textColor="white" showBackButton={false} />
       </View>
-      
+
       <View style={styles.breadcrumbContainer}>
         <Link href="/(tabs)/home" style={styles.breadcrumbLink}>
           <Text style={styles.breadcrumbText}>Home</Text>
         </Link>
         <Text style={styles.breadcrumbSeparator}> &gt; </Text>
-        
+
         <Text style={styles.breadcrumbActiveText}>Settings</Text>
       </View>
-      
+
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Account Section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Account</Text>
-          
+
           {renderSettingItem(
-            "user", 
-            "Edit Profile", 
-            "Update your personal information", 
+            "user",
+            "Edit Profile",
+            "Update your personal information",
             () => router.push("/profile/edit-profile")
           )}
-          
+
           {renderSettingItem(
-            "lock", 
-            "Change Password", 
-            "Update your security credentials", 
-            () => router.push("/profile/change-password")
+            "lock",
+            "Change Password",
+            "Update your security credentials",
+            () => router.push("/(auth)/change-password")
           )}
         </View>
-        
+
         {/* Farm Management Section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Farm Management</Text>
-          
+
           {renderSettingItem(
-            "map", 
-            "Edit Property Border", 
-            "Update your farm boundaries", 
+            "map",
+            "Edit Property Border",
+            "Update your farm boundaries",
             () => router.push("/(tabs)/farm")
           )}
-          
+
           {renderSettingItem(
-            "database", 
-            "Sync Data", 
-            "Synchronize your local data with the server", 
+            "database",
+            "Sync Data",
+            "Synchronize your local data with the server",
             () => router.push("/sync/sync-records")
           )}
         </View>
-        
+
         {/* App Settings Section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>App Settings</Text>
-          
+
           {renderSettingItem(
-            "bell", 
-            "Notifications", 
-            "Manage your notification preferences", 
+            "bell",
+            "Notifications",
+            "Manage your notification preferences",
             () => Alert.alert("Coming Soon", "This feature will be available in a future update.")
           )}
-          
+
           {renderSettingItem(
-            "help-circle", 
-            "Help & Support", 
-            "Get assistance with using the app", 
+            "help-circle",
+            "Help & Support",
+            "Get assistance with using the app",
             () => Alert.alert("Support", "For assistance, please contact support@harvestguard.com")
           )}
         </View>
-        
+
         {/* Account Actions Section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Account Actions</Text>
-          
+
           {renderSettingItem(
-            "log-out", 
-            "Log Out", 
-            "Sign out of your account", 
+            "log-out",
+            "Log Out",
+            "Sign out of your account",
             logOut,
             true
           )}
         </View>
-        
+
         {/* App Info */}
         <View style={styles.footer}>
-          <Image 
-            source={require('@/assets/images/icon-primary.png')} 
+          <Image
+            source={require('@/assets/images/icon-primary.png')}
             style={styles.footerLogo}
             resizeMode="contain"
           />

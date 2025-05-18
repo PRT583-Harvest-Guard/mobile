@@ -6,7 +6,7 @@ export default async function initStuff(): Promise<boolean> {
     // await someDatabaseMigration();
     // await registerForPushNotifications();
 
-
+    await new Promise(res => setTimeout(res, 2000));
     // 2. check if user login already
     const token = await AsyncStorage.getItem('sessionToken');
     console.log('token:', token);

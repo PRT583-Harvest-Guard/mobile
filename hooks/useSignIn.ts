@@ -8,15 +8,17 @@ export const useSignIn = () => {
 
   const signIn = async (mobile: string, password: string) => {
     try {
-      setLoading(true);
-      const { user, sessionToken } = await AuthService.signIn({
-        username: mobile,
-        password,
-      });
-      await AsyncStorage.multiSet([
-        ['sessionToken', sessionToken],
-        ['user', JSON.stringify(user)],
-      ]);
+      // todo sign in
+      
+      // setLoading(true);
+      // const { user, sessionToken } = await AuthService.signIn({
+      //   username: mobile,
+      //   password,
+      // });
+      // await AsyncStorage.multiSet([
+      //   ['sessionToken', sessionToken],
+      //   ['user', JSON.stringify(user)],
+      // ]);
       router.replace('/(tabs)/home');
     } finally {
       setLoading(false);

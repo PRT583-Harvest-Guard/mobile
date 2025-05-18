@@ -14,12 +14,9 @@ export default function Splash() {
 
   useEffect(() => {
     (async () => {
-      const delay = (ms) => new Promise(res => setTimeout(res, ms));
-      await delay(2000);
       const isLogged = await initStuff();
       setLoggedIn(isLogged);
       setReady(true);
-
     })();
   }, []);
 

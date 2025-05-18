@@ -56,6 +56,7 @@ class AuthService {
    * @param {Object} userData - User data for sign up
    * @param {string} userData.username - Username (used as phone_number)
    * @param {string} userData.email - Email
+   * @param {string} userData.mobile - Mobile
    * @param {string} userData.password - Password
    * @returns {Promise<Object>} The API response
    */
@@ -78,9 +79,9 @@ class AuthService {
           'Accept': 'application/json',
         },
         body: JSON.stringify({
-          phone_number: userData.username, // Using username as phone_number
+          phone_number: userData.mobile, // Using username as phone_number
           email: userData.email,
-          name: userData.name || userData.username, // Use name if provided, otherwise use username
+          name: userData.username, // Use name if provided, otherwise use username
           password: userData.password,
           password_confirm: userData.password
         }),
@@ -428,9 +429,8 @@ class AuthService {
    * @param {Object} userData - User data for sign up
    * @param {string} userData.username - Username
    * @param {string} userData.email - Email
+   * @param {string} userData.mobile - Mobile
    * @param {string} userData.password - Password
-   * @param {string} userData.first_name - First name
-   * @param {string} userData.last_name - Last name
    * @returns {Promise<User>} The created user
    */
   static async signUp(userData) {

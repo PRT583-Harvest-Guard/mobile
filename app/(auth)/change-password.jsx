@@ -6,28 +6,25 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { FormField, CustomButton } from '@/components';
 import AuthScreen from '@/components/layouts/AuthScreen';
 import AuthHeader from '@/components/ui/AuthHeader';
-import AuthFooter from '@/components/ui/AuthFooter';
-import { useSignUp } from '@/hooks/useSignUp';
+import { useChangePassword } from '@/hooks/useChangePassword';
 
-const signUpSchema = z
+const schema = z
   .object({
-    username: z.string().min(1),
-    email: z.string().email(),
-    mobile: z.string().min(6),
-    password: z.string().min(6),
+    current: z.string().min(6),
+    next: z.string().min(6),
     confirm: z.string().min(6),
   })
-  .refine(d => d.password === d.confirm, { path: ['confirm'], message: 'Mismatch' });
+  .refine(d => d.next === d.confirm, { path: ['confirm'], message: 'Mismatch' });
 
-export default function SignUp() {
+export default function ChangePassword() {
   const { control, handleSubmit } = useForm({
-    resolver: zodResolver(signUpSchema),
-    defaultValues: { username: '', email: '', mobile: '', password: '', confirm: '' },
+    resolver: zodResolver(schema),
+    defaultValues: { current: '', next: '', confirm: '' },
   });
-  const { loading, signUp } = useSignUp();
+  const { loading, changePassword } = useChangePassword();
 
-  const onSubmit = ({ username, email, mobile, password }) =>
-    signUp(username, email, mobile, password).catch(e => Alert.alert('Error', e.message));
+  const onSubmit = ({ current, next }) =>
+    changePassword(current, next).catch(e => Alert.alert('Error', e.message));
 
   return (
     <AuthScreen>
@@ -36,54 +33,29 @@ export default function SignUp() {
 
         <Controller
           control={control}
-          name="username"
+          name="current"
           render={({ field }) => (
             <FormField
-              title="User Name"
+              title="Current Password"
               titleStyles="text-gray-100"
               value={field.value}
               handleTextChange={field.onChange}
               otherStyles="mt-2"
+              secureTextEntry
             />
           )}
         />
         <Controller
           control={control}
-          name="email"
+          name="next"
           render={({ field }) => (
             <FormField
-              title="Email"
-              titleStyles="text-gray-100"
-              value={field.value}
-              handleTextChange={field.onChange}
-              otherStyles="mt-2"
-            />
-          )}
-        />
-        <Controller
-          control={control}
-          name="mobile"
-          render={({ field }) => (
-            <FormField
-              title="Mobile Number"
-              titleStyles="text-gray-100"
-              value={field.value}
-              handleTextChange={field.onChange}
-              otherStyles="mt-2"
-              keyboardType="phone-pad"
-            />
-          )}
-        />
-        <Controller
-          control={control}
-          name="password"
-          render={({ field }) => (
-            <FormField
-              title="Password"
+              title="New Password"
               titleStyles="text-gray-100"
               value={field.value}
               handleTextChange={field.onChange}
               otherStyles="mt-6"
+              secureTextEntry
             />
           )}
         />
@@ -97,18 +69,17 @@ export default function SignUp() {
               value={field.value}
               handleTextChange={field.onChange}
               otherStyles="mt-6"
+              secureTextEntry
             />
           )}
         />
 
         <CustomButton
-          title="Create Account"
+          title="Save"
           handlePress={handleSubmit(onSubmit)}
           containerStyles="mt-10"
           isLoading={loading}
         />
-
-        <AuthFooter message="Already have an account?" linkText="Log In" href="/(auth)/sign-in" />
       </View>
     </AuthScreen>
   );

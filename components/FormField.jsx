@@ -30,8 +30,8 @@ const FormField = ({
           >
             {
               isShowPassword ?
-                <Feather name="eye" size={24} color="black" /> :
-                <Feather name="eye-off" size={24} color="black" />
+                <Feather name="eye-off" size={24} color="black" /> :
+                <Feather name="eye" size={24} color="black" />
             }
           </TouchableOpacity>
         )}
