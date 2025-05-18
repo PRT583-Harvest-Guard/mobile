@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { 
   View, 
   Text, 
-  StyleSheet, 
   ScrollView, 
   TouchableOpacity, 
   Alert,
@@ -43,17 +42,14 @@ const SimpleDropdown = ({ label, options, value, onSelect, disabled }) => {
   }, [isOpen]);
   
   return (
-    <View style={styles.dropdownContainer}>
-      <Text style={styles.dropdownLabel}>{label}</Text>
+    <View className="mb-4 w-full">
+      <Text className="text-base font-pbold mb-2 text-[#333]">{label}</Text>
       <TouchableOpacity 
-        style={[
-          styles.dropdownButton,
-          disabled && styles.dropdownButtonDisabled
-        ]}
+        className={`flex-row justify-between items-center bg-white border-2 border-primary rounded-xl p-4 h-[56px] w-full ${disabled ? 'bg-[#f0f0f0] border-[#ccc]' : ''}`}
         onPress={() => !disabled && setIsOpen(!isOpen)}
         activeOpacity={disabled ? 1 : 0.7}
       >
-        <Text style={styles.dropdownButtonText}>
+        <Text className="text-base text-[#333]">
           {value || 'Select an option'}
         </Text>
         <Feather 
@@ -64,22 +60,22 @@ const SimpleDropdown = ({ label, options, value, onSelect, disabled }) => {
       </TouchableOpacity>
       
       {isOpen && !disabled && (
-        <View style={styles.dropdownOptions}>
+        <View className="absolute top-[84px] left-0 right-0 bg-white border border-[#ddd] rounded-lg max-h-[200px] z-10 shadow-md">
           <ScrollView 
             nestedScrollEnabled={true}
-            style={styles.dropdownScrollView}
-            contentContainerStyle={styles.dropdownScrollContent}
+            className="max-h-[200px]"
+            contentContainerStyle={{ paddingVertical: 4 }}
           >
             {options.map((option, index) => (
               <TouchableOpacity
                 key={index}
-                style={styles.dropdownOption}
+                className="p-3 border-b border-[#eee]"
                 onPress={() => {
                   onSelect(option);
                   setIsOpen(false);
                 }}
               >
-                <Text style={styles.dropdownOptionText}>{option}</Text>
+                <Text className="text-base text-[#333]">{option}</Text>
               </TouchableOpacity>
             ))}
           </ScrollView>
@@ -247,38 +243,38 @@ export default function Suggestion() {
 
   if (isLoading) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView className="flex-1 bg-[#f5f7fa]">
         <PageHeader title="Inspection Suggestion" />
-        <View style={styles.loadingContainer}>
+        <View className="flex-1 justify-center items-center">
           <ActivityIndicator size="large" color="#E9762B" />
-          <Text style={styles.loadingText}>Loading...</Text>
+          <Text className="mt-4 text-base text-[#666]">Loading...</Text>
         </View>
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.headerContainer}>
+    <SafeAreaView className="flex-1 bg-[#f5f7fa]">
+      <View className="bg-primary py-4 px-2 rounded-b-xl shadow-sm">
         <PageHeader title="Inspection Suggestion" textColor="white" />
       </View>
       
-      <View style={styles.breadcrumbContainer}>
-        <Link href="/(tabs)/home" style={styles.breadcrumbLink}>
-          <Text style={styles.breadcrumbText}>Home</Text>
+      <View className="flex-row items-center px-4 py-3 bg-[#f5f5f5] border-b border-[#e0e0e0] flex-wrap">
+        <Link href="/(tabs)/home" className="mr-1">
+          <Text className="text-sm text-primary font-medium">Home</Text>
         </Link>
-        <Text style={styles.breadcrumbSeparator}> &gt; </Text>
+        <Text className="text-sm text-[#999] mr-1"> &gt; </Text>
         
-        <Text style={styles.breadcrumbActiveText}>Inspection Suggestion</Text>
+        <Text className="text-sm text-secondary font-pbold">Inspection Suggestion</Text>
       </View>
       
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.contentContainer}>
-        <Text style={styles.formTitle}>Create Inspection Suggestion</Text>
+      <ScrollView className="flex-1" contentContainerStyle={{ padding: 16, paddingBottom: 32 }}>
+        <Text className="text-xl font-pbold text-[#333] mb-4 text-center">Create Inspection Suggestion</Text>
         
         {!hasFarms && (
-          <View style={styles.noFarmsContainer}>
+          <View className="bg-[#FFF8F0] border border-[#FFE0C0] rounded-lg p-4 mb-4 items-center">
             <Feather name="alert-circle" size={24} color="#E9762B" />
-            <Text style={styles.noFarmsText}>
+            <Text className="text-sm text-[#333] text-center mt-2 mb-2">
               You don't have any farms. Please add a farm first.
             </Text>
             <CustomButton
@@ -290,7 +286,7 @@ export default function Suggestion() {
           </View>
         )}
         
-        <View style={styles.formContainer}>
+        <View className="bg-white rounded-xl p-4 shadow-sm mb-4">
           <SimpleDropdown
             label="Target Entity"
             options={entityOptions}
@@ -298,7 +294,7 @@ export default function Suggestion() {
             onSelect={setTargetEntity}
           />
           
-          <View style={styles.spacer} />
+          <View className="h-4" />
           
           <SimpleDropdown
             label="Confidence Level"
@@ -307,7 +303,7 @@ export default function Suggestion() {
             onSelect={setConfidenceLevel}
           />
           
-          <View style={styles.spacer} />
+          <View className="h-4" />
           
           <SimpleDropdown
             label="Property Location"
@@ -334,7 +330,7 @@ export default function Suggestion() {
             disabled={!hasFarms}
           />
           
-          <View style={styles.spacer} />
+          <View className="h-4" />
           
           <FormField
             title="Area Size (hectares)"
@@ -345,7 +341,7 @@ export default function Suggestion() {
             editable={false}
           />
           
-          <View style={styles.spacer} />
+          <View className="h-4" />
           
           <FormField
             title="Density of Plants (plants per square meter)"
@@ -358,7 +354,7 @@ export default function Suggestion() {
         </View>
       </ScrollView>
       
-      <View style={styles.buttonContainer}>
+      <View className="p-4 bg-white border-t border-[#eee] shadow-sm">
         <CustomButton
           title="Submit"
           handlePress={handleSubmit}
@@ -370,179 +366,3 @@ export default function Suggestion() {
     </SafeAreaView>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f5f7fa',
-  },
-  headerContainer: {
-    backgroundColor: '#1B4D3E',
-    paddingVertical: 16,
-    paddingHorizontal: 8,
-    borderBottomLeftRadius: 15,
-    borderBottomRightRadius: 15,
-    marginBottom: 0,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  breadcrumbContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#f5f5f5',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
-    flexWrap: 'wrap',
-  },
-  breadcrumbLink: {
-    marginRight: 4,
-  },
-  breadcrumbText: {
-    fontSize: 14,
-    color: '#1B4D3E',
-    fontWeight: '500',
-  },
-  breadcrumbSeparator: {
-    fontSize: 14,
-    color: '#999',
-    marginRight: 4,
-  },
-  breadcrumbActiveText: {
-    fontSize: 14,
-    color: '#E9762B',
-    fontWeight: 'bold',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: '#666',
-  },
-  scrollView: {
-    flex: 1,
-  },
-  contentContainer: {
-    padding: 16,
-    paddingBottom: 32,
-  },
-  formTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 16,
-    textAlign: 'center',
-  },
-  noFarmsContainer: {
-    backgroundColor: '#FFF8F0',
-    borderWidth: 1,
-    borderColor: '#FFE0C0',
-    borderRadius: 8,
-    padding: 16,
-    marginBottom: 16,
-    alignItems: 'center',
-  },
-  noFarmsText: {
-    fontSize: 14,
-    color: '#333',
-    textAlign: 'center',
-    marginTop: 8,
-    marginBottom: 8,
-  },
-  formContainer: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-    marginBottom: 16,
-  },
-  spacer: {
-    height: 16,
-  },
-  buttonContainer: {
-    padding: 16,
-    backgroundColor: '#fff',
-    borderTopWidth: 1,
-    borderTopColor: '#eee',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  // Dropdown styles
-  dropdownContainer: {
-    marginBottom: 16,
-    width: '100%',
-  },
-  dropdownLabel: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 8,
-    color: '#333',
-  },
-  dropdownButton: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    borderWidth: 2,
-    borderColor: '#1B4D3E',
-    borderRadius: 12,
-    padding: 16,
-    height: 56,
-    width: '100%',
-  },
-  dropdownButtonDisabled: {
-    backgroundColor: '#f0f0f0',
-    borderColor: '#ccc',
-  },
-  dropdownButtonText: {
-    fontSize: 16,
-    color: '#333',
-  },
-  dropdownOptions: {
-    position: 'absolute',
-    top: 84, // Height of label (24) + button (56) + margin (4)
-    left: 0,
-    right: 0,
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    maxHeight: 200,
-    zIndex: 1000,
-    elevation: 5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  dropdownScrollView: {
-    maxHeight: 200,
-  },
-  dropdownScrollContent: {
-    paddingVertical: 4,
-  },
-  dropdownOption: {
-    padding: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-  },
-  dropdownOptionText: {
-    fontSize: 16,
-    color: '#333',
-  },
-});

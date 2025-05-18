@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { 
   View, 
   Text, 
-  StyleSheet, 
   ScrollView, 
   TextInput, 
   TouchableOpacity, 
@@ -95,49 +94,49 @@ const EditProfileScreen = () => {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView className="flex-1 bg-white">
         <PageHeader title="Edit Profile" />
-        <View style={styles.loadingContainer}>
+        <View className="flex-1 justify-center items-center">
           <ActivityIndicator size="large" color="#E9762B" />
-          <Text style={styles.loadingText}>Loading profile...</Text>
+          <Text className="mt-4 text-base text-[#666]">Loading profile...</Text>
         </View>
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView className="flex-1 bg-white">
       <PageHeader title="Edit Profile" />
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView className="p-4">
         <ProfilePhotoCapture 
           photoUri={pictureUri} 
           onPhotoCapture={setPictureUri} 
         />
         
-        <View style={styles.formGroup}>
-          <Text style={styles.label}>First Name *</Text>
+        <View className="mb-4">
+          <Text className="text-base font-pbold text-[#555] mb-2">First Name *</Text>
           <TextInput
-            style={styles.input}
+            className="bg-[#f9f9f9] border border-[#ddd] rounded-lg p-3 text-base"
             value={firstName}
             onChangeText={setFirstName}
             placeholder="Enter first name"
           />
         </View>
         
-        <View style={styles.formGroup}>
-          <Text style={styles.label}>Last Name *</Text>
+        <View className="mb-4">
+          <Text className="text-base font-pbold text-[#555] mb-2">Last Name *</Text>
           <TextInput
-            style={styles.input}
+            className="bg-[#f9f9f9] border border-[#ddd] rounded-lg p-3 text-base"
             value={lastName}
             onChangeText={setLastName}
             placeholder="Enter last name"
           />
         </View>
         
-        <View style={styles.formGroup}>
-          <Text style={styles.label}>Phone Number</Text>
+        <View className="mb-4">
+          <Text className="text-base font-pbold text-[#555] mb-2">Phone Number</Text>
           <TextInput
-            style={styles.input}
+            className="bg-[#f9f9f9] border border-[#ddd] rounded-lg p-3 text-base"
             value={phoneNumber}
             onChangeText={setPhoneNumber}
             placeholder="Enter phone number"
@@ -145,30 +144,31 @@ const EditProfileScreen = () => {
           />
         </View>
         
-        <View style={styles.formGroup}>
-          <Text style={styles.label}>Address</Text>
+        <View className="mb-4">
+          <Text className="text-base font-pbold text-[#555] mb-2">Address</Text>
           <TextInput
-            style={[styles.input, styles.textArea]}
+            className="bg-[#f9f9f9] border border-[#ddd] rounded-lg p-3 text-base h-[100px] text-top"
             value={address}
             onChangeText={setAddress}
             placeholder="Enter address"
             multiline={true}
             numberOfLines={4}
+            textAlignVertical="top"
           />
         </View>
         
-        <View style={styles.buttonContainer}>
+        <View className="flex-row justify-between mt-6 mb-8">
           <CustomButton
             title="Cancel"
             handlePress={() => router.back()}
-            containerStyles={styles.cancelButton}
-            textStyles={styles.cancelButtonText}
+            containerStyles="flex-1 mr-2 bg-[#f0f0f0]"
+            textStyles="text-[#666]"
           />
           
           <CustomButton
             title={saving ? 'Saving...' : 'Save'}
             handlePress={handleSave}
-            containerStyles={styles.saveButton}
+            containerStyles="flex-1 ml-2"
             disabled={saving}
           />
         </View>
@@ -177,63 +177,5 @@ const EditProfileScreen = () => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-  scrollContent: {
-    padding: 16,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: '#666',
-  },
-  formGroup: {
-    marginBottom: 16,
-  },
-  label: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#555',
-    marginBottom: 8,
-  },
-  input: {
-    backgroundColor: '#f9f9f9',
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-  },
-  textArea: {
-    height: 100,
-    textAlignVertical: 'top',
-  },
-  buttonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 24,
-    marginBottom: 32,
-  },
-  cancelButton: {
-    flex: 1,
-    marginRight: 8,
-    backgroundColor: '#f0f0f0',
-  },
-  cancelButtonText: {
-    color: '#666',
-  },
-  saveButton: {
-    flex: 1,
-    marginLeft: 8,
-  },
-});
 
 export default EditProfileScreen;

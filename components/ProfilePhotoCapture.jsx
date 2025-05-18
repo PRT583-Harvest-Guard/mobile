@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { 
   View, 
   Text, 
-  StyleSheet, 
   TouchableOpacity, 
   Image, 
   ActivityIndicator,
@@ -103,31 +102,31 @@ const ProfilePhotoCapture = ({ photoUri, onPhotoCapture }) => {
   };
 
   return (
-    <View style={styles.container}>
+    <View className="items-center mb-5">
       {photoUri ? (
-        <View style={styles.photoContainer}>
-          <Image source={{ uri: photoUri }} style={styles.photo} />
+        <View className="w-[120px] h-[120px] rounded-full overflow-hidden relative">
+          <Image source={{ uri: photoUri }} className="w-full h-full" />
           <TouchableOpacity 
-            style={styles.changePhotoButton}
+            className="absolute bottom-0 right-[30px] w-[30px] h-[30px] rounded-full bg-secondary justify-center items-center"
             onPress={pickImage}
           >
             <Feather name="edit" size={16} color="#fff" />
           </TouchableOpacity>
           <TouchableOpacity 
-            style={styles.removeButton}
+            className="absolute bottom-0 right-0 w-[30px] h-[30px] rounded-full bg-red justify-center items-center"
             onPress={removePhoto}
           >
             <Feather name="trash-2" size={16} color="#fff" />
           </TouchableOpacity>
         </View>
       ) : (
-        <View style={styles.placeholderContainer}>
-          <View style={styles.placeholder}>
+        <View className="items-center">
+          <View className="w-[120px] h-[120px] rounded-full bg-[#f0f0f0] justify-center items-center mb-4">
             <Feather name="user" size={60} color="#ccc" />
           </View>
-          <View style={styles.buttonContainer}>
+          <View className="flex-row justify-center">
             <TouchableOpacity 
-              style={styles.button}
+              className="flex-row items-center justify-center bg-secondary py-2 px-3 rounded-lg mx-1"
               onPress={takePicture}
               disabled={loading}
             >
@@ -135,19 +134,19 @@ const ProfilePhotoCapture = ({ photoUri, onPhotoCapture }) => {
                 <ActivityIndicator size="small" color="#fff" />
               ) : (
                 <>
-                  <Feather name="camera" size={16} color="#fff" style={styles.buttonIcon} />
-                  <Text style={styles.buttonText}>Camera</Text>
+                  <Feather name="camera" size={16} color="#fff" className="mr-1" />
+                  <Text className="text-white text-sm font-pbold">Camera</Text>
                 </>
               )}
             </TouchableOpacity>
             
             <TouchableOpacity 
-              style={[styles.button, styles.galleryButton]}
+              className="flex-row items-center justify-center bg-white py-2 px-3 rounded-lg mx-1 border border-secondary"
               onPress={pickImage}
               disabled={loading}
             >
-              <Feather name="image" size={16} color="#E9762B" style={styles.buttonIcon} />
-              <Text style={[styles.buttonText, styles.galleryButtonText]}>Gallery</Text>
+              <Feather name="image" size={16} color="#E9762B" className="mr-1" />
+              <Text className="text-secondary text-sm font-pbold">Gallery</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -156,86 +155,5 @@ const ProfilePhotoCapture = ({ photoUri, onPhotoCapture }) => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  photoContainer: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    overflow: 'hidden',
-    position: 'relative',
-  },
-  photo: {
-    width: '100%',
-    height: '100%',
-  },
-  changePhotoButton: {
-    position: 'absolute',
-    bottom: 0,
-    right: 30,
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: '#E9762B',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  removeButton: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: '#ff4444',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  placeholderContainer: {
-    alignItems: 'center',
-  },
-  placeholder: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: '#f0f0f0',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  buttonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-  },
-  button: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#E9762B',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    marginHorizontal: 4,
-  },
-  galleryButton: {
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#E9762B',
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
-  galleryButtonText: {
-    color: '#E9762B',
-  },
-  buttonIcon: {
-    marginRight: 4,
-  },
-});
 
 export default ProfilePhotoCapture;
