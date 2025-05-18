@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { 
   View, 
   Text, 
-  StyleSheet, 
   ScrollView, 
   TouchableOpacity, 
   TextInput, 
@@ -206,19 +205,19 @@ const FarmScreen = () => {
     return (
       <TouchableOpacity 
         key={farm.id} 
-        style={styles.farmItem}
+        className="flex-row justify-between items-center bg-[#f9f9f9] rounded-lg p-4 mb-3 shadow-sm"
         onPress={() => router.push(`/farm-details/${farm.id}`)}
       >
-        <View style={styles.farmInfo}>
-          <Text style={styles.farmName}>{farm.name}</Text>
-          <Text style={styles.farmDetails}>
+        <View className="flex-1">
+          <Text className="text-lg font-pbold text-[#333] mb-1">{farm.name}</Text>
+          <Text className="text-sm text-[#666]">
             {farm.size ? `${farm.size} hectares` : 'Size not specified'}
             {farm.plant_type ? ` • ${farm.plant_type}` : ''}
           </Text>
         </View>
-        <View style={styles.farmActions}>
+        <View className="flex-row items-center">
           <TouchableOpacity 
-            style={styles.editButton}
+            className="p-2 mr-2"
             onPress={(e) => {
               e.stopPropagation();
               handleEditFarm(farm.id);
@@ -229,7 +228,7 @@ const FarmScreen = () => {
           
           {deleteEnabled && (
             <TouchableOpacity 
-              style={styles.deleteButton}
+              className="p-2 mr-2"
               onPress={(e) => {
                 e.stopPropagation();
                 handleDeleteFarm(farm.id);
@@ -246,47 +245,47 @@ const FarmScreen = () => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.headerContainer}>
+    <SafeAreaView className="flex-1 bg-[#f5f7fa]">
+      <View className="bg-primary py-4 px-2 rounded-b-xl shadow-sm">
         <PageHeader title="Farms" textColor="white" showBackButton={false} />
       </View>
       
-      <View style={styles.breadcrumbContainer}>
-        <Link href="/(tabs)/home" style={styles.breadcrumbLink}>
-          <Text style={styles.breadcrumbText}>Home</Text>
+      <View className="flex-row items-center px-4 py-3 bg-[#f5f5f5] border-b border-[#e0e0e0] flex-wrap">
+        <Link href="/(tabs)/home" className="mr-1">
+          <Text className="text-sm text-primary font-medium">Home</Text>
         </Link>
-        <Text style={styles.breadcrumbSeparator}> &gt; </Text>
+        <Text className="text-sm text-[#999] mr-1"> &gt; </Text>
         
-        <Text style={styles.breadcrumbActiveText}>Farms</Text>
+        <Text className="text-sm text-secondary font-pbold">Farms</Text>
       </View>
       
-      <View style={styles.content}>
+      <View className="flex-1 p-4">
         {loading ? (
-          <View style={styles.loadingContainer}>
+          <View className="flex-1 justify-center items-center">
             <ActivityIndicator size="large" color="#E9762B" />
-            <Text style={styles.loadingText}>Loading farms...</Text>
+            <Text className="mt-4 text-base text-[#666]">Loading farms...</Text>
           </View>
         ) : (
           <>
-            <View style={styles.header}>
-              <Text style={styles.title}>Your Farms</Text>
+            <View className="flex-row justify-between items-center mb-4">
+              <Text className="text-2xl font-pbold text-[#333]">Your Farms</Text>
               <TouchableOpacity 
-                style={styles.addButton}
+                className="flex-row items-center bg-secondary py-2 px-3 rounded-lg"
                 onPress={handleAddFarm}
               >
                 <Feather name="plus" size={20} color="#fff" />
-                <Text style={styles.addButtonText}>Add Farm</Text>
+                <Text className="text-white font-pbold ml-1">Add Farm</Text>
               </TouchableOpacity>
             </View>
             
-            <ScrollView style={styles.farmList}>
+            <ScrollView className="flex-1">
               {farms.length > 0 ? (
                 farms.map(renderFarmItem)
               ) : (
-                <View style={styles.emptyContainer}>
+                <View className="flex-1 justify-center items-center py-[60px]">
                   <Feather name="alert-circle" size={48} color="#ccc" />
-                  <Text style={styles.emptyText}>No farms found</Text>
-                  <Text style={styles.emptySubtext}>
+                  <Text className="text-lg font-pbold text-[#666] mt-4">No farms found</Text>
+                  <Text className="text-sm text-[#999] text-center mt-2 px-8">
                     Add a farm to get started with Harvest Guard
                   </Text>
                 </View>
@@ -303,10 +302,10 @@ const FarmScreen = () => {
         visible={modalVisible}
         onRequestClose={() => setModalVisible(false)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>
+        <View className="flex-1 bg-black/50 justify-center items-center p-5">
+          <View className="bg-white rounded-xl w-full max-h-[80%] shadow-md">
+            <View className="flex-row justify-between items-center p-4 border-b border-[#eee]">
+              <Text className="text-lg font-pbold text-[#333]">
                 {formMode === 'edit' ? 'Edit Farm' : 'Add New Farm'}
               </Text>
               <TouchableOpacity onPress={() => setModalVisible(false)}>
@@ -314,7 +313,7 @@ const FarmScreen = () => {
               </TouchableOpacity>
             </View>
             
-            <ScrollView style={styles.modalBody}>
+            <ScrollView className="p-4 max-h-[400px]">
               <FormField
                 title="Farm Name"
                 placeholder="Enter farm name"
@@ -341,23 +340,23 @@ const FarmScreen = () => {
               />
             </ScrollView>
             
-            <View style={styles.modalFooter}>
+            <View className="flex-row justify-end p-4 border-t border-[#eee]">
               <TouchableOpacity 
-                style={styles.cancelButton}
+                className="bg-[#f0f0f0] py-[10px] px-4 rounded-lg mr-2"
                 onPress={() => setModalVisible(false)}
               >
-                <Text style={styles.cancelButtonText}>Cancel</Text>
+                <Text className="text-[#666] text-base font-pbold">Cancel</Text>
               </TouchableOpacity>
               
               <TouchableOpacity 
-                style={styles.submitButton}
+                className="bg-secondary py-[10px] px-4 rounded-lg"
                 onPress={handleSubmit}
                 disabled={submitting}
               >
                 {submitting ? (
                   <ActivityIndicator size="small" color="#fff" />
                 ) : (
-                  <Text style={styles.submitButtonText}>
+                  <Text className="text-white text-base font-pbold">
                     {formMode === 'edit' ? 'Update' : 'Save'}
                   </Text>
                 )}
@@ -370,217 +369,5 @@ const FarmScreen = () => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f5f7fa',
-  },
-  headerContainer: {
-    backgroundColor: '#1B4D3E',
-    paddingVertical: 16,
-    paddingHorizontal: 8,
-    borderBottomLeftRadius: 15,
-    borderBottomRightRadius: 15,
-    marginBottom: 0,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  breadcrumbContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#f5f5f5',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
-    flexWrap: 'wrap',
-  },
-  breadcrumbLink: {
-    marginRight: 4,
-  },
-  breadcrumbText: {
-    fontSize: 14,
-    color: '#1B4D3E',
-    fontWeight: '500',
-  },
-  breadcrumbSeparator: {
-    fontSize: 14,
-    color: '#999',
-    marginRight: 4,
-  },
-  breadcrumbActiveText: {
-    fontSize: 14,
-    color: '#E9762B',
-    fontWeight: 'bold',
-  },
-  content: {
-    flex: 1,
-    padding: 16,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  addButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#E9762B',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-  },
-  addButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    marginLeft: 4,
-  },
-  farmList: {
-    flex: 1,
-  },
-  farmItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#f9f9f9',
-    borderRadius: 8,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  farmInfo: {
-    flex: 1,
-  },
-  farmName: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 4,
-  },
-  farmDetails: {
-    fontSize: 14,
-    color: '#666',
-  },
-  farmActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  editButton: {
-    padding: 8,
-    marginRight: 8,
-  },
-  deleteButton: {
-    padding: 8,
-    marginRight: 8,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: '#666',
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 60,
-  },
-  emptyText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#666',
-    marginTop: 16,
-  },
-  emptySubtext: {
-    fontSize: 14,
-    color: '#999',
-    textAlign: 'center',
-    marginTop: 8,
-    paddingHorizontal: 32,
-  },
-  // Modal styles
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  modalContent: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    width: '100%',
-    maxHeight: '80%',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  modalBody: {
-    padding: 16,
-    maxHeight: 400,
-  },
-  modalFooter: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    padding: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#eee',
-  },
-  cancelButton: {
-    backgroundColor: '#f0f0f0',
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    marginRight: 8,
-  },
-  cancelButtonText: {
-    color: '#666',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  submitButton: {
-    backgroundColor: '#E9762B',
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-  },
-  submitButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-});
 
 export default FarmScreen;

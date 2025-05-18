@@ -2,7 +2,6 @@ import React from 'react';
 import { 
   View, 
   Text, 
-  StyleSheet, 
   ScrollView, 
   TouchableOpacity,
   Image,
@@ -40,40 +39,40 @@ const Settings = () => {
 
   const renderSettingItem = (icon, title, subtitle, onPress, isDestructive = false) => (
     <TouchableOpacity 
-      style={styles.settingItem} 
+      className="flex-row items-center bg-white rounded-xl p-4 mb-2 shadow-sm"
       onPress={onPress}
       activeOpacity={0.7}
     >
-      <View style={[styles.iconContainer, isDestructive && styles.destructiveIconContainer]}>
+      <View className={`w-10 h-10 rounded-full justify-center items-center mr-4 ${isDestructive ? 'bg-red' : 'bg-[#e6f0ed]'}`}>
         <Feather name={icon} size={20} color={isDestructive ? "#fff" : "#1B4D3E"} />
       </View>
-      <View style={styles.settingTextContainer}>
-        <Text style={[styles.settingTitle, isDestructive && styles.destructiveText]}>{title}</Text>
-        {subtitle && <Text style={styles.settingSubtitle}>{subtitle}</Text>}
+      <View className="flex-1">
+        <Text className={`text-base font-pbold ${isDestructive ? 'text-red' : 'text-[#333]'} mb-0.5`}>{title}</Text>
+        {subtitle && <Text className="text-xs text-[#666]">{subtitle}</Text>}
       </View>
       <Feather name="chevron-right" size={20} color="#999" />
     </TouchableOpacity>
   );
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.headerContainer}>
+    <SafeAreaView className="flex-1 bg-[#f5f7fa]">
+      <View className="bg-primary py-4 px-2 rounded-b-xl shadow-sm">
         <PageHeader title="Settings" textColor="white" showBackButton={false} />
       </View>
       
-      <View style={styles.breadcrumbContainer}>
-        <Link href="/(tabs)/home" style={styles.breadcrumbLink}>
-          <Text style={styles.breadcrumbText}>Home</Text>
+      <View className="flex-row items-center px-4 py-3 bg-[#f5f5f5] border-b border-[#e0e0e0] flex-wrap">
+        <Link href="/(tabs)/home" className="mr-1">
+          <Text className="text-sm text-primary font-medium">Home</Text>
         </Link>
-        <Text style={styles.breadcrumbSeparator}> &gt; </Text>
+        <Text className="text-sm text-[#999] mr-1"> &gt; </Text>
         
-        <Text style={styles.breadcrumbActiveText}>Settings</Text>
+        <Text className="text-sm text-secondary font-pbold">Settings</Text>
       </View>
       
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView className="flex-1 p-4" showsVerticalScrollIndicator={false}>
         {/* Account Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Account</Text>
+        <View className="mb-6">
+          <Text className="text-lg font-pbold text-[#333] mb-3 pl-2">Account</Text>
           
           {renderSettingItem(
             "user", 
@@ -91,8 +90,8 @@ const Settings = () => {
         </View>
         
         {/* Farm Management Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Farm Management</Text>
+        <View className="mb-6">
+          <Text className="text-lg font-pbold text-[#333] mb-3 pl-2">Farm Management</Text>
           
           {renderSettingItem(
             "map", 
@@ -110,8 +109,8 @@ const Settings = () => {
         </View>
         
         {/* App Settings Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>App Settings</Text>
+        <View className="mb-6">
+          <Text className="text-lg font-pbold text-[#333] mb-3 pl-2">App Settings</Text>
           
           {renderSettingItem(
             "bell", 
@@ -129,8 +128,8 @@ const Settings = () => {
         </View>
         
         {/* Account Actions Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Account Actions</Text>
+        <View className="mb-6">
+          <Text className="text-lg font-pbold text-[#333] mb-3 pl-2">Account Actions</Text>
           
           {renderSettingItem(
             "log-out", 
@@ -142,143 +141,19 @@ const Settings = () => {
         </View>
         
         {/* App Info */}
-        <View style={styles.footer}>
+        <View className="items-center mt-4 mb-8 pt-4 border-t border-[#e0e0e0]">
           <Image 
             source={require('@/assets/images/icon-primary.png')} 
-            style={styles.footerLogo}
+            className="w-[60px] h-[60px] mb-2"
             resizeMode="contain"
           />
-          <Text style={styles.versionText}>Harvest Guard v1.0.0</Text>
-          <Text style={styles.copyrightText}>© 2025 Harvest Guard. All rights reserved.</Text>
+          <Text className="text-sm text-[#666] mb-1">Harvest Guard v1.0.0</Text>
+          <Text className="text-xs text-[#999]">© 2025 Harvest Guard. All rights reserved.</Text>
         </View>
       </ScrollView>
     </SafeAreaView>
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f5f7fa',
-  },
-  headerContainer: {
-    backgroundColor: '#1B4D3E',
-    paddingVertical: 16,
-    paddingHorizontal: 8,
-    borderBottomLeftRadius: 15,
-    borderBottomRightRadius: 15,
-    marginBottom: 0,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  breadcrumbContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#f5f5f5',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
-    flexWrap: 'wrap',
-  },
-  breadcrumbLink: {
-    marginRight: 4,
-  },
-  breadcrumbText: {
-    fontSize: 14,
-    color: '#1B4D3E',
-    fontWeight: '500',
-  },
-  breadcrumbSeparator: {
-    fontSize: 14,
-    color: '#999',
-    marginRight: 4,
-  },
-  breadcrumbActiveText: {
-    fontSize: 14,
-    color: '#E9762B',
-    fontWeight: 'bold',
-  },
-  content: {
-    flex: 1,
-    padding: 16,
-  },
-  section: {
-    marginBottom: 24,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 12,
-    paddingLeft: 8,
-  },
-  settingItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  iconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#e6f0ed',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 16,
-  },
-  destructiveIconContainer: {
-    backgroundColor: '#ff4444',
-  },
-  settingTextContainer: {
-    flex: 1,
-  },
-  settingTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 2,
-  },
-  destructiveText: {
-    color: '#ff4444',
-  },
-  settingSubtitle: {
-    fontSize: 12,
-    color: '#666',
-  },
-  footer: {
-    alignItems: 'center',
-    marginTop: 16,
-    marginBottom: 32,
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#e0e0e0',
-  },
-  footerLogo: {
-    width: 60,
-    height: 60,
-    marginBottom: 8,
-  },
-  versionText: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 4,
-  },
-  copyrightText: {
-    fontSize: 12,
-    color: '#999',
-  },
-});
 
 export default Settings;
