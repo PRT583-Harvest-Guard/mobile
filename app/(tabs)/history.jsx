@@ -4,7 +4,6 @@ import {
   Text, 
   TouchableOpacity, 
   FlatList, 
-  StyleSheet,
   ActivityIndicator,
   Alert
 } from 'react-native';
@@ -278,38 +277,38 @@ function History() {
   );
 
   const renderEmptyList = () => (
-    <View style={styles.emptyContainer}>
+    <View className="flex-1 justify-center items-center py-10">
       <Feather name="clipboard" size={48} color="#ccc" />
-      <Text style={styles.emptyText}>
+      <Text className="mt-4 text-base text-[#999] text-center">
         {isShowUnfinishedList 
           ? "No unfinished inspections found" 
           : "No completed inspections found"}
       </Text>
       <TouchableOpacity 
-        style={styles.refreshButtonEmpty}
+        className="flex-row items-center bg-[#f0f0f0] p-3 rounded-lg mt-4"
         onPress={() => loadData()}
         disabled={isDeleting}
       >
         <Feather name="refresh-cw" size={20} color="#666" />
-        <Text style={styles.refreshText}>Refresh</Text>
+        <Text className="ml-2 text-[#666] text-base">Refresh</Text>
       </TouchableOpacity>
     </View>
   );
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.headerContainer}>
+    <SafeAreaView className="flex-1 bg-[#f5f7fa]">
+      <View className="bg-primary py-4 px-2 rounded-b-xl shadow-sm flex-row justify-between items-center">
         <PageHeader title="Inspection History" textColor="white" showBackButton={false} />
-        <View style={styles.headerButtons}>
+        <View className="flex-row items-center">
           <TouchableOpacity 
-            style={styles.refreshButton}
+            className="p-2 mr-2"
             onPress={() => loadData()}
             disabled={isDeleting}
           >
             <Feather name="refresh-cw" size={24} color="white" />
           </TouchableOpacity>
           <TouchableOpacity 
-            style={[styles.deleteButton, isDeleting && styles.disabledButton]}
+            className={`p-2 mr-2 bg-red/20 rounded-lg ${isDeleting ? 'opacity-50' : ''}`}
             onPress={deleteAllSuggestions}
             disabled={isDeleting}
           >
@@ -318,18 +317,18 @@ function History() {
         </View>
       </View>
       
-      <View style={styles.breadcrumbContainer}>
-        <Link href="/(tabs)/home" style={styles.breadcrumbLink}>
-          <Text style={styles.breadcrumbText}>Home</Text>
+      <View className="flex-row items-center px-4 py-3 bg-[#f5f5f5] border-b border-[#e0e0e0] flex-wrap">
+        <Link href="/(tabs)/home" className="mr-1">
+          <Text className="text-sm text-primary font-medium">Home</Text>
         </Link>
-        <Text style={styles.breadcrumbSeparator}> &gt; </Text>
+        <Text className="text-sm text-[#999] mr-1"> &gt; </Text>
         
-        <Text style={styles.breadcrumbActiveText}>Inspection History</Text>
+        <Text className="text-sm text-secondary font-pbold">Inspection History</Text>
       </View>
       
       {/* Farm Dropdown */}
       {farms.length > 0 && (
-        <View style={styles.farmDropdownContainer}>
+        <View className="p-4 bg-white border-b border-[#e0e0e0]">
           <DropDownField
             label="Select Farm"
             data={farms.map(farm => farm.name)}
@@ -389,27 +388,24 @@ function History() {
           
           {showFarmObservations && (
             <TouchableOpacity 
-              style={styles.backButton}
+              className="flex-row items-center mt-3 p-2"
               onPress={() => {
                 setShowFarmObservations(false);
                 setSelectedFarm(null);
               }}
             >
               <Feather name="arrow-left" size={20} color="#1B4D3E" />
-              <Text style={styles.backButtonText}>Back to Inspection History</Text>
+              <Text className="ml-2 text-primary text-base font-medium">Back to Inspection History</Text>
             </TouchableOpacity>
           )}
         </View>
       )}
       
-      <View style={styles.content}>
+      <View className="flex-1 p-4">
         {/* Tab Selection */}
-        <View style={styles.tabContainer}>
+        <View className="flex-row bg-white rounded-xl p-1 mb-4 shadow-sm">
           <TouchableOpacity
-            style={[
-              styles.tabButton,
-              isShowUnfinishedList && styles.activeTabButton
-            ]}
+            className={`flex-1 py-3 items-center rounded-lg ${isShowUnfinishedList ? 'bg-secondary' : ''}`}
             onPress={() => {
               setIsShowUnfinishedList(true);
               // Update farm observation points if they exist
@@ -418,19 +414,13 @@ function History() {
               }
             }}
           >
-            <Text style={[
-              styles.tabText,
-              isShowUnfinishedList && styles.activeTabText
-            ]}>
+            <Text className={`text-base font-medium ${isShowUnfinishedList ? 'text-white font-pbold' : 'text-[#666]'}`}>
               Unfinished ({showFarmObservations ? pendingFarmPoints.length : unfinishedList.length})
             </Text>
           </TouchableOpacity>
           
           <TouchableOpacity
-            style={[
-              styles.tabButton,
-              !isShowUnfinishedList && styles.activeTabButton
-            ]}
+            className={`flex-1 py-3 items-center rounded-lg ${!isShowUnfinishedList ? 'bg-secondary' : ''}`}
             onPress={() => {
               setIsShowUnfinishedList(false);
               // Update farm observation points if they exist
@@ -439,10 +429,7 @@ function History() {
               }
             }}
           >
-            <Text style={[
-              styles.tabText,
-              !isShowUnfinishedList && styles.activeTabText
-            ]}>
+            <Text className={`text-base font-medium ${!isShowUnfinishedList ? 'text-white font-pbold' : 'text-[#666]'}`}>
               Completed ({showFarmObservations ? completedFarmPoints.length : finishedList.length})
             </Text>
           </TouchableOpacity>
@@ -450,36 +437,36 @@ function History() {
 
         {/* Loading State */}
         {loading || isDeleting ? (
-          <View style={styles.loadingContainer}>
+          <View className="flex-1 justify-center items-center">
             <ActivityIndicator size="large" color="#E9762B" />
-            <Text style={styles.loadingText}>
+            <Text className="mt-4 text-base text-[#666]">
               {isDeleting ? 'Deleting all suggestions...' : 'Loading...'}
             </Text>
           </View>
         ) : farms.length === 0 ? (
           /* No Farms Available */
-          <View style={styles.emptyContainer}>
+          <View className="flex-1 justify-center items-center py-10">
             <Feather name="home" size={48} color="#ccc" />
-            <Text style={styles.emptyText}>
+            <Text className="mt-4 text-base text-[#999] text-center">
               No farms available. Please add a farm first.
             </Text>
             <TouchableOpacity 
-              style={styles.refreshButtonEmpty}
+              className="flex-row items-center bg-[#f0f0f0] p-3 rounded-lg mt-4"
               onPress={() => loadData()}
               disabled={isDeleting}
             >
               <Feather name="refresh-cw" size={20} color="#666" />
-              <Text style={styles.refreshText}>Refresh</Text>
+              <Text className="ml-2 text-[#666] text-base">Refresh</Text>
             </TouchableOpacity>
           </View>
         ) : !selectedFarm ? (
           /* No Farm Selected */
-          <View style={styles.emptyContainer}>
+          <View className="flex-1 justify-center items-center py-10">
             <Feather name="map" size={48} color="#ccc" />
-            <Text style={styles.emptyText}>
+            <Text className="mt-4 text-base text-[#999] text-center">
               Please select a farm to view inspection history
             </Text>
-            <Text style={styles.emptySubText}>
+            <Text className="mt-2 text-sm text-[#999] text-center italic">
               Use the dropdown above to select a farm
             </Text>
           </View>
@@ -501,11 +488,11 @@ function History() {
               />
             )}
             showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.listContent}
+            contentContainerStyle={{ paddingBottom: 20 }}
             ListEmptyComponent={() => (
-              <View style={styles.emptyContainer}>
+              <View className="flex-1 justify-center items-center py-10">
                 <Feather name="map-pin" size={48} color="#ccc" />
-                <Text style={styles.emptyText}>
+                <Text className="mt-4 text-base text-[#999] text-center">
                   No observation points found for this farm
                 </Text>
               </View>
@@ -566,7 +553,7 @@ function History() {
               />
             )}
             showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.listContent}
+            contentContainerStyle={{ paddingBottom: 20 }}
             ListEmptyComponent={renderEmptyList}
             onRefresh={loadData}
             refreshing={loading}
@@ -577,169 +564,5 @@ function History() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f5f7fa',
-  },
-  farmDropdownContainer: {
-    padding: 16,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
-  },
-  backButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 12,
-    padding: 8,
-  },
-  backButtonText: {
-    marginLeft: 8,
-    color: '#1B4D3E',
-    fontSize: 16,
-    fontWeight: '500',
-  },
-  headerContainer: {
-    backgroundColor: '#1B4D3E',
-    paddingVertical: 16,
-    paddingHorizontal: 8,
-    borderBottomLeftRadius: 15,
-    borderBottomRightRadius: 15,
-    marginBottom: 0,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  headerButtons: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  refreshButton: {
-    padding: 8,
-    marginRight: 8,
-  },
-  deleteButton: {
-    padding: 8,
-    marginRight: 8,
-    backgroundColor: 'rgba(255, 0, 0, 0.2)',
-    borderRadius: 8,
-  },
-  disabledButton: {
-    opacity: 0.5,
-  },
-  refreshButtonEmpty: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#f0f0f0',
-    padding: 12,
-    borderRadius: 8,
-    marginTop: 16,
-  },
-  refreshText: {
-    marginLeft: 8,
-    color: '#666',
-    fontSize: 16,
-  },
-  breadcrumbContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#f5f5f5',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
-    flexWrap: 'wrap',
-  },
-  breadcrumbLink: {
-    marginRight: 4,
-  },
-  breadcrumbText: {
-    fontSize: 14,
-    color: '#1B4D3E',
-    fontWeight: '500',
-  },
-  breadcrumbSeparator: {
-    fontSize: 14,
-    color: '#999',
-    marginRight: 4,
-  },
-  breadcrumbActiveText: {
-    fontSize: 14,
-    color: '#E9762B',
-    fontWeight: 'bold',
-  },
-  content: {
-    flex: 1,
-    padding: 16,
-  },
-  tabContainer: {
-    flexDirection: 'row',
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 4,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  tabButton: {
-    flex: 1,
-    paddingVertical: 12,
-    alignItems: 'center',
-    borderRadius: 8,
-  },
-  activeTabButton: {
-    backgroundColor: '#E9762B',
-  },
-  tabText: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#666',
-  },
-  activeTabText: {
-    color: '#fff',
-    fontWeight: 'bold',
-  },
-  listContent: {
-    paddingBottom: 20,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: '#666',
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 40,
-  },
-  emptyText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: '#999',
-    textAlign: 'center',
-  },
-  emptySubText: {
-    marginTop: 8,
-    fontSize: 14,
-    color: '#999',
-    textAlign: 'center',
-    fontStyle: 'italic',
-  },
-});
 
 export default History;
