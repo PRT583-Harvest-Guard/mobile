@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
 
 // Predefined fill colors for each section
@@ -52,14 +52,14 @@ const MapSections = ({ markers = [] }) => {
 
   if (!validMarkers.length) {
     return (
-      <View style={styles.emptyContainer}>
-        <Text style={styles.emptyText}>No section markers to display.</Text>
+      <View className="flex-1 justify-center items-center p-4">
+        <Text className="text-base text-[#666]">No section markers to display.</Text>
       </View>
     );
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <ScrollView contentContainerStyle={{ padding: 16 }}>
       {validMarkers.map((m, idx) => {
         try {
           // Ensure segment is a number and default to 1 if not
@@ -75,23 +75,23 @@ const MapSections = ({ markers = [] }) => {
           return (
             <TouchableOpacity 
               key={idx} 
-              style={[
-                styles.card,
-                status === 'Completed' && styles.completedCard
-              ]}
+              className={`flex-row items-start bg-white rounded-lg p-3 mb-3 shadow-sm ${status === 'Completed' ? 'bg-[#e8f5e9]' : ''}`}
               onPress={() => handleSectionPress(m)}
             >
-              <View style={[styles.colorBox, { backgroundColor: color }]} />
-              <View style={styles.textContainer}>
-                <Text style={styles.sectionText}>
+              <View 
+                style={{ backgroundColor: color }} 
+                className="w-4 h-4 rounded mt-1 mr-3" 
+              />
+              <View className="flex-1">
+                <Text className="text-base font-pbold mb-1 text-[#333]">
                   {sectionName}: lat {m.latitude.toFixed(5)}, lon {m.longitude.toFixed(5)}
                 </Text>
-                <Text style={styles.statusText}>
+                <Text className="text-sm text-[#555]">
                   Observation status: {status}
                 </Text>
               </View>
-              <View style={styles.arrowContainer}>
-                <Text style={styles.arrowText}>›</Text>
+              <View className="justify-center items-center pl-2">
+                <Text className="text-2xl text-[#999] font-pbold">›</Text>
               </View>
             </TouchableOpacity>
           );
@@ -104,62 +104,5 @@ const MapSections = ({ markers = [] }) => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    padding: 16
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 16
-  },
-  emptyText: {
-    fontSize: 16,
-    color: '#666'
-  },
-  card: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    backgroundColor: '#fff',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 12,
-    elevation: 2
-  },
-  completedCard: {
-    backgroundColor: '#e8f5e9', // Very light green color
-  },
-  colorBox: {
-    width: 16,
-    height: 16,
-    borderRadius: 4,
-    marginTop: 4,
-    marginRight: 12
-  },
-  textContainer: {
-    flex: 1
-  },
-  sectionText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 4,
-    color: '#333'
-  },
-  statusText: {
-    fontSize: 14,
-    color: '#555'
-  },
-  arrowContainer: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingLeft: 8
-  },
-  arrowText: {
-    fontSize: 24,
-    color: '#999',
-    fontWeight: 'bold'
-  }
-});
 
 export default MapSections;

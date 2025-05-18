@@ -1,7 +1,7 @@
 // components/BoundaryMap.jsx
 
 import React, { useEffect, useMemo, useRef } from 'react';
-import { StyleSheet, Text } from 'react-native';
+import { Text } from 'react-native';
 import MapView, {
   PROVIDER_GOOGLE,
   Polygon,
@@ -255,7 +255,7 @@ export default function BoundaryMap({
     <MapView
       ref={mapRef}
       provider={PROVIDER_GOOGLE}
-      style={[styles.map, style]}
+      style={[{ flex: 1 }, style]}
       region={region}
     >
       {/* Outer boundary */}
@@ -294,7 +294,3 @@ export default function BoundaryMap({
     </MapView>
   );
 }
-
-const styles = StyleSheet.create({
-  map: { flex: 1 }
-});
