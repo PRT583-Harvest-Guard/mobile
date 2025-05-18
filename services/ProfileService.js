@@ -1,16 +1,19 @@
-import * as SQLite from 'expo-sqlite';
-
-let db;
+/**
+ * Profile Service
+ * Handles operations related to user profiles
+ */
+import databaseService from './DatabaseService';
 
 /**
  * Initialize the profile table
+ * @returns {Promise<void>}
  */
 export const initProfileTable = async () => {
   try {
-    db = await SQLite.openDatabaseAsync('mobile.db');
+    await databaseService.initialize();
     
     // Create profile table
-    await db.execAsync(`
+    await databaseService.executeQuery(`
       CREATE TABLE IF NOT EXISTS profile (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id INTEGER UNIQUE,
@@ -24,21 +27,25 @@ export const initProfileTable = async () => {
       )
     `);
     
-    console.log('Profile table created successfully');
+    if (__DEV__) console.log('Profile table created successfully');
     
     // Check if there's at least one profile record
-    const profiles = await db.getAllAsync('SELECT * FROM profile LIMIT 1');
+    const profiles = await databaseService.query('SELECT * FROM profile LIMIT 1');
     
     // If no profile exists, create a default one
     if (profiles.length === 0) {
-      await db.runAsync(`
-        INSERT INTO profile (user_id, first_name, last_name, phone_number, address)
-        VALUES (1, 'Default', 'User', '', '')
-      `);
-      console.log('Default profile created');
+      await databaseService.insert('profile', {
+        user_id: 1,
+        first_name: 'Default',
+        last_name: 'User',
+        phone_number: '',
+        address: ''
+      });
+      
+      if (__DEV__) console.log('Default profile created');
     }
   } catch (error) {
-    console.error('Error initializing profile table:', error);
+    if (__DEV__) console.error('Error initializing profile table:', error);
     throw error;
   }
 };
@@ -49,21 +56,18 @@ export const initProfileTable = async () => {
  * @returns {Promise<Object|null>} - User profile or null if not found
  */
 export const getProfile = async (userId = 1) => {
-  if (!db) await initProfileTable();
-  
   try {
-    const profiles = await db.getAllAsync(
-      'SELECT * FROM profile WHERE user_id = ?',
+    await databaseService.initialize();
+    
+    const profiles = await databaseService.getAll(
+      'profile',
+      'user_id = ?',
       [userId]
     );
     
-    if (profiles.length === 0) {
-      return null;
-    }
-    
-    return profiles[0];
+    return profiles.length > 0 ? profiles[0] : null;
   } catch (error) {
-    console.error('Error getting profile:', error);
+    if (__DEV__) console.error('Error getting profile:', error);
     throw error;
   }
 };
@@ -75,9 +79,9 @@ export const getProfile = async (userId = 1) => {
  * @returns {Promise<Object>} - Updated profile
  */
 export const updateProfile = async (userId = 1, profileData) => {
-  if (!db) await initProfileTable();
-  
   try {
+    await databaseService.initialize();
+    
     // Check if profile exists
     const existingProfile = await getProfile(userId);
     
@@ -85,59 +89,41 @@ export const updateProfile = async (userId = 1, profileData) => {
       // Create new profile
       const { first_name, last_name, phone_number, address, picture_uri } = profileData;
       
-      await db.runAsync(`
-        INSERT INTO profile (user_id, first_name, last_name, phone_number, address, picture_uri, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
-      `, [userId, first_name || '', last_name || '', phone_number || '', address || '', picture_uri || null]);
+      await databaseService.insert('profile', {
+        user_id: userId,
+        first_name: first_name || '',
+        last_name: last_name || '',
+        phone_number: phone_number || '',
+        address: address || '',
+        picture_uri: picture_uri || null,
+        updated_at: new Date().toISOString()
+      });
     } else {
-      // Update existing profile
-      const setClause = [];
-      const params = [];
+      // Update existing profile with only the fields that are provided
+      const updateData = {};
       
-      // Build SET clause dynamically based on provided fields
-      if ('first_name' in profileData) {
-        setClause.push('first_name = ?');
-        params.push(profileData.first_name);
-      }
-      
-      if ('last_name' in profileData) {
-        setClause.push('last_name = ?');
-        params.push(profileData.last_name);
-      }
-      
-      if ('phone_number' in profileData) {
-        setClause.push('phone_number = ?');
-        params.push(profileData.phone_number);
-      }
-      
-      if ('address' in profileData) {
-        setClause.push('address = ?');
-        params.push(profileData.address);
-      }
-      
-      if ('picture_uri' in profileData) {
-        setClause.push('picture_uri = ?');
-        params.push(profileData.picture_uri);
-      }
+      if ('first_name' in profileData) updateData.first_name = profileData.first_name;
+      if ('last_name' in profileData) updateData.last_name = profileData.last_name;
+      if ('phone_number' in profileData) updateData.phone_number = profileData.phone_number;
+      if ('address' in profileData) updateData.address = profileData.address;
+      if ('picture_uri' in profileData) updateData.picture_uri = profileData.picture_uri;
       
       // Add updated_at timestamp
-      setClause.push('updated_at = datetime(\'now\')');
-      
-      // Add user_id to params
-      params.push(userId);
+      updateData.updated_at = new Date().toISOString();
       
       // Execute update
-      await db.runAsync(`
-        UPDATE profile 
-        SET ${setClause.join(', ')} 
-        WHERE user_id = ?
-      `, params);
+      await databaseService.update(
+        'profile',
+        updateData,
+        'user_id = ?',
+        [userId]
+      );
     }
     
     // Get updated profile
     return await getProfile(userId);
   } catch (error) {
-    console.error('Error updating profile:', error);
+    if (__DEV__) console.error('Error updating profile:', error);
     throw error;
   }
 };
@@ -148,17 +134,60 @@ export const updateProfile = async (userId = 1, profileData) => {
  * @returns {Promise<boolean>} - Success status
  */
 export const deleteProfile = async (userId = 1) => {
-  if (!db) await initProfileTable();
-  
   try {
-    await db.runAsync(
-      'DELETE FROM profile WHERE user_id = ?',
+    await databaseService.initialize();
+    
+    await databaseService.delete(
+      'profile',
+      'user_id = ?',
       [userId]
     );
     
     return true;
   } catch (error) {
-    console.error('Error deleting profile:', error);
+    if (__DEV__) console.error('Error deleting profile:', error);
     throw error;
+  }
+};
+
+/**
+ * Get the full name of a user
+ * @param {number} userId - User ID (defaults to 1 for single-user mode)
+ * @returns {Promise<string>} - Full name or 'Unknown User' if not found
+ */
+export const getFullName = async (userId = 1) => {
+  try {
+    const profile = await getProfile(userId);
+    
+    if (!profile) {
+      return 'Unknown User';
+    }
+    
+    const firstName = profile.first_name || '';
+    const lastName = profile.last_name || '';
+    
+    if (!firstName && !lastName) {
+      return 'Unknown User';
+    }
+    
+    return `${firstName} ${lastName}`.trim();
+  } catch (error) {
+    if (__DEV__) console.error('Error getting full name:', error);
+    return 'Unknown User';
+  }
+};
+
+/**
+ * Check if a profile exists
+ * @param {number} userId - User ID (defaults to 1 for single-user mode)
+ * @returns {Promise<boolean>} - True if profile exists, false otherwise
+ */
+export const profileExists = async (userId = 1) => {
+  try {
+    const profile = await getProfile(userId);
+    return !!profile;
+  } catch (error) {
+    if (__DEV__) console.error('Error checking if profile exists:', error);
+    return false;
   }
 };

@@ -150,7 +150,7 @@ const DrawMapScreen = () => {
         [
           {
             text: 'OK',
-            onPress: () => router.push(`/farm-details/${farmId}`)
+            onPress: () => router.push('/(tabs)/home')
           }
         ]
       );

@@ -4,8 +4,8 @@
  */
 import InspectionSuggestion from '@/models/InspectionSuggestion';
 import { getFarms, getBoundaryData } from '@/services/BoundaryService';
-import { updateObservationPointsWithInspectionData } from '@/services/ObservationService';
-import { getObservationPoints } from '@/services/ObservationService';
+import { updateObservationPointsWithInspectionData, getObservationPoints } from '@/services/ObservationService';
+import { createInspectionObservationsForFarm } from '@/services/InspectionObservationService';
 
 /**
  * Initialize the InspectionSuggestion table
@@ -15,7 +15,7 @@ export const initInspectionSuggestionTable = async () => {
   try {
     await InspectionSuggestion.initTable();
   } catch (error) {
-    console.error('Error initializing inspection suggestion table:', error);
+    if (__DEV__) console.error('Error initializing inspection suggestion table:', error);
     throw error;
   }
 };
@@ -30,7 +30,7 @@ export const createInspectionSuggestion = async (suggestionData) => {
     const suggestion = new InspectionSuggestion(suggestionData);
     return await suggestion.save();
   } catch (error) {
-    console.error('Error creating inspection suggestion:', error);
+    if (__DEV__) console.error('Error creating inspection suggestion:', error);
     throw error;
   }
 };
@@ -43,28 +43,28 @@ export const createInspectionSuggestion = async (suggestionData) => {
  */
 export const createInspectionSuggestionWithObservations = async (suggestionData, userId = 1) => {
   try {
-    console.log('createInspectionSuggestionWithObservations called with:', JSON.stringify(suggestionData), 'userId:', userId);
+    if (__DEV__) console.log('Creating inspection suggestion with observations:', JSON.stringify(suggestionData));
     
     // Create the suggestion
     const suggestionId = await createInspectionSuggestion(suggestionData);
-    console.log('Suggestion created with ID:', suggestionId);
+    if (__DEV__) console.log('Suggestion created with ID:', suggestionId);
     
     // Get boundary points to verify they exist
     const boundaryPoints = await getBoundaryData(suggestionData.property_location);
-    console.log('Found boundary points:', boundaryPoints ? boundaryPoints.length : 0);
+    if (__DEV__) console.log('Found boundary points:', boundaryPoints ? boundaryPoints.length : 0);
     
     if (!boundaryPoints || boundaryPoints.length === 0) {
-      console.warn('No boundary points found for farm ID:', suggestionData.property_location);
+      if (__DEV__) console.warn('No boundary points found for farm ID:', suggestionData.property_location);
       
       // Delete the suggestion since we can't create observations without boundary points
       try {
         const suggestion = await InspectionSuggestion.findById(suggestionId);
         if (suggestion) {
           await suggestion.delete();
-          console.log(`Deleted suggestion with ID ${suggestionId} due to missing boundary points`);
+          if (__DEV__) console.log(`Deleted suggestion with ID ${suggestionId} due to missing boundary points`);
         }
       } catch (deleteError) {
-        console.error('Error deleting suggestion:', deleteError);
+        if (__DEV__) console.error('Error deleting suggestion:', deleteError);
       }
       
       // Throw an error to stop the workflow
@@ -72,21 +72,21 @@ export const createInspectionSuggestionWithObservations = async (suggestionData,
     }
     
     // Get observation points for the farm
-    console.log('Getting observation points for farm ID:', suggestionData.property_location);
+    if (__DEV__) console.log('Getting observation points for farm ID:', suggestionData.property_location);
     const observationPoints = await getObservationPoints(suggestionData.property_location);
     
     if (!observationPoints || observationPoints.length === 0) {
-      console.warn('No observation points found for farm ID:', suggestionData.property_location);
+      if (__DEV__) console.warn('No observation points found for farm ID:', suggestionData.property_location);
       
       // Delete the suggestion since we can't update observation points
       try {
         const suggestion = await InspectionSuggestion.findById(suggestionId);
         if (suggestion) {
           await suggestion.delete();
-          console.log(`Deleted suggestion with ID ${suggestionId} due to missing observation points`);
+          if (__DEV__) console.log(`Deleted suggestion with ID ${suggestionId} due to missing observation points`);
         }
       } catch (deleteError) {
-        console.error('Error deleting suggestion:', deleteError);
+        if (__DEV__) console.error('Error deleting suggestion:', deleteError);
       }
       
       // Throw an error to stop the workflow
@@ -94,7 +94,7 @@ export const createInspectionSuggestionWithObservations = async (suggestionData,
     }
     
     // Update observation points with inspection suggestion data
-    console.log('Updating observation points with inspection data');
+    if (__DEV__) console.log('Updating observation points with inspection data');
     const updatedPoints = await updateObservationPointsWithInspectionData(
       suggestionData.property_location,
       suggestionId,
@@ -102,32 +102,29 @@ export const createInspectionSuggestionWithObservations = async (suggestionData,
       suggestionData.target_entity
     );
     
-    console.log(`Updated ${updatedPoints.length} observation points with inspection data`);
+    if (__DEV__) console.log(`Updated ${updatedPoints.length} observation points with inspection data`);
     
     // Verify points were updated
     if (!updatedPoints || updatedPoints.length === 0) {
-      console.warn('No observation points were updated');
+      if (__DEV__) console.warn('No observation points were updated');
       
       // Delete the suggestion since we couldn't update observation points
       try {
         const suggestion = await InspectionSuggestion.findById(suggestionId);
         if (suggestion) {
           await suggestion.delete();
-          console.log(`Deleted suggestion with ID ${suggestionId} due to failure to update observation points`);
+          if (__DEV__) console.log(`Deleted suggestion with ID ${suggestionId} due to failure to update observation points`);
         }
       } catch (deleteError) {
-        console.error('Error deleting suggestion:', deleteError);
+        if (__DEV__) console.error('Error deleting suggestion:', deleteError);
       }
       
       // Throw an error to stop the workflow
       throw new Error('Failed to update observation points. Please try again or contact support.');
     }
     
-    // Import the createInspectionObservationsForFarm function
-    const { createInspectionObservationsForFarm } = require('@/services/InspectionObservationService');
-    
     // Create inspection observations for the farm
-    console.log('Creating inspection observations for farm');
+    if (__DEV__) console.log('Creating inspection observations for farm');
     const observationIds = await createInspectionObservationsForFarm(
       suggestionId,
       suggestionData.property_location,
@@ -135,7 +132,7 @@ export const createInspectionSuggestionWithObservations = async (suggestionData,
       userId
     );
     
-    console.log(`Created ${observationIds.length} inspection observations`);
+    if (__DEV__) console.log(`Created ${observationIds.length} inspection observations`);
     
     return {
       suggestionId,
@@ -143,7 +140,7 @@ export const createInspectionSuggestionWithObservations = async (suggestionData,
       observationIds
     };
   } catch (error) {
-    console.error('Error creating inspection suggestion with observations:', error);
+    if (__DEV__) console.error('Error creating inspection suggestion with observations:', error);
     throw error;
   }
 };
@@ -156,7 +153,7 @@ export const getInspectionSuggestions = async () => {
   try {
     return await InspectionSuggestion.findAll();
   } catch (error) {
-    console.error('Error getting inspection suggestions:', error);
+    if (__DEV__) console.error('Error getting inspection suggestions:', error);
     throw error;
   }
 };
@@ -170,7 +167,7 @@ export const getInspectionSuggestionById = async (id) => {
   try {
     return await InspectionSuggestion.findById(id);
   } catch (error) {
-    console.error('Error getting inspection suggestion:', error);
+    if (__DEV__) console.error('Error getting inspection suggestion:', error);
     throw error;
   }
 };
@@ -184,7 +181,7 @@ export const getInspectionSuggestionsByFarmId = async (farmId) => {
   try {
     return await InspectionSuggestion.findByFarmId(farmId);
   } catch (error) {
-    console.error('Error getting inspection suggestions for farm:', error);
+    if (__DEV__) console.error('Error getting inspection suggestions for farm:', error);
     throw error;
   }
 };
@@ -207,7 +204,7 @@ export const updateInspectionSuggestion = async (id, suggestionData) => {
     
     return await suggestion.save();
   } catch (error) {
-    console.error('Error updating inspection suggestion:', error);
+    if (__DEV__) console.error('Error updating inspection suggestion:', error);
     throw error;
   }
 };
@@ -226,7 +223,7 @@ export const deleteInspectionSuggestion = async (id) => {
     
     return await suggestion.delete();
   } catch (error) {
-    console.error('Error deleting inspection suggestion:', error);
+    if (__DEV__) console.error('Error deleting inspection suggestion:', error);
     throw error;
   }
 };
@@ -241,7 +238,7 @@ export const getFarmsForDropdown = async () => {
     
     // Ensure farms is an array
     if (!farms || !Array.isArray(farms)) {
-      console.warn('getFarmsForDropdown: farms is not an array', farms);
+      if (__DEV__) console.warn('getFarmsForDropdown: farms is not an array', farms);
       return [];
     }
     
@@ -250,7 +247,7 @@ export const getFarmsForDropdown = async () => {
       value: farm.id
     }));
   } catch (error) {
-    console.error('Error getting farms for dropdown:', error);
+    if (__DEV__) console.error('Error getting farms for dropdown:', error);
     // Return empty array instead of throwing to prevent app crashes
     return [];
   }

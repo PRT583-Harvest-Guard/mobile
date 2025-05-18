@@ -1,16 +1,19 @@
-import * as SQLite from 'expo-sqlite';
-
-let db;
+/**
+ * Observation Record Service
+ * Handles operations related to observation records
+ */
+import databaseService from './DatabaseService';
 
 /**
  * Initialize the observations table
+ * @returns {Promise<void>}
  */
 export const initObservationsTable = async () => {
   try {
-    db = await SQLite.openDatabaseAsync('mobile.db');
+    await databaseService.initialize();
     
     // Create observations table
-    await db.execAsync(`
+    await databaseService.executeQuery(`
       CREATE TABLE IF NOT EXISTS observations (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         farm_id INTEGER NOT NULL,
@@ -28,24 +31,24 @@ export const initObservationsTable = async () => {
     // Check if picture_uri column exists, if not add it
     try {
       // First check if the column exists
-      const tableInfo = await db.getAllAsync("PRAGMA table_info(observations)");
+      const tableInfo = await databaseService.query("PRAGMA table_info(observations)");
       const pictureUriColumnExists = tableInfo.some(column => column.name === 'picture_uri');
       
       if (!pictureUriColumnExists) {
-        console.log('Adding picture_uri column to observations table');
-        await db.execAsync(`
+        if (__DEV__) console.log('Adding picture_uri column to observations table');
+        await databaseService.executeQuery(`
           ALTER TABLE observations 
           ADD COLUMN picture_uri TEXT
         `);
       }
     } catch (error) {
-      console.error('Error checking/adding picture_uri column:', error);
+      if (__DEV__) console.error('Error checking/adding picture_uri column:', error);
       // Continue execution even if this fails
     }
     
-    console.log('Observations table created/updated successfully');
+    if (__DEV__) console.log('Observations table created/updated successfully');
   } catch (error) {
-    console.error('Error initializing observations table:', error);
+    if (__DEV__) console.error('Error initializing observations table:', error);
     throw error;
   }
 };
@@ -56,24 +59,24 @@ export const initObservationsTable = async () => {
  * @returns {Promise<Array>} - Array of observations
  */
 export const getObservations = async (observationPointId) => {
-  if (!db) await initObservationsTable();
-  
   try {
+    await databaseService.initialize();
+    
     // Ensure observationPointId is a number
     const pointId = Number(observationPointId);
     
     // Get observations
-    const observations = await db.getAllAsync(`
+    const observations = await databaseService.query(`
       SELECT * FROM observations 
       WHERE observation_point_id = ?
       ORDER BY created_at DESC
     `, [pointId]);
     
-    console.log(`Found ${observations.length} observations for point ID ${pointId}`);
+    if (__DEV__) console.log(`Found ${observations.length} observations for point ID ${pointId}`);
     
     return observations;
   } catch (error) {
-    console.error('Error getting observations:', error);
+    if (__DEV__) console.error('Error getting observations:', error);
     throw error;
   }
 };
@@ -84,9 +87,9 @@ export const getObservations = async (observationPointId) => {
  * @returns {Promise<Object>} - Saved observation
  */
 export const saveObservation = async (observation) => {
-  if (!db) await initObservationsTable();
-  
   try {
+    await databaseService.initialize();
+    
     const { 
       farm_id, 
       observation_point_id, 
@@ -102,38 +105,33 @@ export const saveObservation = async (observation) => {
     const pointId = Number(observation_point_id);
     
     // Insert the new observation
-    const result = await db.runAsync(
-      `INSERT INTO observations 
-       (farm_id, observation_point_id, identifier, detection, severity, notes, picture_uri)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [
-        farmId,
-        pointId,
-        identifier || '',
-        detection ? 1 : 0,
-        severity || 0,
-        notes || '',
-        picture_uri || null
-      ]
-    );
+    const observationId = await databaseService.insert('observations', {
+      farm_id: farmId,
+      observation_point_id: pointId,
+      identifier: identifier || '',
+      detection: detection ? 1 : 0,
+      severity: severity || 0,
+      notes: notes || '',
+      picture_uri: picture_uri || null
+    });
 
     // Get the newly inserted observation
-    const savedObservation = await db.getAllAsync(
-      'SELECT * FROM observations WHERE id = ?',
-      [result.lastInsertRowId]
-    );
+    const savedObservation = await databaseService.getById('observations', 'id', observationId);
 
     // Update the observation_status and observation_id in the observation_points table
-    await db.runAsync(
-      `UPDATE observation_points 
-       SET observation_status = 'Completed', observation_id = ? 
-       WHERE id = ?`,
-      [result.lastInsertRowId, pointId]
+    await databaseService.update(
+      'observation_points',
+      {
+        observation_status: 'Completed',
+        observation_id: observationId
+      },
+      'id = ?',
+      [pointId]
     );
 
-    return savedObservation[0];
+    return savedObservation;
   } catch (error) {
-    console.error('Error saving observation:', error);
+    if (__DEV__) console.error('Error saving observation:', error);
     throw error;
   }
 };
@@ -145,36 +143,27 @@ export const saveObservation = async (observation) => {
  * @returns {Promise<Object>} - Updated observation
  */
 export const updateObservation = async (observationId, data) => {
-  if (!db) await initObservationsTable();
-  
   try {
-    // Build SET clause
-    const setClause = Object.keys(data)
-      .map(key => `${key} = ?`)
-      .join(', ');
-    
-    // Build parameters array
-    const params = [...Object.values(data), observationId];
+    await databaseService.initialize();
     
     // Update the observation
-    await db.runAsync(
-      `UPDATE observations SET ${setClause} WHERE id = ?`,
-      params
-    );
-    
-    // Get the updated observation
-    const updatedObservation = await db.getAllAsync(
-      'SELECT * FROM observations WHERE id = ?',
+    await databaseService.update(
+      'observations',
+      data,
+      'id = ?',
       [observationId]
     );
     
-    if (!updatedObservation || updatedObservation.length === 0) {
+    // Get the updated observation
+    const updatedObservation = await databaseService.getById('observations', 'id', observationId);
+    
+    if (!updatedObservation) {
       throw new Error('Observation not found after update');
     }
     
-    return updatedObservation[0];
+    return updatedObservation;
   } catch (error) {
-    console.error('Error updating observation:', error);
+    if (__DEV__) console.error('Error updating observation:', error);
     throw error;
   }
 };
@@ -185,18 +174,19 @@ export const updateObservation = async (observationId, data) => {
  * @returns {Promise<boolean>} - Success status
  */
 export const deleteObservation = async (observationId) => {
-  if (!db) await initObservationsTable();
-  
   try {
+    await databaseService.initialize();
+    
     // Delete the observation
-    await db.runAsync(
-      'DELETE FROM observations WHERE id = ?',
+    await databaseService.delete(
+      'observations',
+      'id = ?',
       [observationId]
     );
     
     return true;
   } catch (error) {
-    console.error('Error deleting observation:', error);
+    if (__DEV__) console.error('Error deleting observation:', error);
     throw error;
   }
 };
@@ -207,14 +197,14 @@ export const deleteObservation = async (observationId) => {
  * @returns {Promise<Object|null>} - Latest observation or null if none exists
  */
 export const getLatestObservation = async (observationPointId) => {
-  if (!db) await initObservationsTable();
-  
   try {
+    await databaseService.initialize();
+    
     // Ensure observationPointId is a number
     const pointId = Number(observationPointId);
     
     // Get the latest observation
-    const observations = await db.getAllAsync(`
+    const observations = await databaseService.query(`
       SELECT * FROM observations 
       WHERE observation_point_id = ?
       ORDER BY created_at DESC
@@ -227,7 +217,76 @@ export const getLatestObservation = async (observationPointId) => {
     
     return observations[0];
   } catch (error) {
-    console.error('Error getting latest observation:', error);
+    if (__DEV__) console.error('Error getting latest observation:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get all observations for a farm
+ * @param {number} farmId - Farm ID
+ * @returns {Promise<Array>} - Array of observations
+ */
+export const getObservationsForFarm = async (farmId) => {
+  try {
+    await databaseService.initialize();
+    
+    // Ensure farmId is a number
+    const farmIdNum = Number(farmId);
+    
+    // Get observations
+    const observations = await databaseService.query(`
+      SELECT o.*, op.name as point_name, op.segment as point_segment
+      FROM observations o
+      JOIN observation_points op ON o.observation_point_id = op.id
+      WHERE o.farm_id = ?
+      ORDER BY o.created_at DESC
+    `, [farmIdNum]);
+    
+    if (__DEV__) console.log(`Found ${observations.length} observations for farm ID ${farmIdNum}`);
+    
+    return observations;
+  } catch (error) {
+    if (__DEV__) console.error('Error getting observations for farm:', error);
+    throw error;
+  }
+};
+
+/**
+ * Delete all observations for a farm
+ * @param {number} farmId - Farm ID
+ * @returns {Promise<boolean>} - Success status
+ */
+export const deleteObservationsForFarm = async (farmId) => {
+  try {
+    await databaseService.initialize();
+    
+    // Ensure farmId is a number
+    const farmIdNum = Number(farmId);
+    
+    // Delete all observations for the farm
+    await databaseService.delete(
+      'observations',
+      'farm_id = ?',
+      [farmIdNum]
+    );
+    
+    // Reset observation_status and observation_id in observation_points
+    await databaseService.update(
+      'observation_points',
+      {
+        observation_status: 'Nil',
+        observation_id: null
+      },
+      'farm_id = ?',
+      [farmIdNum]
+    );
+    
+    if (__DEV__) console.log(`Deleted all observations for farm ID ${farmIdNum}`);
+    
+    return true;
+  } catch (error) {
+    if (__DEV__) console.error('Error deleting observations for farm:', error);
     throw error;
   }
 };

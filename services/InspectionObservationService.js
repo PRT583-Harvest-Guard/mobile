@@ -3,8 +3,7 @@
  * Handles operations related to inspection observations
  */
 import InspectionObservation from '@/models/InspectionObservation';
-import { getBoundaryData } from '@/services/BoundaryService';
-import { getFarms } from '@/services/BoundaryService';
+import { getBoundaryData, getFarms } from '@/services/BoundaryService';
 
 /**
  * Initialize the InspectionObservation table
@@ -14,7 +13,7 @@ export const initInspectionObservationTable = async () => {
   try {
     await InspectionObservation.initTable();
   } catch (error) {
-    console.error('Error initializing inspection observation table:', error);
+    if (__DEV__) console.error('Error initializing inspection observation table:', error);
     throw error;
   }
 };
@@ -29,7 +28,7 @@ export const createInspectionObservation = async (observationData) => {
     const observation = new InspectionObservation(observationData);
     return await observation.save();
   } catch (error) {
-    console.error('Error creating inspection observation:', error);
+    if (__DEV__) console.error('Error creating inspection observation:', error);
     throw error;
   }
 };
@@ -42,7 +41,7 @@ export const getInspectionObservations = async () => {
   try {
     return await InspectionObservation.findAll();
   } catch (error) {
-    console.error('Error getting inspection observations:', error);
+    if (__DEV__) console.error('Error getting inspection observations:', error);
     throw error;
   }
 };
@@ -56,7 +55,7 @@ export const getInspectionObservationById = async (id) => {
   try {
     return await InspectionObservation.findById(id);
   } catch (error) {
-    console.error('Error getting inspection observation:', error);
+    if (__DEV__) console.error('Error getting inspection observation:', error);
     throw error;
   }
 };
@@ -70,7 +69,7 @@ export const getInspectionObservationsByInspectionId = async (inspectionId) => {
   try {
     return await InspectionObservation.findByInspectionId(inspectionId);
   } catch (error) {
-    console.error('Error getting inspection observations for inspection:', error);
+    if (__DEV__) console.error('Error getting inspection observations for inspection:', error);
     throw error;
   }
 };
@@ -84,7 +83,7 @@ export const getInspectionObservationsByFarmId = async (farmId) => {
   try {
     return await InspectionObservation.findByFarmId(farmId);
   } catch (error) {
-    console.error('Error getting inspection observations for farm:', error);
+    if (__DEV__) console.error('Error getting inspection observations for farm:', error);
     throw error;
   }
 };
@@ -98,7 +97,7 @@ export const getInspectionObservationsByStatus = async (status) => {
   try {
     return await InspectionObservation.findByStatus(status);
   } catch (error) {
-    console.error('Error getting inspection observations by status:', error);
+    if (__DEV__) console.error('Error getting inspection observations by status:', error);
     throw error;
   }
 };
@@ -112,7 +111,7 @@ export const getInspectionObservationsByUserId = async (userId) => {
   try {
     return await InspectionObservation.findByUserId(userId);
   } catch (error) {
-    console.error('Error getting inspection observations for user:', error);
+    if (__DEV__) console.error('Error getting inspection observations for user:', error);
     throw error;
   }
 };
@@ -127,7 +126,7 @@ export const getInspectionObservationsByUserIdAndStatus = async (userId, status)
   try {
     return await InspectionObservation.findByUserIdAndStatus(userId, status);
   } catch (error) {
-    console.error('Error getting inspection observations for user by status:', error);
+    if (__DEV__) console.error('Error getting inspection observations for user by status:', error);
     throw error;
   }
 };
@@ -150,7 +149,7 @@ export const updateInspectionObservation = async (id, observationData) => {
     
     return await observation.save();
   } catch (error) {
-    console.error('Error updating inspection observation:', error);
+    if (__DEV__) console.error('Error updating inspection observation:', error);
     throw error;
   }
 };
@@ -169,13 +168,13 @@ export const deleteInspectionObservation = async (id) => {
     
     return await observation.delete();
   } catch (error) {
-    console.error('Error deleting inspection observation:', error);
+    if (__DEV__) console.error('Error deleting inspection observation:', error);
     throw error;
   }
 };
 
 /**
- * Create inspection observations for all observation points in a farm
+ * Create inspection observations for all boundary points in a farm
  * @param {number} inspectionId - The ID of the inspection
  * @param {number} farmId - The ID of the farm
  * @param {string} confidence - The confidence level
@@ -186,7 +185,7 @@ export const createInspectionObservationsForFarm = async (inspectionId, farmId, 
   try {
     // Get the farm details
     const farms = await getFarms();
-    const farm = farms.find(f => f.id === farmId);
+    const farm = farms.find(f => f.id === Number(farmId));
     
     if (!farm) {
       throw new Error(`Farm with ID ${farmId} not found`);
@@ -195,8 +194,8 @@ export const createInspectionObservationsForFarm = async (inspectionId, farmId, 
     // Get all boundary points for the farm
     const boundaryPoints = await getBoundaryData(farmId);
     
-    if (!boundaryPoints || !Array.isArray(boundaryPoints) || boundaryPoints.length === 0) {
-      console.warn(`No boundary points found for farm ${farmId}`);
+    if (!boundaryPoints || boundaryPoints.length === 0) {
+      if (__DEV__) console.warn(`No boundary points found for farm ${farmId}`);
       return [];
     }
     
@@ -211,12 +210,12 @@ export const createInspectionObservationsForFarm = async (inspectionId, farmId, 
         date: new Date().toISOString(),
         inspection_id: inspectionId,
         confidence: confidence,
-        section_id: point.id || null, // Using boundary point ID as section ID, default to null if not available
+        section_id: point.id || null, // Using boundary point ID as section ID
         farm_id: farmId,
-        user_id: userId, // Add user ID to the observation
-        plant_per_section: farm.plant_type || farm.crop_type || 'Unknown', // Get from farm instance
+        user_id: userId,
+        plant_per_section: farm.plant_type || 'Unknown',
         status: 'pending',
-        target_entity: farm.plant_type || farm.crop_type || 'Unknown', // Get from farm instance
+        target_entity: farm.plant_type || 'Unknown',
         // Additional farm details
         farm_name: farm.name || 'Unknown Farm',
         farm_size: farm.size || 0,
@@ -227,9 +226,10 @@ export const createInspectionObservationsForFarm = async (inspectionId, farmId, 
       observationIds.push(observationId);
     }
     
+    if (__DEV__) console.log(`Created ${observationIds.length} inspection observations for farm ${farmId}`);
     return observationIds;
   } catch (error) {
-    console.error('Error creating inspection observations for farm:', error);
+    if (__DEV__) console.error('Error creating inspection observations for farm:', error);
     throw error;
   }
 };
@@ -244,7 +244,7 @@ export const updateInspectionObservationStatus = async (id, status) => {
   try {
     return await updateInspectionObservation(id, { status });
   } catch (error) {
-    console.error('Error updating inspection observation status:', error);
+    if (__DEV__) console.error('Error updating inspection observation status:', error);
     throw error;
   }
 };
@@ -257,34 +257,16 @@ export const updateInspectionObservationStatus = async (id, status) => {
 export const getCompletedInspectionObservations = async (userId = null) => {
   try {
     // Get observations by status, filtered by user ID if provided
-    let observations;
-    if (userId) {
-      observations = await InspectionObservation.findByUserIdAndStatus(userId, 'completed');
-    } else {
-      observations = await getInspectionObservationsByStatus('completed');
-    }
+    const observations = userId 
+      ? await InspectionObservation.findByUserIdAndStatus(userId, 'completed')
+      : await getInspectionObservationsByStatus('completed');
     
     // Refresh farm details for each observation
-    for (const observation of observations) {
-      try {
-        const farms = await getFarms();
-        const farm = farms.find(f => f.id === observation.farm_id);
-        
-        if (farm) {
-          observation.plant_per_section = farm.plant_type || farm.crop_type || observation.plant_per_section;
-          observation.farm_name = farm.name || 'Unknown Farm';
-          observation.farm_size = farm.size || 0;
-          observation.farm_location = farm.location || 'Unknown Location';
-        }
-      } catch (error) {
-        console.warn('Error refreshing farm details for observation:', error);
-        // Continue with the next observation
-      }
-    }
+    await refreshFarmDetailsForObservations(observations);
     
     return observations;
   } catch (error) {
-    console.error('Error getting completed inspection observations:', error);
+    if (__DEV__) console.error('Error getting completed inspection observations:', error);
     throw error;
   }
 };
@@ -297,34 +279,49 @@ export const getCompletedInspectionObservations = async (userId = null) => {
 export const getPendingInspectionObservations = async (userId = null) => {
   try {
     // Get observations by status, filtered by user ID if provided
-    let observations;
-    if (userId) {
-      observations = await InspectionObservation.findByUserIdAndStatus(userId, 'pending');
-    } else {
-      observations = await getInspectionObservationsByStatus('pending');
-    }
+    const observations = userId 
+      ? await InspectionObservation.findByUserIdAndStatus(userId, 'pending')
+      : await getInspectionObservationsByStatus('pending');
     
     // Refresh farm details for each observation
+    await refreshFarmDetailsForObservations(observations);
+    
+    return observations;
+  } catch (error) {
+    if (__DEV__) console.error('Error getting pending inspection observations:', error);
+    throw error;
+  }
+};
+
+/**
+ * Helper function to refresh farm details for an array of observations
+ * @param {Array<InspectionObservation>} observations - Array of observations to refresh
+ * @returns {Promise<void>}
+ * @private
+ */
+const refreshFarmDetailsForObservations = async (observations) => {
+  if (!observations || observations.length === 0) return;
+  
+  try {
+    const farms = await getFarms();
+    
     for (const observation of observations) {
       try {
-        const farms = await getFarms();
         const farm = farms.find(f => f.id === observation.farm_id);
         
         if (farm) {
-          observation.plant_per_section = farm.plant_type || farm.crop_type || observation.plant_per_section;
+          observation.plant_per_section = farm.plant_type || observation.plant_per_section;
           observation.farm_name = farm.name || 'Unknown Farm';
           observation.farm_size = farm.size || 0;
           observation.farm_location = farm.location || 'Unknown Location';
         }
       } catch (error) {
-        console.warn('Error refreshing farm details for observation:', error);
+        if (__DEV__) console.warn('Error refreshing farm details for observation:', error);
         // Continue with the next observation
       }
     }
-    
-    return observations;
   } catch (error) {
-    console.error('Error getting pending inspection observations:', error);
-    throw error;
+    if (__DEV__) console.error('Error refreshing farm details for observations:', error);
+    // Don't throw the error to avoid breaking the main function
   }
 };
