@@ -238,7 +238,7 @@ export const updateInspectionSuggestion = async (id, suggestionData) => {
 };
 
 /**
- * Delete an inspection suggestion
+ * Delete an inspection suggestion and reset associated observation points
  * @param {number} id - The ID of the suggestion to delete
  * @returns {Promise<number>} Number of rows affected
  */
@@ -249,6 +249,47 @@ export const deleteInspectionSuggestion = async (id) => {
       throw new Error('Inspection suggestion not found');
     }
     
+    // Get the farm ID from the suggestion
+    const farmId = suggestion.property_location;
+    
+    if (farmId) {
+      // Get all observation points for this farm
+      const { getObservationPoints, updateObservationPoint } = require('./ObservationService');
+      const { deleteObservationsForFarm } = require('./ObservationRecordService');
+      const observationPoints = await getObservationPoints(farmId);
+      
+      // First, delete all observations for this farm
+      await deleteObservationsForFarm(farmId);
+      
+      if (observationPoints && observationPoints.length > 0) {
+        if (__DEV__) console.log(`Resetting ${observationPoints.length} observation points for farm ${farmId}`);
+        
+        // Update each observation point to reset its fields
+        for (const point of observationPoints) {
+          await updateObservationPoint(point.id, {
+            observation_id: null,
+            observation_status: "Nil",
+            inspection_suggestion_id: null,
+            confidence_level: null,
+            target_entity: null
+          });
+        }
+      }
+      
+      // Also delete any associated inspection observations
+      const { getInspectionObservationsByInspectionId, deleteInspectionObservation } = require('./InspectionObservationService');
+      const observations = await getInspectionObservationsByInspectionId(id);
+      
+      if (observations && observations.length > 0) {
+        if (__DEV__) console.log(`Deleting ${observations.length} inspection observations for suggestion ${id}`);
+        
+        for (const observation of observations) {
+          await deleteInspectionObservation(observation.id);
+        }
+      }
+    }
+    
+    // Finally, delete the suggestion itself
     return await suggestion.delete();
   } catch (error) {
     if (__DEV__) console.error('Error deleting inspection suggestion:', error);
