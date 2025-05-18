@@ -316,7 +316,6 @@ const FarmScreen = () => {
             <ScrollView className="p-4 max-h-[400px]">
               <FormField
                 title="Farm Name"
-                placeholder="Enter farm name"
                 value={farmName}
                 handleTextChange={setFarmName}
                 otherStyles="mb-4"
@@ -324,7 +323,6 @@ const FarmScreen = () => {
               
               <FormField
                 title="Size (hectares)"
-                placeholder="Enter farm size"
                 value={farmSize}
                 handleTextChange={setFarmSize}
                 keyboardType="numeric"
@@ -333,7 +331,6 @@ const FarmScreen = () => {
               
               <FormField
                 title="Plant Type"
-                placeholder="Enter plant type"
                 value={plantType}
                 handleTextChange={setPlantType}
                 otherStyles="mb-4"

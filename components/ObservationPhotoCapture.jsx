@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { 
   View, 
   Text, 
-  StyleSheet, 
   TouchableOpacity, 
   Image, 
   ActivityIndicator,
@@ -110,21 +109,21 @@ const ObservationPhotoCapture = ({ onPhotoCapture }) => {
 
 
   return (
-    <View style={styles.container}>
+    <View className="mb-4">
       {photoUri ? (
-        <View style={styles.photoContainer}>
-          <Image source={{ uri: photoUri }} style={styles.photo} />
+        <View className="w-full aspect-[4/3] rounded-lg overflow-hidden mb-4 relative">
+          <Image source={{ uri: photoUri }} className="w-full h-full" />
           <TouchableOpacity 
-            style={styles.removeButton}
+            className="absolute top-[10px] right-[10px] w-[36px] h-[36px] rounded-full bg-red/70 justify-center items-center"
             onPress={removePhoto}
           >
             <Feather name="trash-2" size={20} color="#fff" />
           </TouchableOpacity>
         </View>
       ) : (
-        <View style={styles.buttonContainer}>
+        <View className="flex-row justify-between">
           <TouchableOpacity 
-            style={styles.button}
+            className="flex-row items-center justify-center bg-secondary py-3 px-4 rounded-lg flex-1 mr-2"
             onPress={takePicture}
             disabled={loading}
           >
@@ -132,19 +131,19 @@ const ObservationPhotoCapture = ({ onPhotoCapture }) => {
               <ActivityIndicator size="small" color="#fff" />
             ) : (
               <>
-                <Feather name="camera" size={20} color="#fff" style={styles.buttonIcon} />
-                <Text style={styles.buttonText}>Take Photo</Text>
+                <Feather name="camera" size={20} color="#fff" className="mr-2" />
+                <Text className="text-white text-base font-pbold">Take Photo</Text>
               </>
             )}
           </TouchableOpacity>
           
           <TouchableOpacity 
-            style={[styles.button, styles.galleryButton]}
+            className="flex-row items-center justify-center bg-white py-3 px-4 rounded-lg flex-1 ml-2 border border-secondary"
             onPress={pickImage}
             disabled={loading}
           >
-            <Feather name="image" size={20} color="#E9762B" style={styles.buttonIcon} />
-            <Text style={[styles.buttonText, styles.galleryButtonText]}>Gallery</Text>
+            <Feather name="image" size={20} color="#E9762B" className="mr-2" />
+            <Text className="text-secondary text-base font-pbold">Gallery</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -152,66 +151,5 @@ const ObservationPhotoCapture = ({ onPhotoCapture }) => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    marginBottom: 16,
-  },
-  buttonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  button: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#E9762B',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    flex: 1,
-    marginRight: 8,
-  },
-  galleryButton: {
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#E9762B',
-    marginRight: 0,
-    marginLeft: 8,
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  galleryButtonText: {
-    color: '#E9762B',
-  },
-  buttonIcon: {
-    marginRight: 8,
-  },
-  photoContainer: {
-    width: '100%',
-    aspectRatio: 4/3,
-    borderRadius: 8,
-    overflow: 'hidden',
-    marginBottom: 16,
-    position: 'relative',
-  },
-  photo: {
-    width: '100%',
-    height: '100%',
-  },
-  removeButton: {
-    position: 'absolute',
-    top: 10,
-    right: 10,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(255, 0, 0, 0.7)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-});
 
 export default ObservationPhotoCapture;

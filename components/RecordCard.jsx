@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { router } from 'expo-router';
 
@@ -38,88 +38,75 @@ const RecordCard = ({
   };
   return (
     <TouchableOpacity 
-      style={[
-        styles.container, 
-        otherStyles && { marginBottom: 16 },
-        status && { backgroundColor: getBackgroundColor() }
-      ]}
+      className={`w-full p-4 rounded-2xl shadow-sm ${status ? `bg-[${getBackgroundColor()}]` : 'bg-primary'} ${otherStyles || ''}`}
       activeOpacity={0.8}
       onPress={() => {
         // Navigate to observation details page
         router.push(`/observation/${id}`);
       }}
     >
-      <View style={styles.header}>
-        <Text style={[styles.date, status && { color: getStatusTextColor() }]}>{date}</Text>
-        <View style={[styles.badge, status && { backgroundColor: getStatusTextColor() }]}>
-          <Text style={styles.badgeText}>{category}</Text>
+      <View className="flex-row justify-between items-center mb-3">
+        <Text className={`text-base font-pbold ${status ? `text-[${getStatusTextColor()}]` : 'text-secondary'}`}>{date}</Text>
+        <View className={`px-[10px] py-1 rounded-xl ${status ? `bg-[${getStatusTextColor()}]` : 'bg-secondary'}`}>
+          <Text className="text-xs font-pbold text-white">{category}</Text>
         </View>
       </View>
       
-      <View style={styles.detailRow}>
-        <View style={styles.detailItem}>
+      <View className="flex-row justify-between mb-2">
+        <View className="flex-row items-center">
           <Feather 
             name="percent" 
             size={16} 
             color={status ? getStatusTextColor() : "#fff"} 
-            style={styles.icon} 
+            className="mr-1.5" 
           />
-          <Text style={[
-            styles.detailText, 
-            status && { color: getStatusTextColor() }
-          ]}>
+          <Text className={`text-sm ${status ? `text-[${getStatusTextColor()}]` : 'text-white'}`}>
             Confidence: {confidenceLevel}
           </Text>
         </View>
         
         {status && (
-          <View style={styles.detailItem}>
+          <View className="flex-row items-center">
             <Feather 
               name={status === 'completed' ? "check-circle" : status === 'pending' ? "clock" : "x-circle"} 
               size={16} 
               color={getStatusTextColor()} 
-              style={styles.icon} 
+              className="mr-1.5" 
             />
-            <Text style={[styles.detailText, { color: getStatusTextColor() }]}>
+            <Text className={`text-sm text-[${getStatusTextColor()}]`}>
               {status.charAt(0).toUpperCase() + status.slice(1)}
             </Text>
           </View>
         )}
       </View>
       
-      <View style={styles.detailRow}>
-        <View style={styles.detailItem}>
+      <View className="flex-row justify-between mb-2">
+        <View className="flex-row items-center">
           <Feather 
             name="grid" 
             size={16} 
             color={status ? getStatusTextColor() : "#fff"} 
-            style={styles.icon} 
+            className="mr-1.5" 
           />
-          <Text style={[
-            styles.detailText, 
-            status && { color: getStatusTextColor() }
-          ]}>
+          <Text className={`text-sm ${status ? `text-[${getStatusTextColor()}]` : 'text-white'}`}>
             Sections: {inspectionSections}
           </Text>
         </View>
         
-        <View style={styles.detailItem}>
+        <View className="flex-row items-center">
           <Feather 
             name="layers" 
             size={16} 
             color={status ? getStatusTextColor() : "#fff"} 
-            style={styles.icon} 
+            className="mr-1.5" 
           />
-          <Text style={[
-            styles.detailText, 
-            status && { color: getStatusTextColor() }
-          ]}>
+          <Text className={`text-sm ${status ? `text-[${getStatusTextColor()}]` : 'text-white'}`}>
             Plants/Section: {plantsPerSection}
           </Text>
         </View>
       </View>
       
-      <View style={styles.footer}>
+      <View className="items-end mt-2">
         <Feather 
           name="chevron-right" 
           size={20} 
@@ -130,60 +117,5 @@ const RecordCard = ({
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    width: '100%',
-    padding: 16,
-    backgroundColor: '#1B4D3E',
-    borderRadius: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  date: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#E9762B',
-  },
-  badge: {
-    backgroundColor: '#E9762B',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  badgeText: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: '#fff',
-  },
-  detailRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 8,
-  },
-  detailItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  icon: {
-    marginRight: 6,
-  },
-  detailText: {
-    fontSize: 14,
-    color: '#fff',
-  },
-  footer: {
-    alignItems: 'flex-end',
-    marginTop: 8,
-  },
-});
 
 export default RecordCard;
