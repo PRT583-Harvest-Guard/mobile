@@ -6,7 +6,6 @@ import {
   Text,
   Alert,
   FlatList,
-  StyleSheet,
   TouchableOpacity,
   Switch,
 } from "react-native";
@@ -74,8 +73,8 @@ export default function UploadBoundaryScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <View style={styles.headerContainer}>
+    <SafeAreaView className="flex-1 bg-white">
+      <View className="bg-primary py-4 px-2 rounded-b-xl shadow-sm">
         <PageHeader
           title={farmData ? `Boundary: ${farmData.name}` : "Upload Boundary Photos"}
           textColor="white"
@@ -85,53 +84,49 @@ export default function UploadBoundaryScreen() {
         />
       </View>
       
-      <View style={styles.breadcrumbContainer}>
-        <Link href="/(tabs)/home" style={styles.breadcrumbLink}>
-          <Text style={styles.breadcrumbText}>Home</Text>
+      <View className="flex-row items-center px-4 py-3 bg-[#f5f5f5] border-b border-[#e0e0e0] flex-wrap">
+        <Link href="/(tabs)/home" className="mr-1">
+          <Text className="text-sm text-primary font-medium">Home</Text>
         </Link>
-        <Text style={styles.breadcrumbSeparator}> &gt; </Text>
+        <Text className="text-sm text-[#999] mr-1"> &gt; </Text>
         
-        <Link href="/(tabs)/farm" style={styles.breadcrumbLink}>
-          <Text style={styles.breadcrumbText}>Farm</Text>
+        <Link href="/(tabs)/farm" className="mr-1">
+          <Text className="text-sm text-primary font-medium">Farm</Text>
         </Link>
-        <Text style={styles.breadcrumbSeparator}> &gt; </Text>
+        <Text className="text-sm text-[#999] mr-1"> &gt; </Text>
         
-        <Link href={`/farm-details/${farmId}`} style={styles.breadcrumbLink}>
-          <Text style={styles.breadcrumbText}>Farm Details</Text>
+        <Link href={`/farm-details/${farmId}`} className="mr-1">
+          <Text className="text-sm text-primary font-medium">Farm Details</Text>
         </Link>
-        <Text style={styles.breadcrumbSeparator}> &gt; </Text>
+        <Text className="text-sm text-[#999] mr-1"> &gt; </Text>
         
-        <Text style={styles.breadcrumbActiveText}>Upload Boundary</Text>
+        <Text className="text-sm text-secondary font-pbold">Upload Boundary</Text>
       </View>
 
-      <ScrollView 
-        style={styles.content}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={true}
-      >
+      <ScrollView className="flex-1 p-4" contentContainerStyle={{ paddingBottom: 30 }}>
         {farmData && (
-          <View style={styles.farmInfoContainer}>
-            <Text style={styles.farmName}>{farmData.name}</Text>
-            <Text style={styles.farmDetail}>
+          <View className="w-full max-w-[500px] bg-[#f5f5f5] rounded-lg p-4 mb-5 items-center">
+            <Text className="text-xl font-pbold mb-2 text-center">{farmData.name}</Text>
+            <Text className="text-base text-[#333] mb-1 text-center">
               Size: {farmData.size ?? "Not specified"} acres
             </Text>
             {farmData.plant_type && (
-              <Text style={styles.farmDetail}>
+              <Text className="text-base text-[#333] mb-1 text-center">
                 Plants: {farmData.plant_type}
               </Text>
             )}
           </View>
         )}
 
-        <View style={styles.optionsContainer}>
-          <Text style={styles.optionsTitle}>Choose how to add boundary points:</Text>
+        <View className="w-full mb-5">
+          <Text className="text-lg font-pbold mb-4 text-center text-[#333]">Choose how to add boundary points:</Text>
           
-          <View style={styles.toggleContainer}>
-            <Text style={styles.toggleLabel}>
+          <View className="mb-5 bg-[#f5f5f5] rounded-lg p-4 items-center">
+            <Text className="text-lg font-pbold text-[#333] mb-3">
               {drawOnMap ? 'Draw on Map' : 'Photo Capture'}
             </Text>
-            <View style={styles.toggleRow}>
-              <Text style={styles.toggleOption}>Photo Capture</Text>
+            <View className="flex-row items-center justify-center">
+              <Text className="text-sm text-[#555] mx-2">Photo Capture</Text>
               <Switch
                 value={drawOnMap}
                 onValueChange={setDrawOnMap}
@@ -139,30 +134,37 @@ export default function UploadBoundaryScreen() {
                 thumbColor={'#fff'}
                 ios_backgroundColor="#E9762B"
               />
-              <Text style={styles.toggleOption}>Draw on Map</Text>
+              <Text className="text-sm text-[#555] mx-2">Draw on Map</Text>
             </View>
           </View>
           
           {!drawOnMap ? (
-            <View style={styles.photoCaptureContainer}>
-              <PhotoCapture
-                photos={boundaryStore.photos}
-                onCapture={(newPhotos) => boundaryStore.setPhotos(newPhotos)}
-                title="Capture boundary points"
-                titleStyles="text-black"
-                farmId={farmId}
-              />
+            <View className="mb-5">
+              {boundaryStore.photos.length > 0 && (
+                <Text className="text-lg font-pbold mb-2 text-center text-[#333]">
+                  Existing Boundary Points: {boundaryStore.photos.length}
+                </Text>
+              )}
+              <View className="h-[500px]">
+                <PhotoCapture
+                  photos={boundaryStore.photos}
+                  onCapture={(newPhotos) => boundaryStore.setPhotos(newPhotos)}
+                  title="Capture boundary points"
+                  titleStyles="text-black"
+                  farmId={farmId}
+                />
+              </View>
             </View>
           ) : (
             <TouchableOpacity 
-              style={styles.mapButton}
+              className="flex-row items-center justify-center bg-primary py-4 px-5 rounded-lg mt-4"
               onPress={() => router.push({
                 pathname: "/draw-map",
                 params: { farmId }
               })}
             >
-              <Feather name="map" size={24} color="#fff" style={styles.mapButtonIcon} />
-              <Text style={styles.mapButtonText}>Open Map Drawing Tool</Text>
+              <Feather name="map" size={24} color="#fff" className="mr-2" />
+              <Text className="text-white text-base font-pbold">Open Map Drawing Tool</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -171,228 +173,10 @@ export default function UploadBoundaryScreen() {
           <CustomButton
             title="Save Boundary Points"
             handlePress={handleSave}
-            containerStyles={styles.saveButton}
+            containerStyles="mt-5 mb-5 bg-primary"
           />
         )}
       </ScrollView>
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: "white",
-  },
-  headerContainer: {
-    backgroundColor: '#1B4D3E',
-    paddingVertical: 16,
-    paddingHorizontal: 8,
-    borderBottomLeftRadius: 15,
-    borderBottomRightRadius: 15,
-    marginBottom: 0,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  breadcrumbContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#f5f5f5',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
-    flexWrap: 'wrap',
-  },
-  breadcrumbLink: {
-    marginRight: 4,
-  },
-  breadcrumbText: {
-    fontSize: 14,
-    color: '#1B4D3E',
-    fontWeight: '500',
-  },
-  breadcrumbSeparator: {
-    fontSize: 14,
-    color: '#999',
-    marginRight: 4,
-  },
-  breadcrumbActiveText: {
-    fontSize: 14,
-    color: '#E9762B',
-    fontWeight: 'bold',
-  },
-  content: {
-    flex: 1,
-    padding: 16,
-  },
-  farmInfoContainer: {
-    width: "100%",
-    maxWidth: 500,
-    backgroundColor: "#f5f5f5",
-    borderRadius: 8,
-    padding: 16,
-    marginBottom: 20,
-    alignItems: "center",
-  },
-  farmName: {
-    fontSize: 20,
-    fontWeight: "bold",
-    marginBottom: 8,
-    textAlign: "center",
-  },
-  farmDetail: {
-    fontSize: 16,
-    color: "#333",
-    marginBottom: 4,
-    textAlign: "center",
-  },
-  optionsContainer: {
-    width: "100%",
-    marginBottom: 20,
-  },
-  optionsTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    marginBottom: 16,
-    textAlign: "center",
-    color: "#333",
-  },
-  toggleContainer: {
-    marginBottom: 20,
-    backgroundColor: '#f5f5f5',
-    borderRadius: 8,
-    padding: 16,
-    alignItems: 'center',
-  },
-  toggleLabel: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 12,
-  },
-  toggleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  toggleOption: {
-    fontSize: 14,
-    color: '#555',
-    marginHorizontal: 8,
-  },
-  mapButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#1B4D3E",
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-    marginTop: 16,
-  },
-  mapButtonIcon: {
-    marginRight: 8,
-  },
-  mapButtonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "bold",
-  },
-  pointsContainer: {
-    flex: 1,
-    width: "100%",
-    maxWidth: 500,
-    borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 8,
-    padding: 16,
-    marginBottom: 20,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    marginBottom: 12,
-    textAlign: "center",
-  },
-  flatListContent: {
-    flexGrow: 1,
-  },
-  pointItem: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 12,
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: "#eee",
-  },
-  pointInfo: {
-    flex: 1,
-  },
-  pointTitle: {
-    fontWeight: "600",
-    marginBottom: 4,
-  },
-  coordinates: {
-    fontSize: 14,
-    fontFamily: "monospace",
-    color: "#666",
-  },
-  description: {
-    fontSize: 14,
-    color: "#444",
-    marginTop: 4,
-  },
-  actions: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  deleteButton: {
-    marginLeft: 16,
-  },
-  emptyText: {
-    textAlign: "center",
-    color: "#888",
-    fontStyle: "italic",
-    paddingVertical: 16,
-  },
-  captureButton: {
-    width: "100%",
-    maxWidth: 500,
-    backgroundColor: "#007AFF",
-    padding: 16,
-    borderRadius: 8,
-    alignItems: "center",
-  },
-  captureButtonText: {
-    color: "white",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  deleteAllButton: {
-    padding: 8,
-  },
-  scrollContent: {
-    paddingBottom: 30,
-    flexGrow: 1,
-  },
-  saveButton: {
-    marginTop: 20,
-    marginBottom: 20,
-    backgroundColor: '#1B4D3E',
-  },
-  photoCaptureContainer: {
-    height: 500, // Limit the height to ensure scrollability
-    marginBottom: 20,
-  },
-});

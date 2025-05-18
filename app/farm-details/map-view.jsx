@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, Text, Dimensions, TouchableOpacity } from 'react-native';
+import { View, Text, Dimensions, TouchableOpacity } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
@@ -65,46 +65,57 @@ const MapViewScreen = () => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView className="flex-1 bg-white">
       <PageHeader title={farm ? `${farm.name} Map` : "Farm Map"} />
       
-      <View style={styles.content}>
+      <View className="flex-1 p-4">
         {loading ? (
-          <View style={styles.centerContainer}>
-            <Text style={styles.loadingText}>Loading map...</Text>
+          <View className="flex-1 justify-center items-center p-5">
+            <Text className="text-lg text-[#666]">Loading map...</Text>
           </View>
         ) : error ? (
-          <View style={styles.centerContainer}>
+          <View className="flex-1 justify-center items-center p-5">
             <Feather name="alert-circle" size={48} color="#ff4444" />
-            <Text style={styles.errorText}>{error}</Text>
+            <Text className="text-lg text-red my-4 text-center">{error}</Text>
             <TouchableOpacity 
-              style={styles.backButton}
+              className="bg-secondary py-3 px-6 rounded-lg mt-4"
               onPress={() => router.back()}
             >
-              <Text style={styles.backButtonText}>Go Back</Text>
+              <Text className="text-white font-pbold text-base">Go Back</Text>
             </TouchableOpacity>
           </View>
         ) : (
-          <View style={styles.mapContainer}>
+          <View className="flex-1 items-center justify-center">
             <BoundaryMap 
               points={boundaryPoints}
-              style={styles.map}
+              style={{ 
+                width: '100%', 
+                height: '70%', 
+                backgroundColor: '#f9f9f9',
+                borderRadius: 12,
+                padding: 16,
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.1,
+                shadowRadius: 4,
+                elevation: 2,
+              }}
               showPoints={true}
               lineWidth={3}
               pointRadius={6}
             />
             
-            <View style={styles.infoContainer}>
-              <Text style={styles.infoTitle}>{farm.name}</Text>
-              <Text style={styles.infoText}>
+            <View className="w-full bg-[#f9f9f9] rounded-xl p-4 mt-4 shadow-sm">
+              <Text className="text-xl font-pbold text-[#333] mb-2">{farm.name}</Text>
+              <Text className="text-base text-[#666] mb-1">
                 Size: {farm.size ? `${farm.size} acres` : 'Not specified'}
               </Text>
               {farm.plant_type && (
-                <Text style={styles.infoText}>
+                <Text className="text-base text-[#666] mb-1">
                   Plants: {farm.plant_type}
                 </Text>
               )}
-              <Text style={styles.boundaryText}>
+              <Text className="text-sm text-[#666] italic mt-2">
                 {boundaryPoints.length} boundary points define this farm's perimeter
               </Text>
             </View>
@@ -115,89 +126,5 @@ const MapViewScreen = () => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-  content: {
-    flex: 1,
-    padding: 16,
-  },
-  centerContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  loadingText: {
-    fontSize: 18,
-    color: '#666',
-  },
-  errorText: {
-    fontSize: 18,
-    color: '#ff4444',
-    marginVertical: 16,
-    textAlign: 'center',
-  },
-  backButton: {
-    backgroundColor: '#E9762B',
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 8,
-    marginTop: 16,
-  },
-  backButtonText: {
-    color: 'white',
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
-  mapContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  map: {
-    width: '100%',
-    height: '70%',
-    backgroundColor: '#f9f9f9',
-    borderRadius: 12,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  infoContainer: {
-    width: '100%',
-    backgroundColor: '#f9f9f9',
-    borderRadius: 12,
-    padding: 16,
-    marginTop: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  infoTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 8,
-  },
-  infoText: {
-    fontSize: 16,
-    color: '#666',
-    marginBottom: 4,
-  },
-  boundaryText: {
-    fontSize: 14,
-    color: '#666',
-    fontStyle: 'italic',
-    marginTop: 8,
-  },
-});
 
 export default MapViewScreen;
