@@ -16,7 +16,9 @@ import { Entities } from '@/constants/Entities';
 import { ConfidenceLevels } from '@/constants/ConfidenceLevels';
 import { 
   initInspectionSuggestionTable, 
-  createInspectionSuggestionWithObservations 
+  createInspectionSuggestionWithObservations,
+  checkExistingSuggestionForFarm,
+  deleteInspectionSuggestion
 } from '@/services/InspectionSuggestionService';
 import { getFarms } from '@/services/BoundaryService';
 
@@ -99,6 +101,8 @@ export default function Suggestion() {
   const [isLoading, setIsLoading] = useState(true);
   const [farms, setFarms] = useState([]);
   const [hasFarms, setHasFarms] = useState(false);
+  const [existingSuggestion, setExistingSuggestion] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   
   // Prepare data for dropdowns
   const entityOptions = Object.keys(Entities).map(key => 
@@ -170,6 +174,21 @@ export default function Suggestion() {
       return;
     }
     
+    // Check if there's an existing suggestion
+    if (existingSuggestion) {
+      Alert.alert(
+        "Existing Suggestion",
+        "This farm already has an inspection suggestion. Please delete the existing suggestion before creating a new one.",
+        [
+          {
+            text: "OK",
+            style: "cancel"
+          }
+        ]
+      );
+      return;
+    }
+    
     setIsSubmitting(true);
     
     try {
@@ -178,6 +197,23 @@ export default function Suggestion() {
       
       if (!farmId) {
         throw new Error('No farm selected');
+      }
+      
+      // Check again for existing suggestions (in case one was created since the farm was selected)
+      const { exists } = await checkExistingSuggestionForFarm(farmId);
+      if (exists) {
+        setIsSubmitting(false);
+        Alert.alert(
+          "Existing Suggestion",
+          "Another inspection suggestion was created for this farm. Please refresh and try again.",
+          [
+            {
+              text: "Refresh",
+              onPress: () => loadData()
+            }
+          ]
+        );
+        return;
       }
       
       // Extract just the confidence percentage from the selected confidence level
@@ -309,7 +345,7 @@ export default function Suggestion() {
             label="Property Location"
             options={farms.map(farm => farm.name)}
             value={propertyLocation}
-            onSelect={(selectedName) => {
+            onSelect={async (selectedName) => {
               setPropertyLocation(selectedName);
               
               // Find the selected farm
@@ -325,12 +361,57 @@ export default function Suggestion() {
                 const size = parseFloat(farm.size || 0);
                 const density = size > 0 ? Math.round(10 * (1 + (1 / size))).toString() : '0';
                 setDensityOfPlant(density);
+                
+                // Check if there's an existing suggestion for this farm
+                try {
+                  const { exists, suggestion } = await checkExistingSuggestionForFarm(farm.id);
+                  if (exists) {
+                    setExistingSuggestion(suggestion);
+                  } else {
+                    setExistingSuggestion(null);
+                  }
+                } catch (error) {
+                  console.error('Error checking existing suggestion:', error);
+                  setExistingSuggestion(null);
+                }
               }
             }}
             disabled={!hasFarms}
           />
           
           <View className="h-4" />
+          
+          {existingSuggestion && (
+            <View className="bg-[#FFF8F0] border border-[#FFE0C0] rounded-lg p-4 mb-4">
+              <View className="flex-row items-center mb-2">
+                <Feather name="alert-triangle" size={20} color="#E9762B" className="mr-2" />
+                <Text className="text-base font-pbold text-[#E9762B]">Existing Suggestion Found</Text>
+              </View>
+              <Text className="text-sm text-[#333] mb-3">
+                This farm already has an inspection suggestion. You must delete the existing suggestion before creating a new one.
+              </Text>
+              <View className="flex-row">
+                <CustomButton
+                  title={isDeleting ? "Deleting..." : "Delete Existing Suggestion"}
+                  containerStyles="bg-red-500 flex-1"
+                  handlePress={async () => {
+                    try {
+                      setIsDeleting(true);
+                      await deleteInspectionSuggestion(existingSuggestion.id);
+                      setExistingSuggestion(null);
+                      Alert.alert("Success", "Existing suggestion deleted successfully");
+                    } catch (error) {
+                      console.error('Error deleting suggestion:', error);
+                      Alert.alert("Error", "Failed to delete existing suggestion");
+                    } finally {
+                      setIsDeleting(false);
+                    }
+                  }}
+                  disabled={isDeleting}
+                />
+              </View>
+            </View>
+          )}
           
           <FormField
             title="Area Size (hectares)"
@@ -359,7 +440,7 @@ export default function Suggestion() {
           title="Submit"
           handlePress={handleSubmit}
           theme="primary"
-          disabled={!isFormValid() || isSubmitting}
+          disabled={!isFormValid() || isSubmitting || existingSuggestion !== null}
           isLoading={isSubmitting}
         />
       </View>

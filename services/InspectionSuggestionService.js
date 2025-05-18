@@ -39,11 +39,21 @@ export const createInspectionSuggestion = async (suggestionData) => {
  * Create a new inspection suggestion and create observations for all points in the farm
  * @param {Object} suggestionData - The suggestion data
  * @param {number} userId - The ID of the user creating the suggestion (defaults to 1)
+ * @param {boolean} forceDelete - Whether to force delete existing suggestions for the farm
  * @returns {Promise<Object>} Object containing the suggestion ID and observation IDs
  */
-export const createInspectionSuggestionWithObservations = async (suggestionData, userId = 1) => {
+export const createInspectionSuggestionWithObservations = async (suggestionData, userId = 1, forceDelete = false) => {
   try {
     if (__DEV__) console.log('Creating inspection suggestion with observations:', JSON.stringify(suggestionData));
+    
+    // Check if there's an existing suggestion for this farm
+    if (forceDelete) {
+      const { exists, suggestion } = await checkExistingSuggestionForFarm(suggestionData.property_location);
+      if (exists && suggestion) {
+        if (__DEV__) console.log(`Deleting existing suggestion with ID ${suggestion.id} for farm ${suggestionData.property_location}`);
+        await deleteInspectionSuggestion(suggestion.id);
+      }
+    }
     
     // Create the suggestion
     const suggestionId = await createInspectionSuggestion(suggestionData);
@@ -182,6 +192,24 @@ export const getInspectionSuggestionsByFarmId = async (farmId) => {
     return await InspectionSuggestion.findByFarmId(farmId);
   } catch (error) {
     if (__DEV__) console.error('Error getting inspection suggestions for farm:', error);
+    throw error;
+  }
+};
+
+/**
+ * Check if a farm already has an inspection suggestion
+ * @param {number} farmId - The ID of the farm
+ * @returns {Promise<{exists: boolean, suggestion: InspectionSuggestion|null}>} Object indicating if a suggestion exists and the suggestion itself
+ */
+export const checkExistingSuggestionForFarm = async (farmId) => {
+  try {
+    const suggestions = await getInspectionSuggestionsByFarmId(farmId);
+    if (suggestions && suggestions.length > 0) {
+      return { exists: true, suggestion: suggestions[0] };
+    }
+    return { exists: false, suggestion: null };
+  } catch (error) {
+    if (__DEV__) console.error('Error checking existing suggestion for farm:', error);
     throw error;
   }
 };
