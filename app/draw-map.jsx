@@ -15,7 +15,9 @@ import MapView, { Marker, Polygon } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { PageHeader, CustomButton } from '@/components';
 import { getFarms, saveBoundaryData, deleteAllBoundaryPoints } from '@/services/BoundaryService';
+import { deleteObservationPoints } from '@/services/ObservationService';
 import useBoundaryStore from '@/store/boundaryStore';
+import { showSuccessToast, showErrorToast } from '@/utils/toastUtils';
 
 const DrawMapScreen = () => {
   const { farmId } = useLocalSearchParams();
@@ -163,7 +165,7 @@ const DrawMapScreen = () => {
   const handleClear = () => {
     Alert.alert(
       'Confirm Clear',
-      'Are you sure you want to clear all boundary points? This will delete them from the database.',
+      'Are you sure you want to clear all boundary and observation points? This will delete them from the database.',
       [
         {
           text: 'Cancel',
@@ -180,13 +182,20 @@ const DrawMapScreen = () => {
               // Delete boundary points from database
               await deleteAllBoundaryPoints(farmId);
               
-              // Clear boundary store
-              boundaryStore.setPhotos([]);
+              // Delete observation points for this farm
+              await deleteObservationPoints(farmId);
               
-              Alert.alert('Success', 'All boundary points have been cleared');
+              // Clear boundary store
+              boundaryStore.clearPoints();
+              
+              // Use toast notification instead of Alert
+              showSuccessToast('All boundary and observation points have been cleared');
+              
+              // Navigate back to the farm page
+              router.push('/(tabs)/farm');
             } catch (error) {
               console.error('Error clearing boundary points:', error);
-              Alert.alert('Error', 'Failed to clear boundary points from database');
+              showErrorToast('Failed to clear boundary and observation points from database');
             }
           }
         }
