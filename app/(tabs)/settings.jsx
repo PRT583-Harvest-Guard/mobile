@@ -14,6 +14,7 @@ import { useGlobalContext } from '@/context/GlobalProvider';
 import { PageHeader } from '@/components';
 import AuthService from '@/services/AuthService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { showErrorToast, showSuccessToast, showInfoToast } from '@/utils/toastUtils';
 
 const Settings = () => {
   const { setIsLoggedIn } = useGlobalContext();
@@ -48,7 +49,7 @@ const Settings = () => {
               router.replace("/");
             } catch (error) {
               console.error('Error signing out:', error);
-              Alert.alert('Error', 'Failed to sign out. Please try again.');
+              showErrorToast('Failed to sign out. Please try again.');
             }
           },
           style: "destructive"
@@ -136,14 +137,14 @@ const Settings = () => {
             "bell", 
             "Notifications", 
             "Manage your notification preferences", 
-            () => Alert.alert("Coming Soon", "This feature will be available in a future update.")
+            () => showInfoToast("This feature will be available in a future update.", "Coming Soon")
           )}
           
           {renderSettingItem(
             "help-circle", 
             "Help & Support", 
             "Get assistance with using the app", 
-            () => Alert.alert("Support", "For assistance, please contact support@harvestguard.com")
+            () => showInfoToast("For assistance, please contact support@harvestguard.com", "Support")
           )}
         </View>
         

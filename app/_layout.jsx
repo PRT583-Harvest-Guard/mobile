@@ -4,6 +4,7 @@ import { useFonts } from "expo-font";
 import "../global.css"
 import GlobalProvider from "@/context/GlobalProvider";
 import "@/utils/bcryptSetup"; // Import bcrypt setup to fix Math.random warning
+import Toast from 'react-native-toast-message';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -40,6 +41,7 @@ const RootLayout = () => {
         <Stack.Screen name="observation" options={{ headerShown: false }} />
         <Stack.Screen name="draw-map" options={{ headerShown: false }} />
       </Stack>
+      <Toast />
     </GlobalProvider>
   );
 };

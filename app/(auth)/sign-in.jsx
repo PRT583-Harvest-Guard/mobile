@@ -1,10 +1,11 @@
 import React, { useState } from "react";
-import { View, Text, Alert, ScrollView, KeyboardAvoidingView, Platform } from "react-native";
+import { View, Text, ScrollView, KeyboardAvoidingView, Platform } from "react-native";
 import { Logo, FormField, CustomButton } from "@/components";
 import { Link, router } from 'expo-router';
 import { SafeAreaView } from "react-native-safe-area-context";
 import AuthService from "@/services/AuthService";
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { showErrorToast, showSuccessToast } from '@/utils/toastUtils';
 
 const SignIn = () => {
   const [form, setForm] = useState({
@@ -16,7 +17,7 @@ const SignIn = () => {
 
   const submit = async () => {
     if (form.mobile === "" || form.password === "") {
-      Alert.alert("Error", "Please fill in all the fields!");
+      showErrorToast("Please fill in all the fields!");
       return;
     }
 
@@ -34,10 +35,10 @@ const SignIn = () => {
       await AsyncStorage.setItem('sessionToken', sessionToken);
       await AsyncStorage.setItem('user', JSON.stringify(user));
       
-      Alert.alert("Success", "Sign in successfully");
+      showSuccessToast("Sign in successfully");
       router.replace("/(tabs)/home");
     } catch (error) {
-      Alert.alert("Error", error.message);
+      showErrorToast(error.message);
     } finally {
       setIsSubmitting(false);
     }

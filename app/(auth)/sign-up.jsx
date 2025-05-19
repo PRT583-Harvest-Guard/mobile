@@ -1,9 +1,10 @@
 import React, { useState } from "react";
-import { View, Text, Alert, ScrollView, KeyboardAvoidingView, Platform } from "react-native";
+import { View, Text, ScrollView, KeyboardAvoidingView, Platform } from "react-native";
 import { Logo, FormField, CustomButton } from "@/components";
 import { Link, router } from 'expo-router';
 import { SafeAreaView } from "react-native-safe-area-context";
 import AuthService from "@/services/AuthService";
+import { showErrorToast, showSuccessToast } from '@/utils/toastUtils';
 
 const SignUp = () => {
   const [form, setForm] = useState({
@@ -17,17 +18,17 @@ const SignUp = () => {
 
   const submit = async () => {
     if (form.mobile === "" || form.email === "" || form.password === "" || form.confirmPassword === "") {
-      Alert.alert("Error", "Please fill in all the fields!");
+      showErrorToast("Please fill in all the fields!");
       return;
     }
 
     if (form.password !== form.confirmPassword) {
-      Alert.alert("Error", "Passwords do not match!");
+      showErrorToast("Passwords do not match!");
       return;
     }
 
     if (form.password.length < 6) {
-      Alert.alert("Error", "Password must be at least 6 characters long!");
+      showErrorToast("Password must be at least 6 characters long!");
       return;
     }
 
@@ -40,10 +41,10 @@ const SignUp = () => {
       };
 
       await AuthService.signUp(userData);
-      Alert.alert("Success", "Account created successfully! Please sign in.");
+      showSuccessToast("Account created successfully! Please sign in.");
       router.replace("/(auth)/sign-in");
     } catch (error) {
-      Alert.alert("Error", error.message);
+      showErrorToast(error.message);
     } finally {
       setIsSubmitting(false);
     }
