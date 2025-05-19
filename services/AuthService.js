@@ -296,7 +296,7 @@ class AuthService {
 
       // Try to parse as JSON if possible
       let data = {};
-
+      
       try {
         if (responseText) {
           data = JSON.parse(responseText);
@@ -307,14 +307,14 @@ class AuthService {
           console.log('Error parsing response JSON:', parseError);
         }
       }
-
+      
       if (!response.ok) {
         // Only log in development, not in production
         if (__DEV__) {
           console.log('API sign out failed with status:', response.status);
           console.log('Response data:', data);
         }
-
+        
         // Try to extract error details
         if (data.detail) {
           throw new Error(data.detail);
@@ -322,12 +322,12 @@ class AuthService {
           throw new Error(`API sign out failed with status ${response.status}`);
         }
       }
-
+      
       // Only log in development, not in production
       if (__DEV__) {
         console.log('API sign out successful');
       }
-
+      
       return data;
     } catch (error) {
       // Only log in development, not in production
@@ -365,23 +365,23 @@ class AuthService {
           refresh_token: refreshToken
         }),
       });
-
+      
       // Only log in development, not in production
       if (__DEV__) {
         console.log('API token refresh response status:', response.status);
       }
-
+      
       // Get the response text first to see what's coming back
       const responseText = await response.text();
-
+      
       // Only log in development, not in production
       if (__DEV__) {
         console.log('API token refresh response text:', responseText);
       }
-
+      
       // Try to parse as JSON if possible
       let data = {};
-
+      
       try {
         if (responseText) {
           data = JSON.parse(responseText);
@@ -392,14 +392,14 @@ class AuthService {
           console.log('Error parsing response JSON:', parseError);
         }
       }
-
+      
       if (!response.ok) {
         // Only log in development, not in production
         if (__DEV__) {
           console.log('API token refresh failed with status:', response.status);
           console.log('Response data:', data);
         }
-
+        
         // Try to extract error details
         if (data.detail) {
           throw new Error(data.detail);
@@ -407,12 +407,12 @@ class AuthService {
           throw new Error(`API token refresh failed with status ${response.status}`);
         }
       }
-
+      
       // Only log in development, not in production
       if (__DEV__) {
         console.log('API token refresh successful');
       }
-
+      
       return data;
     } catch (error) {
       // Only log in development, not in production
@@ -565,20 +565,20 @@ class AuthService {
       // Local sign in
       const database = await this.getDatabase();
       const user = await this.findUserByUsername(credentials.username);
-
+      
       if (!user) {
         throw new Error('Invalid username or password');
       }
 
       const isValidPassword = bcrypt.compareSync(credentials.password, user.password_hash);
-
+      
       if (!isValidPassword) {
         throw new Error('Invalid username or password');
       }
 
       // Generate and store session token
       const sessionToken = await this.createSession(user.id);
-
+      
       return {
         user: {
           id: user.id,
@@ -631,7 +631,7 @@ class AuthService {
         'DELETE FROM sessions WHERE token = ?',
         sessionToken
       );
-
+      
       // Only log in development, not in production
       if (__DEV__) {
         console.log('Local sign out successful');
@@ -660,7 +660,7 @@ class AuthService {
     const timestamp = Date.now();
     const uuid = await Crypto.randomUUID();
     const token = `${timestamp}-${uuid}-${userId}`;
-
+    
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 7); // Token expires in 7 days
 
