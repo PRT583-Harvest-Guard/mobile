@@ -434,22 +434,11 @@ class AuthService {
    */
   static async signUp(userData) {
     try {
-      // First try to sign up with the API
-      try {
-        await this.signUpWithApi(userData);
-        // Only log in development, not in production
-        if (__DEV__) {
-          console.log('API sign up successful, now signing up locally');
-        }
-      } catch (apiError) {
-        // Only log in development, not in production
-        if (__DEV__) {
-          console.log('API sign up failed, aborting local sign up:', apiError.message);
-        }
-        throw apiError; // Re-throw the API error to stop the process
+      // Only perform local sign up
+      if (__DEV__) {
+        console.log('Performing local sign up only');
       }
       
-      // If API sign up was successful, proceed with local sign up
       const database = await this.getDatabase();
       
       // Check if username already exists
@@ -457,9 +446,9 @@ class AuthService {
       if (existingUser) {
         // Only log in development, not in production
         if (__DEV__) {
-          console.log('User already exists locally, skipping local sign up');
+          console.log('User already exists locally');
         }
-        return true;
+        throw new Error('Username already exists');
       }
 
       // Hash the password
@@ -497,82 +486,11 @@ class AuthService {
    */
   static async signIn(credentials) {
     try {
-      // First try to sign in with the API
-      try {
-        const apiResponse = await this.signInWithApi(credentials);
-        
-        // Only log in development, not in production
-        if (__DEV__) {
-          console.log('API sign in successful');
-        }
-        
-        // Store the tokens in secure storage
-        // This would typically be done in ApiSyncService, but we'll do it here for completeness
-        if (apiResponse.access_token && apiResponse.refresh_token) {
-          // We'll assume there's a method to save tokens in ApiSyncService
-          const ApiSyncService = require('@/services/ApiSyncService').default;
-          await ApiSyncService.saveTokensToStorage(apiResponse.access_token, apiResponse.refresh_token);
-          
-          // Also save the user credentials for later use
-          await ApiSyncService.saveCredentialsToStorage(credentials);
-        }
-        
-        // Check if the user exists locally
-        const database = await this.getDatabase();
-        let user = await this.findUserByUsername(credentials.username);
-        
-        // If the user doesn't exist locally, create them
-        if (!user) {
-          // Only log in development, not in production
-          if (__DEV__) {
-            console.log('User does not exist locally, creating local user');
-          }
-          
-          // Hash the password
-          const salt = bcrypt.genSaltSync(10);
-          const hashedPassword = bcrypt.hashSync(credentials.password, salt);
-          
-          // Insert new user
-          const result = await database.runAsync(
-            'INSERT INTO users (username, password_hash, email) VALUES (?, ?, ?)',
-            credentials.username,
-            hashedPassword,
-            apiResponse.user?.email || `${credentials.username}@example.com`
-          );
-          
-          // Get the newly created user
-          user = await this.findUserByUsername(credentials.username);
-          
-          if (!user) {
-            throw new Error('Failed to create local user');
-          }
-        }
-        
-        // Generate and store session token
-        const sessionToken = await this.createSession(user.id);
-        
-        return {
-          user: {
-            id: user.id,
-            username: user.username,
-            email: user.email,
-            apiUser: apiResponse.user // Include the API user data
-          },
-          sessionToken,
-          apiTokens: {
-            accessToken: apiResponse.access_token,
-            refreshToken: apiResponse.refresh_token
-          }
-        };
-      } catch (apiError) {
-        // Only log in development, not in production
-        if (__DEV__) {
-          console.log('API sign in failed, falling back to local sign in');
-        }
-        // Fall back to local sign in
+      // Only perform local sign in
+      if (__DEV__) {
+        console.log('Performing local sign in only');
       }
       
-      // Local sign in
       const database = await this.getDatabase();
       const user = await this.findUserByUsername(credentials.username);
       
@@ -609,34 +527,15 @@ class AuthService {
   /**
    * Sign out the current user
    * @param {string} sessionToken - The local session token
-   * @param {string} refreshToken - The API refresh token (optional)
    * @returns {Promise<void>}
    */
-  static async signOut(sessionToken, refreshToken) {
+  static async signOut(sessionToken) {
     try {
-      // First try to sign out from the API if a refresh token is provided
-      if (refreshToken) {
-        try {
-          await this.signOutWithApi(refreshToken);
-          // Only log in development, not in production
-          if (__DEV__) {
-            console.log('API sign out successful');
-          }
-          
-          // Clear the tokens from secure storage
-          const ApiSyncService = require('@/services/ApiSyncService').default;
-          await ApiSyncService.clearTokensFromStorage();
-          await ApiSyncService.clearCredentialsFromStorage();
-        } catch (apiError) {
-          // Only log in development, not in production
-          if (__DEV__) {
-            console.log('API sign out failed:', apiError.message);
-          }
-          // Continue with local sign out even if API sign out fails
-        }
+      // Only perform local sign out
+      if (__DEV__) {
+        console.log('Performing local sign out only');
       }
       
-      // Local sign out
       const database = await this.getDatabase();
       await database.runAsync(
         'DELETE FROM sessions WHERE token = ?',

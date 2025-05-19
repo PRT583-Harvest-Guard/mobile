@@ -12,6 +12,8 @@ import { router, Link } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { useGlobalContext } from '@/context/GlobalProvider';
 import { PageHeader } from '@/components';
+import AuthService from '@/services/AuthService';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const Settings = () => {
   const { setIsLoggedIn } = useGlobalContext();
@@ -27,9 +29,27 @@ const Settings = () => {
         },
         {
           text: "Log Out",
-          onPress: () => {
-            setIsLoggedIn(false);
-            router.replace("/");
+          onPress: async () => {
+            try {
+              // Get the session token from AsyncStorage
+              const sessionToken = await AsyncStorage.getItem('sessionToken');
+              
+              if (sessionToken) {
+                // Sign out using the AuthService
+                await AuthService.signOut(sessionToken);
+                
+                // Clear the session token and user data from AsyncStorage
+                await AsyncStorage.removeItem('sessionToken');
+                await AsyncStorage.removeItem('user');
+              }
+              
+              // Update the global state and navigate to the home page
+              setIsLoggedIn(false);
+              router.replace("/");
+            } catch (error) {
+              console.error('Error signing out:', error);
+              Alert.alert('Error', 'Failed to sign out. Please try again.');
+            }
           },
           style: "destructive"
         }
