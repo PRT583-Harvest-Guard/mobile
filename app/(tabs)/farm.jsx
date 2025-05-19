@@ -15,6 +15,7 @@ import { Feather } from '@expo/vector-icons';
 import { CustomButton, FormField, PageHeader } from '@/components';
 import { getFarms, createFarm, updateFarm, deleteFarm } from '@/services/BoundaryService';
 import { isFeatureEnabled } from '@/services/FeatureFlagService';
+import { showSuccessToast, showErrorToast } from '@/utils/toastUtils';
 
 const FarmScreen = () => {
   const params = useLocalSearchParams();
@@ -62,7 +63,7 @@ const FarmScreen = () => {
       setFarms(farmsData);
     } catch (error) {
       console.error('Error loading farms:', error);
-      Alert.alert('Error', 'Failed to load farms');
+      showErrorToast('Failed to load farms');
     } finally {
       setLoading(false);
     }
@@ -96,7 +97,7 @@ const FarmScreen = () => {
       setModalVisible(true);
     } catch (error) {
       console.error('Error preparing farm edit:', error);
-      Alert.alert('Error', 'Failed to prepare farm edit');
+      showErrorToast('Failed to prepare farm edit');
     }
   };
 
@@ -152,7 +153,7 @@ const FarmScreen = () => {
       
       // Validate inputs
       if (!farmName.trim()) {
-        Alert.alert('Error', 'Farm name is required');
+        showErrorToast('Farm name is required');
         return;
       }
       
@@ -165,13 +166,18 @@ const FarmScreen = () => {
       if (formMode === 'edit' && currentFarmId) {
         // Update existing farm
         await updateFarm(currentFarmId, farmData);
-        Alert.alert('Success', 'Farm updated successfully');
+        showSuccessToast('Farm updated successfully');
       } else {
         // Create new farm
         const farmId = await createFarm(farmData);
+        
+        // Show success toast
+        showSuccessToast('Farm created successfully');
+        
+        // Still use Alert for the boundary option since Toast doesn't support multiple buttons
         Alert.alert(
-          'Success', 
-          'Farm created successfully',
+          'Add Boundary', 
+          'Would you like to add a boundary to your farm?',
           [
             {
               text: 'Add Boundary',
@@ -183,7 +189,7 @@ const FarmScreen = () => {
               }
             },
             {
-              text: 'OK',
+              text: 'Later',
               style: 'cancel'
             }
           ]
@@ -195,7 +201,7 @@ const FarmScreen = () => {
       setModalVisible(false);
     } catch (error) {
       console.error('Error submitting farm:', error);
-      Alert.alert('Error', 'Failed to save farm');
+      showErrorToast('Failed to save farm');
     } finally {
       setSubmitting(false);
     }
