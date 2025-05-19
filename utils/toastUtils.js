@@ -40,9 +40,13 @@ export const showErrorToast = (message, title = 'Error', options = {}) => {
     type: 'error',
     text1: title,
     text2: message,
-    position: 'bottom',
+    position: 'top',
     visibilityTime: 4000,
     autoHide: true,
+    topOffset: 60,
+    props: {
+      heightScale: 1.2, // 20% bigger
+    },
     ...options,
   });
 };
@@ -58,9 +62,13 @@ export const showInfoToast = (message, title = 'Info', options = {}) => {
     type: 'info',
     text1: title,
     text2: message,
-    position: 'bottom',
+    position: 'top',
     visibilityTime: 3000,
     autoHide: true,
+    topOffset: 60,
+    props: {
+      heightScale: 1.2, // 20% bigger
+    },
     ...options,
   });
 };
@@ -76,9 +84,13 @@ export const showWarningToast = (message, title = 'Warning', options = {}) => {
     type: 'warning',
     text1: title,
     text2: message,
-    position: 'bottom',
+    position: 'top',
     visibilityTime: 3500,
     autoHide: true,
+    topOffset: 60,
+    props: {
+      heightScale: 1.2, // 20% bigger
+    },
     ...options,
   });
 };
@@ -102,12 +114,14 @@ export const showConfirmToast = (
     type: 'info',
     text1: title,
     text2: message,
-    position: 'bottom',
+    position: 'top',
     visibilityTime: 5000,
     autoHide: true,
+    topOffset: 60,
     onPress: onPress,
     props: {
       actionText,
+      heightScale: 1.2, // 20% bigger
     },
     ...options,
   });
