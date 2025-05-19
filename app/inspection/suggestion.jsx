@@ -243,8 +243,11 @@ export default function Suggestion() {
         
         // Add a delay before navigating to ensure data is saved
         setTimeout(() => {
-          // Navigate to the history page instead of the task page
-          router.push("/(tabs)/history");
+          // Navigate to the history page with the farm ID as a parameter
+          router.push({
+            pathname: "/(tabs)/history",
+            params: { selectedFarmId: farmId }
+          });
         }, 1000);
       } catch (error) {
         // Check if the error is about missing boundary points

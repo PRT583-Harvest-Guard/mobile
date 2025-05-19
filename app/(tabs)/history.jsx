@@ -10,7 +10,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { RecordCard, PageHeader, DropDownField } from '@/components';
 import { Feather } from '@expo/vector-icons';
-import { Link, useFocusEffect } from 'expo-router';
+import { Link, useFocusEffect, router } from 'expo-router';
 import { 
   getInspectionObservations,
   getPendingInspectionObservations,
@@ -267,7 +267,68 @@ function History() {
       setLoading(true);
       
       // Load all data from scratch
-      loadData();
+      loadData().then(() => {
+        // Check if we have a selectedFarmId parameter from navigation
+        const params = router.getParams();
+        if (params && params.selectedFarmId) {
+          const farmId = Number(params.selectedFarmId);
+          console.log('Found selectedFarmId parameter:', farmId);
+          
+          // Find the farm with this ID
+          const farm = farms.find(f => f.id === farmId);
+          if (farm) {
+            console.log('Auto-selecting farm:', farm.name);
+            
+            // Simulate selecting this farm from the dropdown
+            setSelectedFarm(farm);
+            setLoading(true);
+            
+            // Get observation points for the selected farm
+            getObservationPoints(farm.id).then(observationPoints => {
+              console.log(`Loaded ${observationPoints.length} observation points for farm ${farm.name}`);
+              
+              // Format observation points for display
+              const formattedPoints = observationPoints.map(point => {
+                return {
+                  id: point.id,
+                  Date: new Date().toLocaleDateString(),
+                  Category: point.target_entity || 'Unknown',
+                  ConfidenceLevel: point.confidence_level || 'Unknown',
+                  InspectionSections: 1,
+                  InspectedPlantsPerSection: 0,
+                  Finished: point.observation_status === 'completed' || point.observation_status === 'Completed' ? 1 : 0,
+                  FarmId: farm.id,
+                  Status: point.observation_status || 'Nil',
+                  FarmName: farm.name,
+                  FarmSize: farm.size,
+                  SuggestionId: point.inspection_suggestion_id
+                };
+              });
+              
+              // Filter observation points based on status
+              const completedPoints = formattedPoints.filter(point => 
+                point.Status === 'Completed' || point.Status === 'completed'
+              );
+              
+              const pendingPoints = formattedPoints.filter(point => 
+                point.Status !== 'Completed' && point.Status !== 'completed'
+              );
+              
+              // Store both sets of points
+              setCompletedFarmPoints(completedPoints);
+              setPendingFarmPoints(pendingPoints);
+              
+              // Update the farm observation points based on which tab is active
+              setFarmObservationPoints(isShowUnfinishedList ? pendingPoints : completedPoints);
+              setShowFarmObservations(true);
+              setLoading(false);
+            }).catch(error => {
+              console.error('Error loading farm observation points:', error);
+              setLoading(false);
+            });
+          }
+        }
+      });
       
       return () => {
         // Cleanup function when screen goes out of focus

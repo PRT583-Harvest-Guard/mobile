@@ -1,4 +1,4 @@
-import { PageHeader } from '@/components'
+import { PageHeader, Logo } from '@/components'
 import React, { useState } from 'react'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { CustomButton, FormField } from '@/components'
@@ -28,10 +28,13 @@ const ChangePassword = () => {
   }
 
   return (
-    <SafeAreaView className='bg-white h-full'>
+    <SafeAreaView className='bg-green h-full'>
       <PageHeader title="Change Password" />
       <View className='w-full h-full items-center justify-center px-4'>
         <View className='w-full flex-1 items-center justify-center'>
+          {/* Logo */}
+          <Logo containerStyles="w-64 h-64 mb-8" />
+          
           {/* Old Password */}
           <FormField
             title="Old Password"
