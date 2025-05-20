@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { 
   View, 
   Text, 
@@ -20,7 +21,7 @@ import {
   checkExistingSuggestionForFarm,
   deleteInspectionSuggestion
 } from '@/services/InspectionSuggestionService';
-import { getFarms } from '@/services/BoundaryService';
+import { getFarms, getBoundaryData } from '@/services/BoundaryService';
 
 // Simple component for dropdown selection
 const SimpleDropdown = ({ label, options, value, onSelect, disabled }) => {
@@ -103,6 +104,7 @@ export default function Suggestion() {
   const [hasFarms, setHasFarms] = useState(false);
   const [existingSuggestion, setExistingSuggestion] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [hasBoundaries, setHasBoundaries] = useState(false);
   
   // Prepare data for dropdowns
   const entityOptions = Object.keys(Entities).map(key => 
@@ -120,8 +122,27 @@ export default function Suggestion() {
       // Initialize the tables
       await initInspectionSuggestionTable();
       
-      // Load farms for dropdown
-      const farmsData = await getFarms();
+      // Get the current user ID from AsyncStorage
+      let userId = null;
+      try {
+        const userJson = await AsyncStorage.getItem('user');
+        if (userJson) {
+          const user = JSON.parse(userJson);
+          userId = user.id;
+          console.log('Using user ID from AsyncStorage:', userId);
+        } else {
+          console.warn('No user found in AsyncStorage, using default user ID 1');
+          userId = 1; // Default user ID if not found
+        }
+      } catch (error) {
+        console.error('Error getting user from AsyncStorage:', error);
+        console.warn('Using default user ID 1');
+        userId = 1; // Default user ID if error
+      }
+      
+      // Load farms for dropdown for the current user
+      const farmsData = await getFarms(userId);
+      console.log('Loaded farms for user:', farmsData.length);
       
       if (farmsData && Array.isArray(farmsData) && farmsData.length > 0) {
         const farmOptions = farmsData.map(farm => farm.name);
@@ -228,8 +249,23 @@ export default function Suggestion() {
         density_of_plant: parseInt(densityOfPlant, 10)
       };
       
-      // Create the suggestion and observations with user ID (using 1 as default for now)
-      const userId = 1; // In a real app, this would come from authentication context
+      // Get the current user ID from AsyncStorage
+      let userId = null;
+      try {
+        const userJson = await AsyncStorage.getItem('user');
+        if (userJson) {
+          const user = JSON.parse(userJson);
+          userId = user.id;
+          console.log('Using user ID from AsyncStorage for creating suggestion:', userId);
+        } else {
+          console.warn('No user found in AsyncStorage, using default user ID 1');
+          userId = 1; // Default user ID if not found
+        }
+      } catch (error) {
+        console.error('Error getting user from AsyncStorage:', error);
+        console.warn('Using default user ID 1');
+        userId = 1; // Default user ID if error
+      }
       
       // Add more detailed logging
       console.log('Creating suggestion with data:', JSON.stringify(suggestionData));
@@ -365,6 +401,34 @@ export default function Suggestion() {
                 const density = size > 0 ? Math.round(10 * (1 + (1 / size))).toString() : '0';
                 setDensityOfPlant(density);
                 
+                // Check if the farm has boundaries
+                try {
+                  const boundaryPoints = await getBoundaryData(farm.id);
+                  const hasBoundaryPoints = boundaryPoints && boundaryPoints.length >= 3;
+                  setHasBoundaries(hasBoundaryPoints);
+                  
+                  if (!hasBoundaryPoints) {
+                    console.warn('Farm has no boundary points or not enough points');
+                    Alert.alert(
+                      "Boundary Points Required",
+                      "This farm doesn't have enough boundary points. Please add at least 3 boundary points to the farm before creating an inspection suggestion.",
+                      [
+                        {
+                          text: "Go to Farm",
+                          onPress: () => router.push(`/farm-details/${farm.id}`),
+                        },
+                        {
+                          text: "OK",
+                          style: "cancel"
+                        }
+                      ]
+                    );
+                  }
+                } catch (error) {
+                  console.error('Error checking farm boundaries:', error);
+                  setHasBoundaries(false);
+                }
+                
                 // Check if there's an existing suggestion for this farm
                 try {
                   const { exists, suggestion } = await checkExistingSuggestionForFarm(farm.id);
@@ -443,9 +507,17 @@ export default function Suggestion() {
           title="Submit"
           handlePress={handleSubmit}
           theme="primary"
-          disabled={!isFormValid() || isSubmitting || existingSuggestion !== null}
+          disabled={!isFormValid() || isSubmitting || existingSuggestion !== null || !hasBoundaries}
           isLoading={isSubmitting}
         />
+        
+        {selectedFarm && !hasBoundaries && (
+          <View className="mt-2">
+            <Text className="text-sm text-red-500 text-center">
+              This farm doesn't have enough boundary points. Please add at least 3 boundary points to the farm.
+            </Text>
+          </View>
+        )}
       </View>
     </SafeAreaView>
   );
