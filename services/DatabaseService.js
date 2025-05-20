@@ -197,6 +197,23 @@ class DatabaseService {
           FOREIGN KEY (farm_id) REFERENCES farms(id) ON DELETE CASCADE
         )
       `);
+      
+      // Create feature_flags table
+      await this.db.execAsync(`
+        CREATE TABLE IF NOT EXISTS feature_flags (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          name TEXT NOT NULL UNIQUE,
+          enabled INTEGER DEFAULT 0,
+          description TEXT,
+          created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+      
+      // Insert default feature flags if they don't exist
+      await this.db.execAsync(`
+        INSERT OR IGNORE INTO feature_flags (name, enabled, description)
+        VALUES ('delete_farm', 0, 'Allow farmers to delete their farms and all associated data')
+      `);
 
       console.log('Database tables created successfully');
     } catch (error) {
