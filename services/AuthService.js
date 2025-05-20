@@ -431,44 +431,71 @@ class AuthService {
    * @param {string} userData.password - Password
    * @param {string} userData.first_name - First name
    * @param {string} userData.last_name - Last name
-   * @returns {Promise<User>} The created user
+   * @returns {Promise<Object>} Result of the sign up operation
    */
   static async signUp(userData) {
     try {
-      // Only perform local sign up
-      if (__DEV__) {
-        console.log('Performing local sign up only');
-      }
-      
-      const database = await this.getDatabase();
-
-      // Check if username already exists
-      const existingUser = await this.findUserByUsername(userData.username);
-      if (existingUser) {
-        // Only log in development, not in production
+      // First try to create the account via the API
+      try {
         if (__DEV__) {
-          console.log('User already exists locally');
+          console.log('Attempting to sign up with API first');
         }
-        throw new Error('Username already exists');
+        
+        // Call the API to create the user
+        const apiResponse = await this.signUpWithApi(userData);
+        
+        if (__DEV__) {
+          console.log('API sign up successful, now creating local user');
+        }
+        
+        // If API registration succeeds, create the user locally
+        await this.createLocalUser(userData);
+        
+        return {
+          success: true,
+          message: 'Account created successfully on API and locally',
+          apiUser: apiResponse.user
+        };
+      } catch (apiError) {
+        // If API registration fails because the user already exists
+        if (apiError.message.includes('already exists') || 
+            apiError.message.includes('already registered') ||
+            apiError.message.includes('already taken')) {
+          
+          if (__DEV__) {
+            console.log('User already exists on API, attempting to create locally');
+          }
+          
+          // Try to create the user locally
+          try {
+            await this.createLocalUser(userData);
+            return {
+              success: true,
+              message: 'Account already exists on API, created locally',
+            };
+          } catch (localError) {
+            // If local creation fails because the user already exists
+            if (localError.message.includes('already exists')) {
+              throw new Error('User with this phone number/email already exists');
+            }
+            throw localError;
+          }
+        }
+        
+        // For other API errors, try local creation as fallback
+        if (__DEV__) {
+          console.log('API sign up failed with error:', apiError.message);
+          console.log('Falling back to local sign up');
+        }
+        
+        // Create the user locally
+        await this.createLocalUser(userData);
+        
+        return {
+          success: true,
+          message: 'Account created locally (API registration failed)',
+        };
       }
-
-      // Hash the password
-      const salt = bcrypt.genSaltSync(10);
-      const hashedPassword = bcrypt.hashSync(userData.password, salt);
-
-      // Insert new user
-      const result = await database.runAsync(
-        'INSERT INTO users (username, password_hash, email) VALUES (?, ?, ?)',
-        userData.username,
-        hashedPassword,
-        userData.email
-      );
-
-      // Only log in development, not in production
-      if (__DEV__) {
-        console.log('Local sign up successful');
-      }
-      return true;
     } catch (error) {
       // Only log in development, not in production
       if (__DEV__) {
@@ -476,6 +503,43 @@ class AuthService {
       }
       throw error;
     }
+  }
+  
+  /**
+   * Create a user in the local database
+   * @param {Object} userData - User data for sign up
+   * @returns {Promise<boolean>} Whether the user was created successfully
+   */
+  static async createLocalUser(userData) {
+    const database = await this.getDatabase();
+
+    // Check if username already exists
+    const existingUser = await this.findUserByUsername(userData.username);
+    if (existingUser) {
+      // Only log in development, not in production
+      if (__DEV__) {
+        console.log('User already exists locally');
+      }
+      throw new Error('Username already exists');
+    }
+
+    // Hash the password
+    const salt = bcrypt.genSaltSync(10);
+    const hashedPassword = bcrypt.hashSync(userData.password, salt);
+
+    // Insert new user
+    const result = await database.runAsync(
+      'INSERT INTO users (username, password_hash, email) VALUES (?, ?, ?)',
+      userData.username,
+      hashedPassword,
+      userData.email
+    );
+
+    // Only log in development, not in production
+    if (__DEV__) {
+      console.log('Local user creation successful');
+    }
+    return true;
   }
 
   /**

@@ -37,14 +37,29 @@ const SignUp = () => {
       const userData = {
         username: form.mobile,
         email: form.email,
-        password: form.password
+        password: form.password,
+        name: form.name || form.mobile // Use name if provided, otherwise use mobile
       };
 
-      await AuthService.signUp(userData);
-      showSuccessToast("Account created successfully! Please sign in.");
+      const result = await AuthService.signUp(userData);
+      
+      // Show appropriate success message based on the result
+      if (result.message.includes('API and locally')) {
+        showSuccessToast("Account created successfully on API and locally!");
+      } else if (result.message.includes('already exists on API')) {
+        showSuccessToast("Account already exists on API, created locally!");
+      } else {
+        showSuccessToast("Account created successfully! Please sign in.");
+      }
+      
       router.replace("/(auth)/sign-in");
     } catch (error) {
-      showErrorToast(error.message);
+      // If the error message indicates the user already exists
+      if (error.message.includes('already exists')) {
+        showErrorToast("User with this phone number/email already exists!");
+      } else {
+        showErrorToast(error.message);
+      }
     } finally {
       setIsSubmitting(false);
     }
