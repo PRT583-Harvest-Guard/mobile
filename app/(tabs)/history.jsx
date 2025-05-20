@@ -152,11 +152,6 @@ function History() {
       await initInspectionObservationTable();
       await initInspectionSuggestionTable();
       
-      // Get all farms
-      const farmsData = await getFarms();
-      console.log('Loaded farms:', farmsData.length);
-      setFarms(farmsData);
-      
       // Get the current user ID from AsyncStorage
       let userId = null;
       try {
@@ -174,6 +169,11 @@ function History() {
         console.warn('Using default user ID 1');
         userId = 1; // Default user ID if error
       }
+      
+      // Get farms for the current user
+      const farmsData = await getFarms(userId);
+      console.log('Loaded farms for user:', farmsData.length);
+      setFarms(farmsData);
       
       // Load inspection observations for the current user
       const pendingObservations = await getPendingInspectionObservations(userId);
@@ -419,12 +419,12 @@ function History() {
       </View>
       
       {/* Farm Dropdown */}
-      {farms.length > 0 && (
-        <View className="p-4 bg-white border-b border-[#e0e0e0]">
-          <DropDownField
-            label="Select Farm"
-            data={farms.map(farm => farm.name)}
-            onSelect={async (selectedItem, index) => {
+      <View className="p-4 bg-white border-b border-[#e0e0e0]">
+        <DropDownField
+          label="Select Farm"
+          data={farms.map(farm => farm.name)}
+          disabled={farms.length === 0}
+          onSelect={async (selectedItem, index) => {
               const farm = farms[index];
               setSelectedFarm(farm);
               setLoading(true);
@@ -509,7 +509,6 @@ function History() {
             </TouchableOpacity>
           )}
         </View>
-      )}
       
       <View className="flex-1 p-4">
         {/* Tab Selection */}
