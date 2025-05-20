@@ -5,9 +5,9 @@
 import { Platform } from 'react-native';
 import * as FileSystem from 'expo-file-system';
 import * as SQLite from 'expo-sqlite';
-import bcrypt from '@/utils/bcryptSetup';
+import bcrypt from '../utils/bcryptSetup';
 import * as Crypto from 'expo-crypto';
-import config from '@/config/env';
+import config from '../config/env';
 
 // Initialize database
 let db = null;
