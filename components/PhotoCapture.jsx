@@ -260,11 +260,9 @@ const PhotoCapture = ({ title, titleStyles, farmId }) => {
           />
 
           {boundaryStore.photos.length > 0 && (
-            <FlatList
-              data={boundaryStore.photos}
-              keyExtractor={(_, i) => i.toString()}
-              renderItem={({ item, index }) => (
-                <View className="w-full items-center justify-center p-2 border-b-2 border-secondary">
+            <View className="w-full">
+              {boundaryStore.photos.map((item, index) => (
+                <View key={index} className="w-full items-center justify-center p-2 border-b-2 border-secondary">
                   <View className="w-full flex-row items-end justify-between">
                     <Image source={{ uri: item.uri }} className="w-[50px] h-[50px] rounded-lg" />
                     <Text className="text-gray-900 text-sm font-plight">
@@ -281,8 +279,8 @@ const PhotoCapture = ({ title, titleStyles, farmId }) => {
                     </Text>
                   </TouchableOpacity>
                 </View>
-              )}
-            />
+              ))}
+            </View>
           )}
         </View>
       )}

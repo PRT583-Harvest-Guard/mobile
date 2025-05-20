@@ -142,7 +142,7 @@ export default function UploadBoundaryScreen() {
             <View className="mb-5">
               {boundaryStore.photos.length > 0 && (
                 <Text className="text-lg font-pbold mb-2 text-center text-[#333]">
-                  Existing Boundary Points: {boundaryStore.photos.length}
+                  {/* Existing Boundary Points: {boundaryStore.photos.length} */}
                 </Text>
               )}
               <View className="h-[500px]">
