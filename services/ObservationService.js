@@ -4,7 +4,7 @@
  */
 import databaseService from './DatabaseService';
 import { getBoundaryData } from './BoundaryService';
-import config from '@/config/env';
+import config from '../config/env';
 
 // Flag to track if a transaction is active
 let transactionActive = false;

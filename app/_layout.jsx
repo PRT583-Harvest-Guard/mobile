@@ -3,8 +3,8 @@ import { Stack, SplashScreen } from "expo-router";
 import { useFonts } from "expo-font";
 import { View, Text } from "react-native";
 import "../global.css"
-import GlobalProvider from "@/context/GlobalProvider";
-import "@/utils/bcryptSetup"; // Import bcrypt setup to fix Math.random warning
+import GlobalProvider from "../context/GlobalProvider";
+import "../utils/bcryptSetup"; // Import bcrypt setup to fix Math.random warning
 import Toast, { BaseToast, ErrorToast } from 'react-native-toast-message';
 
 SplashScreen.preventAutoHideAsync();

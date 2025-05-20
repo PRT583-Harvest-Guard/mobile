@@ -4,7 +4,7 @@ import { Feather, FontAwesome, FontAwesome5, FontAwesome6 } from '@expo/vector-i
 import * as Location from 'expo-location';
 import { Camera } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
-import useBoundaryStore from '@/store/boundaryStore';
+import useBoundaryStore from '../store/boundaryStore';
 
 const BoundaryCapture = ({ onPointsChange, onSave }) => {
   const [points, setPoints] = useState([]);
@@ -381,4 +381,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default BoundaryCapture; 
+export default BoundaryCapture;

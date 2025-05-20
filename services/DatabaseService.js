@@ -5,7 +5,7 @@
  * This implementation uses SQLite via expo-sqlite to interact with the mobile database
  */
 import * as SQLite from 'expo-sqlite';
-import config from '@/config/env';
+import config from '../config/env';
 
 class DatabaseService {
   constructor() {

@@ -1,7 +1,7 @@
 /**
  * Script to delete all inspection observations from the database
  */
-import config from '@/config/env';
+import config from '../config/env';
 const SQLite = require('expo-sqlite');
 
 // Open the database

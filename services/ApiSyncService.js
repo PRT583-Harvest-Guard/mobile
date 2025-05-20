@@ -4,7 +4,7 @@
  */
 import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
-import config from '@/config/env';
+import config from '../config/env';
 import AuthService from './AuthService';
 import databaseService from './DatabaseService';
 import { Alert } from 'react-native';

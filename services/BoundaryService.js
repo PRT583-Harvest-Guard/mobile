@@ -3,8 +3,8 @@
  * Handles operations related to farm boundaries
  */
 import databaseService from './DatabaseService';
-import { getInspectionObservationsByFarmId, updateInspectionObservation } from '@/services/InspectionObservationService';
-import { getInspectionSuggestionsByFarmId, deleteInspectionSuggestion } from '@/services/InspectionSuggestionService';
+import { getInspectionObservationsByFarmId, updateInspectionObservation } from './InspectionObservationService';
+import { getInspectionSuggestionsByFarmId, deleteInspectionSuggestion } from './InspectionSuggestionService';
 
 /**
  * Create a new farm

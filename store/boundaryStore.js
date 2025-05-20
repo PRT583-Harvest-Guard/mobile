@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { saveBoundaryData, getBoundaryData } from '@/services/BoundaryService'
+import { saveBoundaryData, getBoundaryData } from '../services/BoundaryService'
 
 const useBoundaryStore = create((set, get) => ({
   // State
