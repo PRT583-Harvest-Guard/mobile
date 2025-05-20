@@ -599,9 +599,10 @@ class AuthService {
   /**
    * Sign out the current user
    * @param {string} sessionToken - The local session token
+   * @param {string} refreshToken - The API refresh token (optional)
    * @returns {Promise<void>}
    */
-  static async signOut(sessionToken) {
+  static async signOut(sessionToken, refreshToken) {
     try {
       // First try to sign out from the API if a refresh token is provided
       if (refreshToken) {

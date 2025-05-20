@@ -32,16 +32,19 @@ const Settings = () => {
           text: "Log Out",
           onPress: async () => {
             try {
-              // Get the session token from AsyncStorage
+              // Get the session token and refresh token from AsyncStorage
               const sessionToken = await AsyncStorage.getItem('sessionToken');
+              const refreshToken = await AsyncStorage.getItem('refresh_token');
               
               if (sessionToken) {
                 // Sign out using the AuthService
-                await AuthService.signOut(sessionToken);
+                await AuthService.signOut(sessionToken, refreshToken);
                 
                 // Clear the session token and user data from AsyncStorage
                 await AsyncStorage.removeItem('sessionToken');
                 await AsyncStorage.removeItem('user');
+                await AsyncStorage.removeItem('refresh_token');
+                await AsyncStorage.removeItem('access_token');
               }
               
               // Update the global state and navigate to the home page

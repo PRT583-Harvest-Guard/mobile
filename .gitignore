@@ -40,3 +40,6 @@ app-example
 
 # generated file
 config/env.js
+
+.idea
+

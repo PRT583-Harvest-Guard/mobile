@@ -617,6 +617,9 @@ class ApiSyncService {
    */
   async signOut() {
     try {
+      // Get the refresh token before clearing it
+      const refreshToken = this.refreshToken;
+      
       // Clear tokens
       await this.clearTokensFromStorage();
 
@@ -626,7 +629,7 @@ class ApiSyncService {
       // Sign out locally
       const credentials = await this.getStoredCredentials();
       if (credentials) {
-        await AuthService.signOut(credentials.sessionToken);
+        await AuthService.signOut(credentials.sessionToken, refreshToken);
       }
     } catch (error) {
       console.error('Sign out error:', error);
@@ -763,7 +766,7 @@ class ApiSyncService {
 
   /**
    * Perform a full sync with the Django API
-   * This method is used by the sync-records.jsx page
+   * Thijust s method is used by the sync-records.jsx page
    * @returns {Promise<Object>} Sync result
    */
   async performFullSync() {
