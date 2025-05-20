@@ -47,8 +47,8 @@ class DatabaseService {
       console.log('Running database migrations...');
       
       // Check if user_id column exists in farms table
-      const tableInfo = await this.db.getAllAsync("PRAGMA table_info(farms)");
-      const userIdColumnExists = tableInfo.some(column => column.name === 'user_id');
+      const farmsTableInfo = await this.db.getAllAsync("PRAGMA table_info(farms)");
+      const userIdColumnExists = farmsTableInfo.some(column => column.name === 'user_id');
       
       if (!userIdColumnExists) {
         console.log('Adding user_id column to farms table...');
@@ -66,6 +66,23 @@ class DatabaseService {
         console.log('Migration completed: Added user_id column to farms table');
       } else {
         console.log('user_id column already exists in farms table');
+      }
+      
+      // Check if photo_uri column exists in boundary_points table
+      const boundaryPointsTableInfo = await this.db.getAllAsync("PRAGMA table_info(boundary_points)");
+      const photoUriColumnExists = boundaryPointsTableInfo.some(column => column.name === 'photo_uri');
+      
+      if (!photoUriColumnExists) {
+        console.log('Adding photo_uri column to boundary_points table...');
+        
+        // Add photo_uri column to boundary_points table
+        await this.db.execAsync(`
+          ALTER TABLE boundary_points ADD COLUMN photo_uri TEXT;
+        `);
+        
+        console.log('Migration completed: Added photo_uri column to boundary_points table');
+      } else {
+        console.log('photo_uri column already exists in boundary_points table');
       }
     } catch (error) {
       console.error('Database migration error:', error);
@@ -125,6 +142,7 @@ class DatabaseService {
           longitude REAL,
           timestamp TEXT,
           description TEXT,
+          photo_uri TEXT,
           FOREIGN KEY (farm_id) REFERENCES farms(id) ON DELETE CASCADE
         )
       `);
