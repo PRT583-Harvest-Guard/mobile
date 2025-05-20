@@ -13,6 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { Avatar, CustomButton } from '@/components';
 import { router, useFocusEffect } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getProfile } from '@/services/ProfileService';
 import { getFarms } from '@/services/BoundaryService';
 import iconPrimary from '@/assets/images/icon-primary.png';
@@ -54,11 +55,29 @@ const Home = () => {
       const profileData = await getProfile();
       setProfile(profileData);
       
-      // Load farms data
-      const farmsData = await getFarms();
+      // Get the current user ID from AsyncStorage
+      const userJson = await AsyncStorage.getItem('user');
+      if (!userJson) {
+        console.warn('User not found, please sign in again');
+        setFarms([]);
+        return;
+      }
+      
+      const user = JSON.parse(userJson);
+      const userId = user.id;
+      
+      if (!userId) {
+        console.warn('User ID not found, please sign in again');
+        setFarms([]);
+        return;
+      }
+      
+      // Load farms data for the current user
+      const farmsData = await getFarms(userId);
       setFarms(farmsData);
     } catch (error) {
       console.error('Error loading data:', error);
+      setFarms([]);
     } finally {
       setLoading(false);
     }

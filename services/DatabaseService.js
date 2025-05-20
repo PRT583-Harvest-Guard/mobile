@@ -26,12 +26,51 @@ class DatabaseService {
 
       // Create tables if they don't exist
       await this.createTables();
+      
+      // Run migrations
+      await this.runMigrations();
 
       this.initialized = true;
       console.log('SQLite database initialized successfully');
     } catch (error) {
       console.error('Database initialization error:', error);
       throw error;
+    }
+  }
+  
+  /**
+   * Run database migrations
+   * @returns {Promise<void>}
+   */
+  async runMigrations() {
+    try {
+      console.log('Running database migrations...');
+      
+      // Check if user_id column exists in farms table
+      const tableInfo = await this.db.getAllAsync("PRAGMA table_info(farms)");
+      const userIdColumnExists = tableInfo.some(column => column.name === 'user_id');
+      
+      if (!userIdColumnExists) {
+        console.log('Adding user_id column to farms table...');
+        
+        // Add user_id column to farms table
+        await this.db.execAsync(`
+          ALTER TABLE farms ADD COLUMN user_id INTEGER;
+        `);
+        
+        // Set default user_id to 1 for existing farms
+        await this.db.execAsync(`
+          UPDATE farms SET user_id = 1 WHERE user_id IS NULL;
+        `);
+        
+        console.log('Migration completed: Added user_id column to farms table');
+      } else {
+        console.log('user_id column already exists in farms table');
+      }
+    } catch (error) {
+      console.error('Database migration error:', error);
+      // Don't throw the error, just log it
+      console.log('Will continue without running migrations');
     }
   }
 
@@ -71,7 +110,9 @@ class DatabaseService {
           name TEXT NOT NULL,
           size REAL,
           plant_type TEXT,
-          created_at TEXT DEFAULT CURRENT_TIMESTAMP
+          user_id INTEGER,
+          created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
         )
       `);
 

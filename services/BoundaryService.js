@@ -12,18 +12,42 @@ import { getInspectionSuggestionsByFarmId, deleteInspectionSuggestion } from './
  * @param {string} farmData.name - Farm name
  * @param {number} farmData.size - Farm size
  * @param {string} farmData.plant_type - Plant type
+ * @param {number} farmData.user_id - User ID (owner of the farm)
  * @returns {Promise<number>} - ID of the created farm
  */
 export const createFarm = async (farmData) => {
   try {
     await databaseService.initialize();
 
-    const { name, size, plant_type } = farmData;
-    return await databaseService.insert('farms', {
+    const { name, size, plant_type, user_id } = farmData;
+    
+    // Create farm data object
+    const farmDataToInsert = {
       name,
       size,
       plant_type
-    });
+    };
+    
+    // Add user_id if provided
+    if (user_id) {
+      try {
+        // Check if user_id column exists in farms table
+        const tableInfo = await databaseService.query("PRAGMA table_info(farms)");
+        const userIdColumnExists = tableInfo.some(column => column.name === 'user_id');
+        
+        if (userIdColumnExists) {
+          farmDataToInsert.user_id = user_id;
+        } else {
+          console.warn('user_id column does not exist in farms table, skipping user_id');
+        }
+      } catch (error) {
+        console.warn('Error checking for user_id column, skipping user_id:', error.message);
+      }
+    } else {
+      console.warn('No user_id provided, creating farm without user association');
+    }
+    
+    return await databaseService.insert('farms', farmDataToInsert);
   } catch (error) {
     if (__DEV__) console.error('Error creating farm:', error);
     throw error;
@@ -31,15 +55,55 @@ export const createFarm = async (farmData) => {
 };
 
 /**
- * Get all farms
+ * Get all farms for a specific user
+ * @param {number} userId - User ID (owner of the farms)
  * @returns {Promise<Array>} - List of farms
  */
-export const getFarms = async () => {
+export const getFarms = async (userId) => {
+  try {
+    await databaseService.initialize();
+    
+    if (!userId) {
+      console.warn('No user ID provided, returning all farms');
+      return await databaseService.getAll('farms', '', [], 'ORDER BY created_at DESC');
+    }
+    
+    try {
+      // Try to get farms filtered by user_id
+      return await databaseService.getAll('farms', 'user_id = ?', [userId], 'ORDER BY created_at DESC');
+    } catch (error) {
+      // If there's an error with the user_id filter (e.g., column doesn't exist yet),
+      // fall back to getting all farms
+      if (error.message && (
+          error.message.includes('no such column: user_id') || 
+          error.message.includes('user_id')
+      )) {
+        console.warn('user_id column not available, returning all farms');
+        return await databaseService.getAll('farms', '', [], 'ORDER BY created_at DESC');
+      }
+      
+      // For other errors, rethrow
+      throw error;
+    }
+  } catch (error) {
+    if (__DEV__) console.error('Error getting farms:', error);
+    
+    // Return empty array instead of throwing error
+    console.warn('Returning empty farms array due to error');
+    return [];
+  }
+};
+
+/**
+ * Get all farms (admin function)
+ * @returns {Promise<Array>} - List of all farms
+ */
+export const getAllFarms = async () => {
   try {
     await databaseService.initialize();
     return await databaseService.getAll('farms', '', [], 'ORDER BY created_at DESC');
   } catch (error) {
-    if (__DEV__) console.error('Error getting farms:', error);
+    if (__DEV__) console.error('Error getting all farms:', error);
     throw error;
   }
 };
@@ -91,9 +155,8 @@ export const saveBoundaryData = async (farmId, points) => {
       if (observations && observations.length > 0) {
         if (__DEV__) console.log(`Updating ${observations.length} inspection observations for farm ${farmId}`);
 
-        // Get the farm details
-        const farms = await getFarms();
-        const farm = farms.find(f => f.id === Number(farmId));
+        // Get the farm details directly
+        const farm = await databaseService.getById('farms', 'id', Number(farmId));
 
         if (farm) {
           // Update each observation with the latest farm details
@@ -272,7 +335,7 @@ export const updateFarm = async (farmId, farmData) => {
   try {
     await databaseService.initialize();
 
-    const { name, size, plant_type } = farmData;
+    const { name, size, plant_type, user_id } = farmData;
 
     // First, verify the farm exists
     const existingFarm = await databaseService.getById('farms', 'id', farmId);
@@ -284,14 +347,34 @@ export const updateFarm = async (farmId, farmData) => {
     // Convert size to number
     const sizeValue = size !== null ? Number(size) : null;
 
+    // Prepare update data
+    const updateData = {
+      name,
+      size: sizeValue,
+      plant_type
+    };
+    
+    // If user_id is provided, check if the column exists before adding it
+    if (user_id) {
+      try {
+        // Check if user_id column exists in farms table
+        const tableInfo = await databaseService.query("PRAGMA table_info(farms)");
+        const userIdColumnExists = tableInfo.some(column => column.name === 'user_id');
+        
+        if (userIdColumnExists) {
+          updateData.user_id = user_id;
+        } else {
+          console.warn('user_id column does not exist in farms table, skipping user_id update');
+        }
+      } catch (error) {
+        console.warn('Error checking for user_id column, skipping user_id update:', error.message);
+      }
+    }
+
     // Update the farm
     await databaseService.update(
       'farms',
-      {
-        name,
-        size: sizeValue,
-        plant_type
-      },
+      updateData,
       'id = ?',
       [farmId]
     );

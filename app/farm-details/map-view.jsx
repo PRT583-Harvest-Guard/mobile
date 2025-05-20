@@ -3,6 +3,7 @@ import { View, Text, Dimensions, TouchableOpacity } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getBoundaryData, getFarms } from '@/services/BoundaryService';
 import { PageHeader, BoundaryMap } from '@/components';
 
@@ -22,8 +23,23 @@ const MapViewScreen = () => {
       setLoading(true);
       setError(null);
       
-      // Get all farms and find the one with matching ID
-      const farms = await getFarms();
+      // Get the current user ID from AsyncStorage
+      const userJson = await AsyncStorage.getItem('user');
+      if (!userJson) {
+        setError('User not found, please sign in again');
+        return;
+      }
+      
+      const user = JSON.parse(userJson);
+      const userId = user.id;
+      
+      if (!userId) {
+        setError('User ID not found, please sign in again');
+        return;
+      }
+      
+      // Get all farms for the current user and find the one with matching ID
+      const farms = await getFarms(userId);
       const farmData = farms.find(f => f.id === Number(id) || f.id === id);
       
       if (!farmData) {

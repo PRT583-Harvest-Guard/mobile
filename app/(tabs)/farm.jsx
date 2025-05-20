@@ -12,10 +12,12 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams, Link } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { CustomButton, FormField, PageHeader } from '@/components';
 import { getFarms, createFarm, updateFarm, deleteFarm } from '@/services/BoundaryService';
 import { isFeatureEnabled } from '@/services/FeatureFlagService';
 import { showSuccessToast, showErrorToast } from '@/utils/toastUtils';
+import { useGlobalContext } from '@/context/GlobalProvider';
 
 const FarmScreen = () => {
   const params = useLocalSearchParams();
@@ -59,7 +61,24 @@ const FarmScreen = () => {
   const loadFarms = async () => {
     try {
       setLoading(true);
-      const farmsData = await getFarms();
+      
+      // Get the current user ID from AsyncStorage
+      const userJson = await AsyncStorage.getItem('user');
+      if (!userJson) {
+        showErrorToast('User not found, please sign in again');
+        return;
+      }
+      
+      const user = JSON.parse(userJson);
+      const userId = user.id;
+      
+      if (!userId) {
+        showErrorToast('User ID not found, please sign in again');
+        return;
+      }
+      
+      // Get farms for the current user
+      const farmsData = await getFarms(userId);
       setFarms(farmsData);
     } catch (error) {
       console.error('Error loading farms:', error);
@@ -157,10 +176,26 @@ const FarmScreen = () => {
         return;
       }
       
+      // Get the current user ID from AsyncStorage
+      const userJson = await AsyncStorage.getItem('user');
+      if (!userJson) {
+        showErrorToast('User not found, please sign in again');
+        return;
+      }
+      
+      const user = JSON.parse(userJson);
+      const userId = user.id;
+      
+      if (!userId) {
+        showErrorToast('User ID not found, please sign in again');
+        return;
+      }
+      
       const farmData = {
         name: farmName.trim(),
         size: farmSize ? parseFloat(farmSize) : null,
-        plant_type: plantType.trim()
+        plant_type: plantType.trim(),
+        user_id: userId
       };
       
       if (formMode === 'edit' && currentFarmId) {

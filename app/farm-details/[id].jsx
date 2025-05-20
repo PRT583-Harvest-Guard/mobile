@@ -3,6 +3,7 @@ import { View, Text, ScrollView, Alert, ActivityIndicator, TouchableOpacity, Mod
 import { useLocalSearchParams, router, Link, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getFarms, getBoundaryData, deleteFarm } from '@/services/BoundaryService';
 import { isFeatureEnabled } from '@/services/FeatureFlagService';
 import { getOrGenerateObservationPoints, saveObservationPoints } from '@/services/ObservationService';
@@ -75,8 +76,27 @@ const FarmDetailsScreen = () => {
     try {
       setLoading(true);
       
-      // Get all farms and find the one with matching ID
-      const farms = await getFarms();
+      // Get the current user ID from AsyncStorage
+      const userJson = await AsyncStorage.getItem('user');
+      if (!userJson) {
+        console.warn('User not found, please sign in again');
+        Alert.alert('Error', 'User not found, please sign in again');
+        router.back();
+        return;
+      }
+      
+      const user = JSON.parse(userJson);
+      const userId = user.id;
+      
+      if (!userId) {
+        console.warn('User ID not found, please sign in again');
+        Alert.alert('Error', 'User ID not found, please sign in again');
+        router.back();
+        return;
+      }
+      
+      // Get all farms for the current user and find the one with matching ID
+      const farms = await getFarms(userId);
       const farmData = farms.find(f => f.id === Number(id) || f.id === id);
       
       if (!farmData) {
