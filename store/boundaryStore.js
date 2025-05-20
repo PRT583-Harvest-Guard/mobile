@@ -65,6 +65,7 @@ const useBoundaryStore = create((set, get) => ({
         latitude: p.location.latitude,
         longitude: p.location.longitude,
         description: p.description || "",
+        photoUri: p.uri || null
       })));
       
       // Update the local state with the latest from the database

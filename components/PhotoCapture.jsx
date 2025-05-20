@@ -85,6 +85,7 @@ const PhotoCapture = ({ title, titleStyles, farmId }) => {
           timestamp: point.timestamp,
           description: point.description
         }))
+        console.log('Loaded boundary points:', points)
         boundaryStore.setPhotos(photos)
       }
     } catch (error) {
