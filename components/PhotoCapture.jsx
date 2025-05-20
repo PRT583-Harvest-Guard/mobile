@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { Alert, FlatList, Image, Modal, Text, TextInput, TouchableOpacity, View } from 'react-native'
+import { Alert, FlatList, Image, Modal, Text, TextInput, TouchableOpacity, View, Linking } from 'react-native'
 import { CameraView, useCameraPermissions } from 'expo-camera'
 import * as Location from 'expo-location'
 import CustomButton from './CustomButton'
@@ -24,8 +24,45 @@ const PhotoCapture = ({ title, titleStyles, farmId }) => {
   const boundaryStore = useBoundaryStore()
 
   const checkPermission = async () => {
-    if (!cameraPermission) await requestCameraPermission()
-    if (!locationPermission) await requestLocationPermission()
+    try {
+      // Request camera permission if not already granted
+      if (!cameraPermission?.granted) {
+        const cameraResult = await requestCameraPermission()
+        if (!cameraResult.granted) {
+          Alert.alert(
+            'Camera Permission Required',
+            'Camera access is needed to capture boundary points. Please enable camera access in your device settings.',
+            [
+              { text: 'Cancel', style: 'cancel' },
+              { text: 'Open Settings', onPress: () => Linking.openSettings() }
+            ]
+          )
+          return false
+        }
+      }
+      
+      // Request location permission if not already granted
+      if (!locationPermission?.granted) {
+        const locationResult = await requestLocationPermission()
+        if (!locationResult.granted) {
+          Alert.alert(
+            'Location Permission Required',
+            'Location access is needed to record the position of boundary points. Please enable location access in your device settings.',
+            [
+              { text: 'Cancel', style: 'cancel' },
+              { text: 'Open Settings', onPress: () => Linking.openSettings() }
+            ]
+          )
+          return false
+        }
+      }
+      
+      return true
+    } catch (error) {
+      console.error('Error checking permissions:', error)
+      Alert.alert('Error', 'Failed to check permissions. Please try again.')
+      return false
+    }
   }
 
   useEffect(() => { 
@@ -210,8 +247,10 @@ const PhotoCapture = ({ title, titleStyles, farmId }) => {
           <CustomButton 
             title="Capture Points" 
             handlePress={async () => {
-              await checkPermission()
-              setIsOpenCamera(true)
+              const permissionsGranted = await checkPermission()
+              if (permissionsGranted) {
+                setIsOpenCamera(true)
+              }
             }}
             isLoading={isCapturing}
             containerStyles="px-8 py-4"
