@@ -32,7 +32,9 @@ export const initObservationPointsTable = async () => {
         inspection_suggestion_id INTEGER DEFAULT NULL,
         confidence_level TEXT DEFAULT NULL,
         target_entity TEXT DEFAULT NULL,
-        FOREIGN KEY (farm_id) REFERENCES farms(id) ON DELETE CASCADE
+        user_id INTEGER DEFAULT NULL,
+        FOREIGN KEY (farm_id) REFERENCES farms(id) ON DELETE CASCADE,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
       )
     `);
 
@@ -57,28 +59,93 @@ export const initObservationPointsTable = async () => {
 /**
  * Get observation points for a farm
  * @param {number} farmId - Farm ID
+ * @param {number} userId - Optional user ID to filter by
  * @returns {Promise<Array>} - Array of observation points
  */
-export const getObservationPoints = async (farmId) => {
+export const getObservationPoints = async (farmId, userId = null) => {
   try {
     await databaseService.initialize();
 
     // Ensure farmId is a number
     const farmIdNum = Number(farmId);
 
-    // Get observation points
+    // Get observation points, filtered by user ID if provided
+    let whereClause = 'farm_id = ?';
+    let params = [farmIdNum];
+    
+    // If userId is provided, add it to the where clause
+    if (userId) {
+      try {
+        // Check if user_id column exists in observation_points table
+        const tableInfo = await databaseService.query("PRAGMA table_info(observation_points)");
+        const userIdColumnExists = tableInfo.some(column => column.name === 'user_id');
+        
+        if (userIdColumnExists) {
+          whereClause += ' AND (user_id = ? OR user_id IS NULL)';
+          params.push(userId);
+        } else {
+          console.warn('user_id column does not exist in observation_points table, ignoring user filter');
+        }
+      } catch (error) {
+        console.warn('Error checking for user_id column, ignoring user filter:', error.message);
+      }
+    }
+    
     const points = await databaseService.getAll(
       'observation_points',
-      'farm_id = ?',
-      [farmIdNum],
+      whereClause,
+      params,
       'ORDER BY segment'
     );
 
-    if (__DEV__) console.log(`Found ${points.length} observation points for farm ID ${farmIdNum}`);
+    if (__DEV__) console.log(`Found ${points.length} observation points for farm ID ${farmIdNum}${userId ? ` and user ID ${userId}` : ''}`);
 
     return points;
   } catch (error) {
     if (__DEV__) console.error('Error getting observation points:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get observation points for a user
+ * @param {number} userId - User ID
+ * @returns {Promise<Array>} - Array of observation points
+ */
+export const getObservationPointsByUserId = async (userId) => {
+  try {
+    await databaseService.initialize();
+
+    // Ensure userId is a number
+    const userIdNum = Number(userId);
+    
+    try {
+      // Check if user_id column exists in observation_points table
+      const tableInfo = await databaseService.query("PRAGMA table_info(observation_points)");
+      const userIdColumnExists = tableInfo.some(column => column.name === 'user_id');
+      
+      if (!userIdColumnExists) {
+        console.warn('user_id column does not exist in observation_points table, returning all points');
+        return await databaseService.getAll('observation_points', '', [], 'ORDER BY farm_id, segment');
+      }
+      
+      // Get observation points for this user
+      const points = await databaseService.getAll(
+        'observation_points',
+        'user_id = ?',
+        [userIdNum],
+        'ORDER BY farm_id, segment'
+      );
+      
+      if (__DEV__) console.log(`Found ${points.length} observation points for user ID ${userIdNum}`);
+      
+      return points;
+    } catch (error) {
+      console.warn('Error filtering by user_id, returning all points:', error.message);
+      return await databaseService.getAll('observation_points', '', [], 'ORDER BY farm_id, segment');
+    }
+  } catch (error) {
+    if (__DEV__) console.error('Error getting observation points for user:', error);
     throw error;
   }
 };

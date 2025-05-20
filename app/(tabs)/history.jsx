@@ -11,6 +11,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { RecordCard, PageHeader, DropDownField } from '@/components';
 import { Feather } from '@expo/vector-icons';
 import { Link, useFocusEffect, router } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { 
   getInspectionObservations,
   getPendingInspectionObservations,
@@ -156,9 +157,23 @@ function History() {
       console.log('Loaded farms:', farmsData.length);
       setFarms(farmsData);
       
-      // Get the current user ID (using 1 as default for now)
-      const userId = 1; // In a real app, this would come from authentication context
-      console.log('Using user ID:', userId);
+      // Get the current user ID from AsyncStorage
+      let userId = null;
+      try {
+        const userJson = await AsyncStorage.getItem('user');
+        if (userJson) {
+          const user = JSON.parse(userJson);
+          userId = user.id;
+          console.log('Using user ID from AsyncStorage:', userId);
+        } else {
+          console.warn('No user found in AsyncStorage, using default user ID 1');
+          userId = 1; // Default user ID if not found
+        }
+      } catch (error) {
+        console.error('Error getting user from AsyncStorage:', error);
+        console.warn('Using default user ID 1');
+        userId = 1; // Default user ID if error
+      }
       
       // Load inspection observations for the current user
       const pendingObservations = await getPendingInspectionObservations(userId);
@@ -283,8 +298,24 @@ function History() {
             setSelectedFarm(farm);
             setLoading(true);
             
-            // Get observation points for the selected farm
-            getObservationPoints(farm.id).then(observationPoints => {
+            // Get the current user ID from AsyncStorage
+            AsyncStorage.getItem('user').then(userJson => {
+              let userId = 1; // Default user ID
+              
+              if (userJson) {
+                try {
+                  const user = JSON.parse(userJson);
+                  if (user.id) {
+                    userId = user.id;
+                  }
+                } catch (error) {
+                  console.error('Error parsing user JSON:', error);
+                }
+              }
+              
+              // Get observation points for the selected farm and user
+              return getObservationPoints(farm.id, userId);
+            }).then(observationPoints => {
               console.log(`Loaded ${observationPoints.length} observation points for farm ${farm.name}`);
               
               // Format observation points for display
@@ -399,9 +430,27 @@ function History() {
               setLoading(true);
               
               try {
-                // Get observation points for the selected farm
-                const observationPoints = await getObservationPoints(farm.id);
-                console.log(`Loaded ${observationPoints.length} observation points for farm ${farm.name}`);
+                // Get the current user ID from AsyncStorage
+                let userId = null;
+                try {
+                  const userJson = await AsyncStorage.getItem('user');
+                  if (userJson) {
+                    const user = JSON.parse(userJson);
+                    userId = user.id;
+                    console.log('Using user ID from AsyncStorage for observation points:', userId);
+                  } else {
+                    console.warn('No user found in AsyncStorage, using default user ID 1 for observation points');
+                    userId = 1; // Default user ID if not found
+                  }
+                } catch (error) {
+                  console.error('Error getting user from AsyncStorage for observation points:', error);
+                  console.warn('Using default user ID 1 for observation points');
+                  userId = 1; // Default user ID if error
+                }
+                
+                // Get observation points for the selected farm and user
+                const observationPoints = await getObservationPoints(farm.id, userId);
+                console.log(`Loaded ${observationPoints.length} observation points for farm ${farm.name} and user ${userId}`);
                 
                 // Format observation points for display
                 const formattedPoints = await Promise.all(observationPoints.map(async point => {
@@ -558,40 +607,54 @@ function History() {
                 </Text>
               </View>
             )}
-            onRefresh={() => {
+            onRefresh={async () => {
               if (selectedFarm) {
-                getObservationPoints(selectedFarm.id).then(points => {
-                  const formattedPoints = points.map(point => ({
-                    id: point.id,
-                    Date: new Date().toLocaleDateString(),
-                    Category: point.target_entity || 'Unknown',
-                    ConfidenceLevel: point.confidence_level || 'Unknown',
-                    InspectionSections: 1,
-                    InspectedPlantsPerSection: 0,
-                    Finished: point.observation_status === 'completed' || point.observation_status === 'Completed' ? 1 : 0,
-                    FarmId: selectedFarm.id,
-                    Status: point.observation_status || 'Nil',
-                    FarmName: selectedFarm.name,
-                    FarmSize: selectedFarm.size,
-                    SuggestionId: point.inspection_suggestion_id
-                  }));
-                  
-                  // Filter observation points based on status
-                  const completedPoints = formattedPoints.filter(point => 
-                    point.Status === 'Completed' || point.Status === 'completed'
-                  );
-                  
-                  const pendingPoints = formattedPoints.filter(point => 
-                    point.Status !== 'Completed' && point.Status !== 'completed'
-                  );
-                  
-                  // Store both sets of points
-                  setCompletedFarmPoints(completedPoints);
-                  setPendingFarmPoints(pendingPoints);
-                  
-                  // Update the farm observation points based on which tab is active
-                  setFarmObservationPoints(isShowUnfinishedList ? pendingPoints : completedPoints);
-                });
+                // Get the current user ID from AsyncStorage
+                let userId = null;
+                try {
+                  const userJson = await AsyncStorage.getItem('user');
+                  if (userJson) {
+                    const user = JSON.parse(userJson);
+                    userId = user.id;
+                  } else {
+                    userId = 1; // Default user ID if not found
+                  }
+                } catch (error) {
+                  userId = 1; // Default user ID if error
+                }
+                
+                // Get observation points for the selected farm and user
+                const points = await getObservationPoints(selectedFarm.id, userId);
+                const formattedPoints = points.map(point => ({
+                  id: point.id,
+                  Date: new Date().toLocaleDateString(),
+                  Category: point.target_entity || 'Unknown',
+                  ConfidenceLevel: point.confidence_level || 'Unknown',
+                  InspectionSections: 1,
+                  InspectedPlantsPerSection: 0,
+                  Finished: point.observation_status === 'completed' || point.observation_status === 'Completed' ? 1 : 0,
+                  FarmId: selectedFarm.id,
+                  Status: point.observation_status || 'Nil',
+                  FarmName: selectedFarm.name,
+                  FarmSize: selectedFarm.size,
+                  SuggestionId: point.inspection_suggestion_id
+                }));
+                
+                // Filter observation points based on status
+                const completedPoints = formattedPoints.filter(point => 
+                  point.Status === 'Completed' || point.Status === 'completed'
+                );
+                
+                const pendingPoints = formattedPoints.filter(point => 
+                  point.Status !== 'Completed' && point.Status !== 'completed'
+                );
+                
+                // Store both sets of points
+                setCompletedFarmPoints(completedPoints);
+                setPendingFarmPoints(pendingPoints);
+                
+                // Update the farm observation points based on which tab is active
+                setFarmObservationPoints(isShowUnfinishedList ? pendingPoints : completedPoints);
               }
             }}
             refreshing={loading}
