@@ -508,7 +508,7 @@ class AuthService {
   /**
    * Create a user in the local database
    * @param {Object} userData - User data for sign up
-   * @returns {Promise<boolean>} Whether the user was created successfully
+   * @returns {Promise<Object>} The created user
    */
   static async createLocalUser(userData) {
     const database = await this.getDatabase();
@@ -534,12 +534,49 @@ class AuthService {
       hashedPassword,
       userData.email
     );
+    
+    const userId = result.lastInsertRowId;
+    
+    // Create a profile for the user
+    try {
+      // Import ProfileService functions
+      const { updateProfile } = require('@/services/ProfileService');
+      
+      // Extract name parts from userData if available
+      const nameParts = (userData.name || userData.username).split(' ');
+      const firstName = nameParts[0] || '';
+      const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '';
+      
+      // Create profile with basic information
+      await updateProfile(userId, {
+        first_name: firstName,
+        last_name: lastName,
+        phone_number: userData.username, // Use username as phone number
+        address: '',
+        picture_uri: userData.picture_uri || null
+      });
+      
+      if (__DEV__) {
+        console.log('User profile created successfully');
+      }
+    } catch (profileError) {
+      // Log the error but don't fail the user creation
+      if (__DEV__) {
+        console.error('Error creating user profile:', profileError);
+      }
+    }
 
     // Only log in development, not in production
     if (__DEV__) {
       console.log('Local user creation successful');
     }
-    return true;
+    
+    // Return the newly created user
+    return {
+      id: userId,
+      username: userData.username,
+      email: userData.email
+    };
   }
 
   /**
@@ -594,11 +631,83 @@ class AuthService {
             apiResponse.user?.email || `${credentials.username}@example.com`
           );
           
+          const userId = result.lastInsertRowId;
+          
+          // Create a profile for the user
+          try {
+            // Import ProfileService functions
+            const { updateProfile } = require('@/services/ProfileService');
+            
+            // Extract name parts from API user data if available
+            let firstName = '';
+            let lastName = '';
+            
+            if (apiResponse.user && apiResponse.user.name) {
+              const nameParts = apiResponse.user.name.split(' ');
+              firstName = nameParts[0] || '';
+              lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '';
+            }
+            
+            // Create profile with basic information
+            await updateProfile(userId, {
+              first_name: firstName,
+              last_name: lastName,
+              phone_number: credentials.username, // Use username as phone number
+              address: apiResponse.user?.address || '',
+              picture_uri: apiResponse.user?.picture_uri || null
+            });
+            
+            if (__DEV__) {
+              console.log('User profile created successfully during sign in');
+            }
+          } catch (profileError) {
+            // Log the error but don't fail the user creation
+            if (__DEV__) {
+              console.error('Error creating user profile during sign in:', profileError);
+            }
+          }
+          
           // Get the newly created user
           user = await this.findUserByUsername(credentials.username);
           
           if (!user) {
             throw new Error('Failed to create local user');
+          }
+        }
+        
+        // Check if the user has a profile, and create one if not
+        try {
+          const { profileExists, updateProfile } = require('@/services/ProfileService');
+          const hasProfile = await profileExists(user.id);
+          
+          if (!hasProfile) {
+            // Extract name parts from API user data if available
+            let firstName = '';
+            let lastName = '';
+            
+            if (apiResponse.user && apiResponse.user.name) {
+              const nameParts = apiResponse.user.name.split(' ');
+              firstName = nameParts[0] || '';
+              lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '';
+            }
+            
+            // Create profile with basic information
+            await updateProfile(user.id, {
+              first_name: firstName,
+              last_name: lastName,
+              phone_number: credentials.username, // Use username as phone number
+              address: apiResponse.user?.address || '',
+              picture_uri: apiResponse.user?.picture_uri || null
+            });
+            
+            if (__DEV__) {
+              console.log('User profile created for existing user during sign in');
+            }
+          }
+        } catch (profileError) {
+          // Log the error but don't fail the sign in process
+          if (__DEV__) {
+            console.error('Error checking/creating user profile during sign in:', profileError);
           }
         }
         

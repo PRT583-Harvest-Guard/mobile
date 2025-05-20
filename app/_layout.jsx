@@ -128,7 +128,24 @@ const RootLayout = () => {
 
   useEffect(() => {
     if (error) throw new Error(error.message);
-    if (loaded) SplashScreen.hideAsync();
+    if (loaded) {
+      // Initialize database services
+      const initializeServices = async () => {
+        try {
+          // Initialize profile table
+          const { initProfileTable } = require('../services/ProfileService');
+          await initProfileTable();
+          console.log('Profile table initialized');
+        } catch (err) {
+          console.error('Error initializing services:', err);
+        }
+        
+        // Hide splash screen after initialization
+        SplashScreen.hideAsync();
+      };
+      
+      initializeServices();
+    }
   }, [loaded, error])
 
   if (!loaded && error) return null;
