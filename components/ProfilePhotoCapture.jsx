@@ -104,20 +104,24 @@ const ProfilePhotoCapture = ({ photoUri, onPhotoCapture }) => {
   return (
     <View className="items-center mb-5">
       {photoUri ? (
-        <View className="w-[120px] h-[120px] rounded-full overflow-hidden relative">
-          <Image source={{ uri: photoUri }} className="w-full h-full" />
-          <TouchableOpacity 
-            className="absolute bottom-0 right-[30px] w-[30px] h-[30px] rounded-full bg-secondary justify-center items-center"
-            onPress={pickImage}
-          >
-            <Feather name="edit" size={16} color="#fff" />
-          </TouchableOpacity>
-          <TouchableOpacity 
-            className="absolute bottom-0 right-0 w-[30px] h-[30px] rounded-full bg-red justify-center items-center"
-            onPress={removePhoto}
-          >
-            <Feather name="trash-2" size={16} color="#fff" />
-          </TouchableOpacity>
+        <View className="items-center">
+          <View className="w-[120px] h-[120px] rounded-full overflow-hidden mb-3">
+            <Image source={{ uri: photoUri }} className="w-full h-full" />
+          </View>
+          <View className="flex-row justify-center space-x-24">
+            <TouchableOpacity 
+              className="w-[40px] h-[40px] rounded-full bg-secondary justify-center items-center"
+              onPress={pickImage}
+            >
+              <Feather name="edit" size={20} color="#fff" />
+            </TouchableOpacity>
+            <TouchableOpacity 
+              className="w-[40px] h-[40px] rounded-full bg-[#ff3333] justify-center items-center"
+              onPress={removePhoto}
+            >
+              <Feather name="trash-2" size={20} color="#fff" />
+            </TouchableOpacity>
+          </View>
         </View>
       ) : (
         <View className="items-center">

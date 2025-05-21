@@ -37,11 +37,26 @@ const ObservationDetailsScreen = () => {
   const [submitting, setSubmitting] = useState(false);
   const [pictureUri, setPictureUri] = useState(null);
   const [isEditMode, setIsEditMode] = useState(false);
+  const [isFormValid, setIsFormValid] = useState(false);
 
   useEffect(() => {
     loadObservationDetails();
     loadExistingObservation();
   }, [id]);
+
+  // Check form validity whenever fields change
+  useEffect(() => {
+    // Check if all required fields have values
+    // Identifier is required
+    // Photo is required
+    // Notes are required
+    const isValid = 
+      identifier.trim() !== '' && 
+      pictureUri !== null && 
+      notes.trim() !== '';
+    
+    setIsFormValid(isValid);
+  }, [identifier, pictureUri, notes]);
 
   const loadExistingObservation = async () => {
     try {
@@ -489,9 +504,12 @@ const ObservationDetailsScreen = () => {
               </TouchableOpacity>
               
               <TouchableOpacity 
-                style={styles.submitButton}
+                style={[
+                  styles.submitButton,
+                  (!isFormValid || submitting) && styles.disabledButton
+                ]}
                 onPress={handleSubmitObservation}
-                disabled={submitting}
+                disabled={!isFormValid || submitting}
               >
                 {submitting ? (
                   <ActivityIndicator size="small" color="#fff" />
@@ -875,6 +893,10 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  disabledButton: {
+    backgroundColor: '#cccccc',
+    opacity: 0.7,
   },
 });
 
