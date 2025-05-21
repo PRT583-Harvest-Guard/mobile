@@ -134,6 +134,13 @@ const ObservationDetailsScreen = () => {
     try {
       setSubmitting(true);
       
+      // Check if picture is provided (required field)
+      if (!pictureUri) {
+        // Just set submitting to true to show the error message
+        // but don't proceed with submission
+        return;
+      }
+      
       if (!observation || !observation.farm_id) {
         console.error('Missing farm ID');
         return;
@@ -143,8 +150,8 @@ const ObservationDetailsScreen = () => {
         farm_id: observation.farm_id,
         observation_point_id: observation.id,
         identifier,
-        detection: detection ? 1 : 0,
-        severity: detection ? severity : 0,
+        detection: severity > 0 ? 1 : 0, // Set detection based on severity
+        severity: severity,
         notes,
         picture_uri: pictureUri
       };
@@ -153,24 +160,31 @@ const ObservationDetailsScreen = () => {
         // Update existing observation
         await updateObservation(existingObservation.id, {
           identifier,
-          detection: detection ? 1 : 0,
-          severity: detection ? severity : 0,
+          detection: severity > 0 ? 1 : 0, // Set detection based on severity
+          severity: severity,
           notes,
           picture_uri: pictureUri
         });
         console.log('Observation updated successfully');
+        
+        // Close the modal
+        setModalVisible(false);
+        
+        // Reload the observation details to update the status
+        loadObservationDetails();
+        loadExistingObservation();
       } else {
         // Create new observation
         await saveObservation(observationData);
         console.log('New observation saved successfully');
+        
+        // Close the modal
+        setModalVisible(false);
+        
+        // Reload the observation details to update the status
+        loadObservationDetails();
+        loadExistingObservation();
       }
-      
-      // Close the modal
-      setModalVisible(false);
-      
-      // Reload the observation details to update the status
-      loadObservationDetails();
-      loadExistingObservation();
     } catch (error) {
       console.error('Error submitting observation:', error);
     } finally {
@@ -417,54 +431,41 @@ const ObservationDetailsScreen = () => {
               </View>
               
               <View style={styles.formGroup}>
-                <View style={styles.switchRow}>
-                  <Text style={styles.formLabel}>Pest/Disease Detected:</Text>
-                  <Switch
-                    value={detection}
-                    onValueChange={setDetection}
-                    trackColor={{ false: '#d1d1d1', true: '#E9762B' }}
-                    thumbColor={detection ? '#fff' : '#f4f3f4'}
-                  />
+                <Text style={styles.formLabel}>Severity: {getSeverityLabel(severity)} ({severity})</Text>
+                <Slider
+                  style={styles.slider}
+                  minimumValue={0}
+                  maximumValue={10}
+                  step={1}
+                  value={severity}
+                  onValueChange={setSeverity}
+                  minimumTrackTintColor="#E9762B"
+                  maximumTrackTintColor="#d1d1d1"
+                  thumbTintColor="#E9762B"
+                />
+                <View style={styles.sliderLabels}>
+                  <Text style={styles.sliderLabel}>None</Text>
+                  <Text style={styles.sliderLabel}>Mild</Text>
+                  <Text style={styles.sliderLabel}>Moderate</Text>
+                  <Text style={styles.sliderLabel}>Severe</Text>
+                  <Text style={styles.sliderLabel}>Critical</Text>
+                </View>
+                <View style={styles.sliderValues}>
+                  <Text style={styles.sliderValue}>0</Text>
+                  <Text style={styles.sliderValue}>3</Text>
+                  <Text style={styles.sliderValue}>5</Text>
+                  <Text style={styles.sliderValue}>8</Text>
+                  <Text style={styles.sliderValue}>10</Text>
                 </View>
               </View>
               
-              {detection && (
-                <>
-                  <View style={styles.formGroup}>
-                    <Text style={styles.formLabel}>Severity: {getSeverityLabel(severity)} ({severity})</Text>
-                    <Slider
-                      style={styles.slider}
-                      minimumValue={0}
-                      maximumValue={10}
-                      step={1}
-                      value={severity}
-                      onValueChange={setSeverity}
-                      minimumTrackTintColor="#E9762B"
-                      maximumTrackTintColor="#d1d1d1"
-                      thumbTintColor="#E9762B"
-                    />
-                    <View style={styles.sliderLabels}>
-                      <Text style={styles.sliderLabel}>None</Text>
-                      <Text style={styles.sliderLabel}>Mild</Text>
-                      <Text style={styles.sliderLabel}>Moderate</Text>
-                      <Text style={styles.sliderLabel}>Severe</Text>
-                      <Text style={styles.sliderLabel}>Critical</Text>
-                    </View>
-                    <View style={styles.sliderValues}>
-                      <Text style={styles.sliderValue}>0</Text>
-                      <Text style={styles.sliderValue}>3</Text>
-                      <Text style={styles.sliderValue}>5</Text>
-                      <Text style={styles.sliderValue}>8</Text>
-                      <Text style={styles.sliderValue}>10</Text>
-                    </View>
-                  </View>
-                  
-                  <View style={styles.formGroup}>
-                    <Text style={styles.formLabel}>Photo Evidence:</Text>
-                    <ObservationPhotoCapture onPhotoCapture={setPictureUri} />
-                  </View>
-                </>
-              )}
+              <View style={styles.formGroup}>
+                <Text style={styles.formLabel}>Photo Evidence: <Text style={{color: '#E9762B'}}>*Required</Text></Text>
+                <ObservationPhotoCapture onPhotoCapture={setPictureUri} />
+                {!pictureUri && submitting && (
+                  <Text style={{color: '#ff4444', marginTop: 5}}>Please capture a photo</Text>
+                )}
+              </View>
               
               <View style={styles.formGroup}>
                 <Text style={styles.formLabel}>Notes:</Text>
