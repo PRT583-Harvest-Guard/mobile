@@ -7,7 +7,9 @@ import {
   TextInput, 
   Alert,
   ActivityIndicator,
-  Modal
+  Modal,
+  KeyboardAvoidingView,
+  Platform
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams, Link } from 'expo-router';
@@ -343,7 +345,10 @@ const FarmScreen = () => {
         visible={modalVisible}
         onRequestClose={() => setModalVisible(false)}
       >
-        <View className="flex-1 bg-black/50 justify-center items-center p-5">
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          className="flex-1 bg-black/50 justify-center items-center p-5"
+        >
           <View className="bg-white rounded-xl w-full max-h-[80%] shadow-md">
             <View className="flex-row justify-between items-center p-4 border-b border-[#eee]">
               <Text className="text-lg font-pbold text-[#333]">
@@ -401,7 +406,7 @@ const FarmScreen = () => {
               </TouchableOpacity>
             </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
   );

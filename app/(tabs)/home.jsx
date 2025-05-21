@@ -81,8 +81,9 @@ const Home = () => {
       });
       
       // Load pending inspection observations for the current user
+      console.log(`Loading pending observations for user ID: ${userId}`);
       const pendingObservations = await getPendingInspectionObservations(userId);
-      console.log(`Loaded ${pendingObservations.length} pending observations`);
+      console.log(`Loaded ${pendingObservations.length} pending observations for user ID: ${userId}`);
       
       // Get today's date
       const today = new Date();
@@ -110,10 +111,13 @@ const Home = () => {
           
           // Add to upcoming inspections
           upcoming.push({
-            id: observation.id.toString(),
+            id: observation.section_id ? observation.section_id.toString() : observation.id.toString(),
             dueIn: daysUntil,
             farm: farmName,
-            date: observationDate
+            date: observationDate,
+            // Store both IDs for reference
+            observationId: observation.id.toString(),
+            observationPointId: observation.section_id ? observation.section_id.toString() : null
           });
         } catch (error) {
           console.error('Error processing observation:', error);
@@ -246,24 +250,33 @@ const Home = () => {
               <Text className="text-sm text-[#666] mt-2">Loading inspections...</Text>
             </View>
           ) : upcomingInspections.length > 0 ? (
-            upcomingInspections.map(inspection => (
-              <TouchableOpacity 
-                key={inspection.id} 
-                className="flex-row items-center py-2 border-b border-[#f0f0f0]"
-                onPress={() => router.push(`/observation/${inspection.id}`)}
+            <View className="max-h-[200px]">
+              <ScrollView 
+                nestedScrollEnabled={true}
+                showsVerticalScrollIndicator={true}
+                contentContainerStyle={{ paddingRight: 8 }}
               >
-                <View className="w-2 h-2 rounded-full bg-secondary mr-3" />
-                <View className="flex-1">
-                  <Text className="text-sm text-[#333] font-pregular">
-                    Inspection #{inspection.id} – due in {inspection.dueIn} day{inspection.dueIn !== 1 ? 's' : ''}
-                  </Text>
-                  <Text className="text-xs text-[#666]">
-                    Farm: {inspection.farm}
-                  </Text>
-                </View>
-                <Feather name="chevron-right" size={16} color="#999" />
-              </TouchableOpacity>
-            ))
+                {upcomingInspections.map(inspection => (
+                  <TouchableOpacity 
+                    key={inspection.id} 
+                    className="flex-row items-center py-2 border-b border-[#f0f0f0]"
+                    onPress={() => router.push(`/observation/${inspection.id}`)}
+                  >
+                    <View className="w-2 h-2 rounded-full bg-secondary mr-3" />
+                    <View className="flex-1">
+                      <Text className="text-sm text-[#333] font-pregular">
+                        Inspection #{inspection.id} – due in {inspection.dueIn} day{inspection.dueIn !== 1 ? 's' : ''}
+                      </Text>
+                      <Text className="text-xs text-[#666]">
+                        Farm: {inspection.farm}
+                      </Text>
+                    </View>
+                    <Feather name="chevron-right" size={16} color="#999" />
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+              <View className="h-6 bg-gradient-to-t from-white to-transparent absolute bottom-0 left-0 right-0" />
+            </View>
           ) : (
             <View className="py-4 items-center">
               <Feather name="calendar" size={24} color="#ccc" />
