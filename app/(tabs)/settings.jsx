@@ -1,11 +1,13 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   View, 
   Text, 
   ScrollView, 
   TouchableOpacity,
   Image,
-  Alert
+  Alert,
+  Modal,
+  Linking
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, Link } from 'expo-router';
@@ -18,6 +20,8 @@ import { showErrorToast, showSuccessToast, showInfoToast } from '@/utils/toastUt
 
 const Settings = () => {
   const { setIsLoggedIn } = useGlobalContext();
+  const [supportModalVisible, setSupportModalVisible] = useState(false);
+  const [notificationsModalVisible, setNotificationsModalVisible] = useState(false);
 
   const logOut = async () => {
     Alert.alert(
@@ -140,14 +144,14 @@ const Settings = () => {
             "bell", 
             "Notifications", 
             "Manage your notification preferences", 
-            () => showInfoToast("This feature will be available in a future update.", "Coming Soon")
+            () => setNotificationsModalVisible(true)
           )}
           
           {renderSettingItem(
             "help-circle", 
             "Help & Support", 
             "Get assistance with using the app", 
-            () => showInfoToast("For assistance, please contact support@harvestguard.com", "Support")
+            () => setSupportModalVisible(true)
           )}
         </View>
         
@@ -175,6 +179,154 @@ const Settings = () => {
           <Text className="text-xs text-[#999]">© 2025 Harvest Guard. All rights reserved.</Text>
         </View>
       </ScrollView>
+      
+      {/* Support Modal */}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={supportModalVisible}
+        onRequestClose={() => setSupportModalVisible(false)}
+      >
+        <View className="flex-1 bg-black/50 justify-center items-center p-5">
+          <View className="bg-white rounded-2xl w-full max-w-[400px] shadow-md overflow-hidden">
+            <View className="flex-row justify-between items-center p-4 border-b border-[#eee]">
+              <Text className="text-xl font-pbold text-[#333]">Contact Support</Text>
+              <TouchableOpacity 
+                onPress={() => setSupportModalVisible(false)}
+                hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
+              >
+                <Feather name="x" size={24} color="#333" />
+              </TouchableOpacity>
+            </View>
+            
+            <View className="p-5 items-center">
+              <Image 
+                source={require('@/assets/images/icon-primary.png')}
+                className="w-20 h-20 mb-4"
+                resizeMode="contain"
+              />
+              
+              <Text className="text-base text-[#666] text-center mb-6 font-pregular">
+                Need help with Harvest Guard? Our support team is ready to assist you.
+              </Text>
+              
+              <TouchableOpacity 
+                className="flex-row items-center bg-[#f9f9f9] rounded-xl p-4 mb-3 w-full"
+                onPress={() => Linking.openURL('mailto:support@harvestguard.com')}
+              >
+                <View className="w-10 h-10 rounded-full bg-[#e6f0ed] justify-center items-center mr-3">
+                  <Feather name="mail" size={20} color="#1B4D3E" />
+                </View>
+                <View className="flex-1">
+                  <Text className="text-sm text-[#666] font-pregular">Email</Text>
+                  <Text className="text-base text-[#333] font-pmedium">support@harvestguard.com</Text>
+                </View>
+                <Feather name="external-link" size={16} color="#999" />
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                className="flex-row items-center bg-[#f9f9f9] rounded-xl p-4 mb-3 w-full"
+                onPress={() => Linking.openURL('tel:+61234567890')}
+              >
+                <View className="w-10 h-10 rounded-full bg-[#e6f0ed] justify-center items-center mr-3">
+                  <Feather name="phone" size={20} color="#1B4D3E" />
+                </View>
+                <View className="flex-1">
+                  <Text className="text-sm text-[#666] font-pregular">Phone</Text>
+                  <Text className="text-base text-[#333] font-pmedium">+61 2 3456 7890</Text>
+                </View>
+                <Feather name="external-link" size={16} color="#999" />
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                className="flex-row items-center bg-[#f9f9f9] rounded-xl p-4 mb-3 w-full"
+                onPress={() => Linking.openURL('https://harvestguard.com/support')}
+              >
+                <View className="w-10 h-10 rounded-full bg-[#e6f0ed] justify-center items-center mr-3">
+                  <Feather name="globe" size={20} color="#1B4D3E" />
+                </View>
+                <View className="flex-1">
+                  <Text className="text-sm text-[#666] font-pregular">Support Center</Text>
+                  <Text className="text-base text-[#333] font-pmedium">harvestguard.com/support</Text>
+                </View>
+                <Feather name="external-link" size={16} color="#999" />
+              </TouchableOpacity>
+            </View>
+            
+            <TouchableOpacity 
+              className="bg-primary p-4 items-center"
+              onPress={() => setSupportModalVisible(false)}
+            >
+              <Text className="text-white text-base font-pbold">Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+      
+      {/* Notifications Modal */}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={notificationsModalVisible}
+        onRequestClose={() => setNotificationsModalVisible(false)}
+      >
+        <View className="flex-1 bg-black/50 justify-center items-center p-5">
+          <View className="bg-white rounded-2xl w-full max-w-[400px] shadow-md overflow-hidden">
+            <View className="flex-row justify-between items-center p-4 border-b border-[#eee]">
+              <Text className="text-xl font-pbold text-[#333]">Notifications</Text>
+              <TouchableOpacity 
+                onPress={() => setNotificationsModalVisible(false)}
+                hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
+              >
+                <Feather name="x" size={24} color="#333" />
+              </TouchableOpacity>
+            </View>
+            
+            <View className="p-5 items-center">
+              <Image 
+                source={require('@/assets/images/icon-primary.png')}
+                className="w-20 h-20 mb-4"
+                resizeMode="contain"
+              />
+              
+              <Text className="text-base text-[#666] text-center mb-6 font-pregular">
+                Notification preferences will be available in a future update. Stay tuned for enhanced notification features!
+              </Text>
+              
+              <View className="bg-[#f9f9f9] rounded-xl p-4 mb-3 w-full">
+                <View className="flex-row items-center mb-3">
+                  <View className="w-10 h-10 rounded-full bg-[#e6f0ed] justify-center items-center mr-3">
+                    <Feather name="bell" size={20} color="#1B4D3E" />
+                  </View>
+                  <View className="flex-1">
+                    <Text className="text-base text-[#333] font-pmedium">Coming Soon</Text>
+                  </View>
+                </View>
+                
+                <Text className="text-sm text-[#666] font-pregular pl-[52px]">
+                  • Push notifications for inspection reminders
+                </Text>
+                <Text className="text-sm text-[#666] font-pregular pl-[52px]">
+                  • Alerts for pest and disease detection
+                </Text>
+                <Text className="text-sm text-[#666] font-pregular pl-[52px]">
+                  • Weather alerts and forecasts
+                </Text>
+                <Text className="text-sm text-[#666] font-pregular pl-[52px]">
+                  • Customizable notification preferences
+                </Text>
+              </View>
+            </View>
+            
+            <TouchableOpacity 
+              className="bg-primary p-4 items-center"
+              onPress={() => setNotificationsModalVisible(false)}
+            >
+              <Text className="text-white text-base font-pbold">Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
