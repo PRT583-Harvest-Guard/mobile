@@ -16,6 +16,8 @@ import { router, useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getProfile } from '@/services/ProfileService';
 import { getFarms } from '@/services/BoundaryService';
+import { getPendingInspectionObservations } from '@/services/InspectionObservationService';
+import { getInspectionSuggestionById } from '@/services/InspectionSuggestionService';
 import iconPrimary from '@/assets/images/icon-primary.png';
 
 const Home = () => {
@@ -23,13 +25,7 @@ const Home = () => {
   const [farms, setFarms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [supportModalVisible, setSupportModalVisible] = useState(false);
-  
-  // Mock upcoming inspections
-  const upcomingInspections = [
-    { id: '2455', dueIn: 3, farm: 'North Field' },
-    { id: '2456', dueIn: 7, farm: 'South Field' },
-    { id: '2457', dueIn: 14, farm: 'East Field' }
-  ];
+  const [upcomingInspections, setUpcomingInspections] = useState([]);
 
   // Load data when the component mounts
   useEffect(() => {
@@ -60,6 +56,7 @@ const Home = () => {
       if (!userJson) {
         console.warn('User not found, please sign in again');
         setFarms([]);
+        setUpcomingInspections([]);
         return;
       }
       
@@ -69,15 +66,71 @@ const Home = () => {
       if (!userId) {
         console.warn('User ID not found, please sign in again');
         setFarms([]);
+        setUpcomingInspections([]);
         return;
       }
       
       // Load farms data for the current user
       const farmsData = await getFarms(userId);
       setFarms(farmsData);
+      
+      // Create a map of farms by ID for quick lookup
+      const farmsMap = {};
+      farmsData.forEach(farm => {
+        farmsMap[farm.id] = farm;
+      });
+      
+      // Load pending inspection observations for the current user
+      const pendingObservations = await getPendingInspectionObservations(userId);
+      console.log(`Loaded ${pendingObservations.length} pending observations`);
+      
+      // Get today's date
+      const today = new Date();
+      today.setHours(0, 0, 0, 0); // Set to beginning of day for accurate comparison
+      
+      // Process observations to get upcoming inspections
+      const upcoming = [];
+      
+      for (const observation of pendingObservations) {
+        try {
+          // Parse the observation date
+          const observationDate = new Date(observation.date);
+          
+          // Skip if the date has already passed
+          if (observationDate < today) {
+            continue;
+          }
+          
+          // Calculate days until the inspection
+          const timeDiff = observationDate.getTime() - today.getTime();
+          const daysUntil = Math.ceil(timeDiff / (1000 * 3600 * 24));
+          
+          // Get the farm name
+          const farmName = farmsMap[observation.farm_id]?.name || 'Unknown Farm';
+          
+          // Add to upcoming inspections
+          upcoming.push({
+            id: observation.id.toString(),
+            dueIn: daysUntil,
+            farm: farmName,
+            date: observationDate
+          });
+        } catch (error) {
+          console.error('Error processing observation:', error);
+          // Continue with the next observation
+        }
+      }
+      
+      // Sort by due date (closest first)
+      upcoming.sort((a, b) => a.dueIn - b.dueIn);
+      
+      // Update state
+      setUpcomingInspections(upcoming);
+      
     } catch (error) {
       console.error('Error loading data:', error);
       setFarms([]);
+      setUpcomingInspections([]);
     } finally {
       setLoading(false);
     }
@@ -187,14 +240,44 @@ const Home = () => {
             <Text className="text-lg font-pbold text-[#333] ml-2">Upcoming Inspections</Text>
           </View>
           
-          {upcomingInspections.map(inspection => (
-            <View key={inspection.id} className="flex-row items-center py-2 border-b border-[#f0f0f0]">
-              <View className="w-2 h-2 rounded-full bg-secondary mr-3" />
-              <Text className="text-sm text-[#333] font-pregular">
-                Inspection #{inspection.id} – due in {inspection.dueIn} day{inspection.dueIn !== 1 ? 's' : ''}
-              </Text>
+          {loading ? (
+            <View className="py-4 items-center">
+              <ActivityIndicator size="small" color="#E9762B" />
+              <Text className="text-sm text-[#666] mt-2">Loading inspections...</Text>
             </View>
-          ))}
+          ) : upcomingInspections.length > 0 ? (
+            upcomingInspections.map(inspection => (
+              <TouchableOpacity 
+                key={inspection.id} 
+                className="flex-row items-center py-2 border-b border-[#f0f0f0]"
+                onPress={() => router.push(`/observation/${inspection.id}`)}
+              >
+                <View className="w-2 h-2 rounded-full bg-secondary mr-3" />
+                <View className="flex-1">
+                  <Text className="text-sm text-[#333] font-pregular">
+                    Inspection #{inspection.id} – due in {inspection.dueIn} day{inspection.dueIn !== 1 ? 's' : ''}
+                  </Text>
+                  <Text className="text-xs text-[#666]">
+                    Farm: {inspection.farm}
+                  </Text>
+                </View>
+                <Feather name="chevron-right" size={16} color="#999" />
+              </TouchableOpacity>
+            ))
+          ) : (
+            <View className="py-4 items-center">
+              <Feather name="calendar" size={24} color="#ccc" />
+              <Text className="text-sm text-[#999] mt-2 text-center">
+                No upcoming inspections scheduled.
+              </Text>
+              <TouchableOpacity 
+                className="mt-3 bg-[#f0f0f0] py-2 px-4 rounded-lg"
+                onPress={() => router.push("/inspection/suggestion")}
+              >
+                <Text className="text-sm text-[#666]">Create Inspection</Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
         
         {/* Action Buttons */}
