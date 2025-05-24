@@ -1,3 +1,29 @@
+# Harvest Guard Mobile App
+
+This is the mobile application for the Harvest Guard project, developed using React Native. It allows users to view observation points, submit inspection data, and interact with farm monitoring systems via map-based UI.
+
+## Technologies Used
+- React Native
+- Redux for state management
+- Axios for API requests
+- React Navigation for screen management
+
+## Features
+- View random observation points on a map
+- Capture and submit inspection data
+- Login & authentication
+
+## Folder Structure
+```
+/src
+ ├── components/        # Reusable UI components
+ ├── screens/           # App screens (Home, Login, Inspection)
+ ├── navigation/        # Stack and tab navigation
+ ├── redux/             # State management
+ └── api/               # API service handlers
+```
+
+
 # Welcome to your Expo app 👋
 
 This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
@@ -48,3 +74,5 @@ Join our community of developers creating universal apps.
 
 - [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
 - [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+
+
