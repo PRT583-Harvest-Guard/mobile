@@ -23,9 +23,16 @@ const FarmDetailsScreen = () => {
 
   // Load data when the component mounts
   useEffect(() => {
-    loadFarmDetails();
-    loadObservationPoints();
-    checkDeleteFeatureFlag();
+    const loadAllData = async () => {
+      await loadFarmDetails();
+      // Add a small delay to ensure farm data is loaded before loading observation points
+      setTimeout(async () => {
+        await loadObservationPoints();
+      }, 100);
+      await checkDeleteFeatureFlag();
+    };
+    
+    loadAllData();
   }, [id]);
   
   // Also load data when the screen comes into focus
@@ -39,10 +46,17 @@ const FarmDetailsScreen = () => {
       setMarkers([]);
       setObservationPoints([]);
       
-      // Load all data from scratch
-      loadFarmDetails();
-      loadObservationPoints();
-      checkDeleteFeatureFlag();
+      // Load all data from scratch with proper sequencing
+      const reloadAllData = async () => {
+        await loadFarmDetails();
+        // Add a small delay to ensure farm data is loaded before loading observation points
+        setTimeout(async () => {
+          await loadObservationPoints();
+        }, 100);
+        await checkDeleteFeatureFlag();
+      };
+      
+      reloadAllData();
       
       return () => {
         // Cleanup function when screen goes out of focus
@@ -139,6 +153,10 @@ const FarmDetailsScreen = () => {
     // If we already have observation points, don't save new ones
     if (observationPoints.length > 0) {
       console.log('Using existing observation points from database');
+      // Trigger a refresh to ensure the observation points are displayed
+      setTimeout(() => {
+        loadObservationPoints();
+      }, 500);
       return;
     }
     
@@ -165,6 +183,11 @@ const FarmDetailsScreen = () => {
       // Update state with saved points
       console.log('Saved points:', savedPoints.length);
       setObservationPoints(savedPoints);
+      
+      // Trigger another refresh to ensure the observation points are displayed
+      setTimeout(() => {
+        loadObservationPoints();
+      }, 500);
     } catch (error) {
       console.error('Error saving observation points:', error);
       Alert.alert('Error', 'Failed to save observation points');
