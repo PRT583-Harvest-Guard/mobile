@@ -138,22 +138,10 @@ const FarmScreen = () => {
             onPress: async () => {
               try {
                 await deleteFarm(farmId);
-                Alert.alert(
-                  'Success', 
-                  'Farm deleted successfully',
-                  [
-                    {
-                      text: 'OK',
-                      onPress: async () => {
-                        // Reload farms
-                        await loadFarms();
-                        
-                        // Navigate to home page to refresh the state there
-                        router.push('/(tabs)/home');
-                      }
-                    }
-                  ]
-                );
+                showSuccessToast('Farm deleted successfully');
+                
+                // Reload farms to refresh the list
+                await loadFarms();
               } catch (error) {
                 console.error('Error deleting farm:', error);
                 Alert.alert('Error', 'Failed to delete farm');

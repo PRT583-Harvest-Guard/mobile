@@ -1,6 +1,5 @@
 import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
-import { router } from 'expo-router';
+import { View, Text, ScrollView } from 'react-native';
 
 // Predefined fill colors for each section
 const sectionColors = [
@@ -32,14 +31,6 @@ const sectionColors = [
  *    }>
  */
 const MapSections = ({ markers = [] }) => {
-  const handleSectionPress = (marker) => {
-    if (marker && marker.id) {
-      // Navigate to the observation details page
-      router.push(`/observation/${marker.id}`);
-    } else {
-      console.log('Cannot navigate: marker has no ID', marker);
-    }
-  };
 
   // Ensure markers is an array and filter out invalid markers
   const validMarkers = Array.isArray(markers) 
@@ -73,10 +64,9 @@ const MapSections = ({ markers = [] }) => {
           const sectionName = m.name || `Section ${segment}`;
           
           return (
-            <TouchableOpacity 
+            <View 
               key={idx} 
               className={`flex-row items-start bg-white rounded-lg p-3 mb-3 shadow-sm ${status === 'Completed' ? 'bg-[#e8f5e9]' : ''}`}
-              onPress={() => handleSectionPress(m)}
             >
               <View 
                 style={{ backgroundColor: color }} 
@@ -90,10 +80,7 @@ const MapSections = ({ markers = [] }) => {
                   Observation status: {status}
                 </Text>
               </View>
-              <View className="justify-center items-center pl-2">
-                <Text className="text-2xl text-[#999] font-pbold">›</Text>
-              </View>
-            </TouchableOpacity>
+            </View>
           );
         } catch (error) {
           console.error('Error rendering marker:', error, m);

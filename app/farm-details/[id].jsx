@@ -343,13 +343,6 @@ const FarmDetailsScreen = () => {
         <View className="bg-[#f9f9f9] rounded-xl p-4 mb-4 shadow-sm">
           <View className="flex-row justify-between items-center mb-3">
             <Text className="text-lg font-pbold text-[#333]">Observation Points</Text>
-            <TouchableOpacity
-              className="flex-row items-center bg-secondary/10 px-[10px] py-[5px] rounded-md border border-secondary/30"
-              onPress={loadObservationPoints}
-            >
-              <Feather name="refresh-cw" size={14} color="#E9762B" />
-              <Text className="text-xs font-pbold text-secondary ml-1">Refresh</Text>
-            </TouchableOpacity>
           </View>
           <MapSections markers={observationPoints.length > 0 ? observationPoints : (markers.length > 0 ? markers : [])} />
         </View>
