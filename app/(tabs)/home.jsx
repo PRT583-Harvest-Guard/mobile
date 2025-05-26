@@ -47,16 +47,14 @@ const Home = () => {
   const loadData = async () => {
     try {
       setLoading(true);
-      // Load profile data
-      const profileData = await getProfile();
-      setProfile(profileData);
       
-      // Get the current user ID from AsyncStorage
+      // Get the current user ID from AsyncStorage first
       const userJson = await AsyncStorage.getItem('user');
       if (!userJson) {
         console.warn('User not found, please sign in again');
         setFarms([]);
         setUpcomingInspections([]);
+        setProfile(null);
         return;
       }
       
@@ -67,8 +65,13 @@ const Home = () => {
         console.warn('User ID not found, please sign in again');
         setFarms([]);
         setUpcomingInspections([]);
+        setProfile(null);
         return;
       }
+      
+      // Load profile data using the user ID
+      const profileData = await getProfile(userId);
+      setProfile(profileData);
       
       // Load farms data for the current user
       const farmsData = await getFarms(userId);
@@ -196,6 +199,11 @@ const Home = () => {
               <Text className="text-[22px] font-pbold text-[#333] mb-1">
                 {loading ? 'Loading...' : getUserName()}
               </Text>
+              {!loading && profile?.email && (
+                <Text className="text-sm text-[#666] font-pregular mb-2">
+                  {profile.email}
+                </Text>
+              )}
               
               {primaryFarm ? (
                 <TouchableOpacity 

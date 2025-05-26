@@ -11,6 +11,7 @@ import {
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { PageHeader, CustomButton, ProfilePhotoCapture } from '@/components';
 import { getProfile, updateProfile } from '@/services/ProfileService';
 
@@ -31,7 +32,26 @@ const EditProfileScreen = () => {
   const loadProfile = async () => {
     try {
       setLoading(true);
-      const profileData = await getProfile();
+      
+      // Get the current user ID from AsyncStorage
+      const userJson = await AsyncStorage.getItem('user');
+      if (!userJson) {
+        Alert.alert('Error', 'User not found, please sign in again');
+        router.replace('/');
+        return;
+      }
+      
+      const user = JSON.parse(userJson);
+      const userId = user.id;
+      
+      if (!userId) {
+        Alert.alert('Error', 'User ID not found, please sign in again');
+        router.replace('/');
+        return;
+      }
+      
+      // Load profile data using the user ID
+      const profileData = await getProfile(userId);
       
       if (profileData) {
         setProfile(profileData);
@@ -64,8 +84,25 @@ const EditProfileScreen = () => {
         return;
       }
       
-      // Update profile
-      const updatedProfile = await updateProfile(1, {
+      // Get the current user ID from AsyncStorage
+      const userJson = await AsyncStorage.getItem('user');
+      if (!userJson) {
+        Alert.alert('Error', 'User not found, please sign in again');
+        router.replace('/');
+        return;
+      }
+      
+      const user = JSON.parse(userJson);
+      const userId = user.id;
+      
+      if (!userId) {
+        Alert.alert('Error', 'User ID not found, please sign in again');
+        router.replace('/');
+        return;
+      }
+      
+      // Update profile using the user ID
+      const updatedProfile = await updateProfile(userId, {
         first_name: firstName.trim(),
         last_name: lastName.trim(),
         phone_number: phoneNumber.trim(),
