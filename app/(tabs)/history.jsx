@@ -33,6 +33,7 @@ import {
 } from '@/services/BoundaryService';
 import { getObservationPoints } from '@/services/ObservationService';
 import databaseService from '@/services/DatabaseService';
+import { getCurrentLocalUserId } from '@/utils/userUtils';
 
 function History() {
   const [unfinishedList, setUnfinishedList] = useState([]);
@@ -152,107 +153,46 @@ function History() {
       await initInspectionObservationTable();
       await initInspectionSuggestionTable();
       
-      // Get the current user ID from AsyncStorage
-      let userId = null;
-      try {
-        const userJson = await AsyncStorage.getItem('user');
-        if (userJson) {
-          const user = JSON.parse(userJson);
-          userId = user.id;
-          console.log('Using user ID from AsyncStorage:', userId);
-        } else {
-          console.warn('No user found in AsyncStorage, using default user ID 1');
-          userId = 1; // Default user ID if not found
-        }
-      } catch (error) {
-        console.error('Error getting user from AsyncStorage:', error);
-        console.warn('Using default user ID 1');
-        userId = 1; // Default user ID if error
+      // Get the current local user ID using the consistent utility
+      const userId = await getCurrentLocalUserId();
+      
+      if (!userId) {
+        console.warn('No current local user ID available, using default user ID 1');
+        // Use default user ID 1 as fallback
+        const fallbackUserId = 1;
+        
+        // Get farms for the fallback user
+        const farmsData = await getFarms(fallbackUserId);
+        console.log('Loaded farms for fallback user:', farmsData.length);
+        setFarms(farmsData);
+        
+        // Load inspection observations for the fallback user
+        const pendingObservations = await getPendingInspectionObservations(fallbackUserId);
+        const completedObservations = await getCompletedInspectionObservations(fallbackUserId);
+        
+        console.log('Loaded pending observations:', pendingObservations.length);
+        console.log('Loaded completed observations:', completedObservations.length);
+        
+        // Continue with the rest of the logic using fallbackUserId
+        await processObservations(pendingObservations, completedObservations, farmsData);
+      } else {
+        console.log('Using current local user ID:', userId);
+        
+        // Get farms for the current user
+        const farmsData = await getFarms(userId);
+        console.log('Loaded farms for user:', farmsData.length);
+        setFarms(farmsData);
+        
+        // Load inspection observations for the current user
+        const pendingObservations = await getPendingInspectionObservations(userId);
+        const completedObservations = await getCompletedInspectionObservations(userId);
+        
+        console.log('Loaded pending observations:', pendingObservations.length);
+        console.log('Loaded completed observations:', completedObservations.length);
+        
+        // Process the observations
+        await processObservations(pendingObservations, completedObservations, farmsData);
       }
-      
-      // Get farms for the current user
-      const farmsData = await getFarms(userId);
-      console.log('Loaded farms for user:', farmsData.length);
-      setFarms(farmsData);
-      
-      // Load inspection observations for the current user
-      const pendingObservations = await getPendingInspectionObservations(userId);
-      const completedObservations = await getCompletedInspectionObservations(userId);
-      
-      console.log('Loaded pending observations:', pendingObservations.length);
-      console.log('Loaded completed observations:', completedObservations.length);
-      
-      // Load inspection suggestions
-      const suggestions = await getInspectionSuggestions();
-      console.log('Loaded suggestions:', suggestions.length);
-      
-      // Create a map of suggestions by ID for quick lookup
-      const suggestionsMap = {};
-      suggestions.forEach(suggestion => {
-        suggestionsMap[suggestion.id] = suggestion;
-      });
-      
-      // Format the data for display by combining observation and suggestion data
-      const formatObservation = async (observation) => {
-        console.log('Formatting observation:', observation.id);
-        
-        // Get farm details
-        const farm = farms.find(f => f.id === observation.farm_id);
-        
-        // Get suggestion details
-        const suggestion = suggestionsMap[observation.inspection_id] || {};
-        
-        // Get boundary points (observation points) for the farm
-        const boundaryPoints = await getBoundaryData(observation.farm_id);
-        
-        // Count the number of sections (boundary points)
-        const sectionCount = boundaryPoints.length;
-        
-        return {
-          id: observation.id,
-          Date: new Date(observation.date).toLocaleDateString(),
-          // From inspection suggestion
-          Category: suggestion.target_entity || observation.target_entity || 'Unknown',
-          ConfidenceLevel: suggestion.confidence_level || observation.confidence || 'Unknown',
-          InspectionSections: sectionCount || 1,
-          // From farm service
-          InspectedPlantsPerSection: farm?.plant_per_section || observation.plant_per_section || 0,
-          // From observation points
-          Finished: observation.status === 'completed' || observation.status === 'Completed' ? 1 : 0,
-          FarmId: observation.farm_id,
-          Status: observation.status,
-          // Additional details
-          FarmName: farm?.name || 'Unknown Farm',
-          FarmSize: farm?.size || 0,
-          SuggestionId: observation.inspection_id
-        };
-      };
-      
-      // Process observations in parallel
-      const pendingPromises = pendingObservations.map(formatObservation);
-      const completedPromises = completedObservations.map(formatObservation);
-      
-      let formattedPending = await Promise.all(pendingPromises);
-      let formattedCompleted = await Promise.all(completedPromises);
-      
-      // Make sure all observations with "Completed" status are in the completed list
-      // and all other observations are in the pending list
-      const allObservations = [...formattedPending, ...formattedCompleted];
-      
-      // Filter observations based on status
-      formattedCompleted = allObservations.filter(obs => 
-        obs.Status === 'Completed' || obs.Status === 'completed'
-      );
-      
-      formattedPending = allObservations.filter(obs => 
-        obs.Status !== 'Completed' && obs.Status !== 'completed'
-      );
-      
-      console.log('Formatted pending observations:', formattedPending.length);
-      console.log('Formatted completed observations:', formattedCompleted.length);
-      
-      setUnfinishedList(formattedPending);
-      setFinishedList(formattedCompleted);
       
       setLoading(false);
     } catch (error) {
@@ -260,6 +200,81 @@ function History() {
       Alert.alert('Error', 'Failed to load inspection history: ' + error.message);
       setLoading(false);
     }
+  };
+
+  // Helper function to process observations
+  const processObservations = async (pendingObservations, completedObservations, farmsData) => {
+    // Load inspection suggestions
+    const suggestions = await getInspectionSuggestions();
+    console.log('Loaded suggestions:', suggestions.length);
+    
+    // Create a map of suggestions by ID for quick lookup
+    const suggestionsMap = {};
+    suggestions.forEach(suggestion => {
+      suggestionsMap[suggestion.id] = suggestion;
+    });
+    
+    // Format the data for display by combining observation and suggestion data
+    const formatObservation = async (observation) => {
+      console.log('Formatting observation:', observation.id);
+      
+      // Get farm details
+      const farm = farmsData.find(f => f.id === observation.farm_id);
+      
+      // Get suggestion details
+      const suggestion = suggestionsMap[observation.inspection_id] || {};
+      
+      // Get boundary points (observation points) for the farm
+      const boundaryPoints = await getBoundaryData(observation.farm_id);
+      
+      // Count the number of sections (boundary points)
+      const sectionCount = boundaryPoints.length;
+      
+      return {
+        id: observation.id,
+        Date: new Date(observation.date).toLocaleDateString(),
+        // From inspection suggestion
+        Category: suggestion.target_entity || observation.target_entity || 'Unknown',
+        ConfidenceLevel: suggestion.confidence_level || observation.confidence || 'Unknown',
+        InspectionSections: sectionCount || 1,
+        // From farm service
+        InspectedPlantsPerSection: farm?.plant_per_section || observation.plant_per_section || 0,
+        // From observation points
+        Finished: observation.status === 'completed' || observation.status === 'Completed' ? 1 : 0,
+        FarmId: observation.farm_id,
+        Status: observation.status,
+        // Additional details
+        FarmName: farm?.name || 'Unknown Farm',
+        FarmSize: farm?.size || 0,
+        SuggestionId: observation.inspection_id
+      };
+    };
+    
+    // Process observations in parallel
+    const pendingPromises = pendingObservations.map(formatObservation);
+    const completedPromises = completedObservations.map(formatObservation);
+    
+    let formattedPending = await Promise.all(pendingPromises);
+    let formattedCompleted = await Promise.all(completedPromises);
+    
+    // Make sure all observations with "Completed" status are in the completed list
+    // and all other observations are in the pending list
+    const allObservations = [...formattedPending, ...formattedCompleted];
+    
+    // Filter observations based on status
+    formattedCompleted = allObservations.filter(obs => 
+      obs.Status === 'Completed' || obs.Status === 'completed'
+    );
+    
+    formattedPending = allObservations.filter(obs => 
+      obs.Status !== 'Completed' && obs.Status !== 'completed'
+    );
+    
+    console.log('Formatted pending observations:', formattedPending.length);
+    console.log('Formatted completed observations:', formattedCompleted.length);
+    
+    setUnfinishedList(formattedPending);
+    setFinishedList(formattedCompleted);
   };
   
   // Call loadData when the component mounts
@@ -298,23 +313,12 @@ function History() {
             setSelectedFarm(farm);
             setLoading(true);
             
-            // Get the current user ID from AsyncStorage
-            AsyncStorage.getItem('user').then(userJson => {
-              let userId = 1; // Default user ID
-              
-              if (userJson) {
-                try {
-                  const user = JSON.parse(userJson);
-                  if (user.id) {
-                    userId = user.id;
-                  }
-                } catch (error) {
-                  console.error('Error parsing user JSON:', error);
-                }
-              }
+            // Get the current local user ID using the consistent utility
+            getCurrentLocalUserId().then(userId => {
+              const finalUserId = userId || 1; // Use fallback if no user ID
               
               // Get observation points for the selected farm and user
-              return getObservationPoints(farm.id, userId);
+              return getObservationPoints(farm.id, finalUserId);
             }).then(observationPoints => {
               console.log(`Loaded ${observationPoints.length} observation points for farm ${farm.name}`);
               
@@ -430,27 +434,15 @@ function History() {
               setLoading(true);
               
               try {
-                // Get the current user ID from AsyncStorage
-                let userId = null;
-                try {
-                  const userJson = await AsyncStorage.getItem('user');
-                  if (userJson) {
-                    const user = JSON.parse(userJson);
-                    userId = user.id;
-                    console.log('Using user ID from AsyncStorage for observation points:', userId);
-                  } else {
-                    console.warn('No user found in AsyncStorage, using default user ID 1 for observation points');
-                    userId = 1; // Default user ID if not found
-                  }
-                } catch (error) {
-                  console.error('Error getting user from AsyncStorage for observation points:', error);
-                  console.warn('Using default user ID 1 for observation points');
-                  userId = 1; // Default user ID if error
-                }
+                // Get the current local user ID using the consistent utility
+                const userId = await getCurrentLocalUserId();
+                const finalUserId = userId || 1; // Use fallback if no user ID
+                
+                console.log('Using local user ID for observation points:', finalUserId);
                 
                 // Get observation points for the selected farm and user
-                const observationPoints = await getObservationPoints(farm.id, userId);
-                console.log(`Loaded ${observationPoints.length} observation points for farm ${farm.name} and user ${userId}`);
+                const observationPoints = await getObservationPoints(farm.id, finalUserId);
+                console.log(`Loaded ${observationPoints.length} observation points for farm ${farm.name} and user ${finalUserId}`);
                 
                 // Format observation points for display
                 const formattedPoints = await Promise.all(observationPoints.map(async point => {
@@ -608,22 +600,12 @@ function History() {
             )}
             onRefresh={async () => {
               if (selectedFarm) {
-                // Get the current user ID from AsyncStorage
-                let userId = null;
-                try {
-                  const userJson = await AsyncStorage.getItem('user');
-                  if (userJson) {
-                    const user = JSON.parse(userJson);
-                    userId = user.id;
-                  } else {
-                    userId = 1; // Default user ID if not found
-                  }
-                } catch (error) {
-                  userId = 1; // Default user ID if error
-                }
+                // Get the current local user ID using the consistent utility
+                const userId = await getCurrentLocalUserId();
+                const finalUserId = userId || 1; // Use fallback if no user ID
                 
                 // Get observation points for the selected farm and user
-                const points = await getObservationPoints(selectedFarm.id, userId);
+                const points = await getObservationPoints(selectedFarm.id, finalUserId);
                 const formattedPoints = points.map(point => ({
                   id: point.id,
                   Date: new Date().toLocaleDateString(),
