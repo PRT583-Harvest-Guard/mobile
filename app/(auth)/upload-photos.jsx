@@ -29,7 +29,7 @@ export default function UploadBoundaryScreen() {
   const { farmId } = useLocalSearchParams();
   const [farmData, setFarmData] = useState(null);
   const boundaryStore = useBoundaryStore();
-  const [drawOnMap, setDrawOnMap] = useState(false);
+  const drawOnMap = true
 
   useEffect(() => {
     const loadData = async () => {
@@ -126,15 +126,7 @@ export default function UploadBoundaryScreen() {
               {drawOnMap ? 'Draw on Map' : 'Photo Capture'}
             </Text>
             <View className="flex-row items-center justify-center">
-              <Text className="text-sm text-[#555] mx-2">Photo Capture</Text>
-              <Switch
-                value={drawOnMap}
-                onValueChange={setDrawOnMap}
-                trackColor={{ false: '#E9762B', true: '#1B4D3E' }}
-                thumbColor={'#fff'}
-                ios_backgroundColor="#E9762B"
-              />
-              <Text className="text-sm text-[#555] mx-2">Draw on Map</Text>
+              <Text className="text-sm text-[#555] mx-2">Mark boundary points on the map using the draw tool </Text>
             </View>
           </View>
           
@@ -174,6 +166,7 @@ export default function UploadBoundaryScreen() {
             title="Save Boundary Points"
             handlePress={handleSave}
             containerStyles="mt-5 mb-5 bg-primary"
+            visible={false}
           />
         )}
       </ScrollView>

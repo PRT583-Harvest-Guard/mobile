@@ -7,9 +7,15 @@ const themeColours = {
   error: 'bg-red'
 }
 
-const CustomButton = ({ title, handlePress, containerStyles, textStyles, isLoading, disabled, theme }) => {
+const CustomButton = ({ title, handlePress, containerStyles, textStyles, isLoading, disabled, theme, visible = true }) => {
   const bgColour = theme ? themeColours[theme] || themeColours['secondary'] : themeColours['secondary'];
   const isDisabled = isLoading || disabled;
+  
+  // If not visible, return null to hide the button
+  if (!visible) {
+    return null;
+  }
+  
   return (
     <TouchableOpacity
       onPress={handlePress}
