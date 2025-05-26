@@ -153,6 +153,69 @@ const Settings = () => {
             "Get assistance with using the app", 
             () => setSupportModalVisible(true)
           )}
+          
+          {renderSettingItem(
+            "database", 
+            "Clean Database", 
+            "Remove orphaned records from the database", 
+            () => {
+              Alert.alert(
+                "Clean Database",
+                "This will remove orphaned records from the database. Do you want to continue?",
+                [
+                  {
+                    text: "Cancel",
+                    style: "cancel"
+                  },
+                  {
+                    text: "Clean",
+                    onPress: async () => {
+                      try {
+                        // Initialize the database service
+                        const databaseService = require('@/services/DatabaseService').default;
+                        await databaseService.initialize();
+                        
+                        // Show loading alert
+                        Alert.alert(
+                          "Cleaning Database",
+                          "Please wait while the database is being cleaned...",
+                          [],
+                          { cancelable: false }
+                        );
+                        
+                        // Execute the cleanup script
+                        const cleanDatabase = require('@/scripts/clean-database').default;
+                        const summary = await cleanDatabase();
+                        
+                        // Show success alert with summary
+                        Alert.alert(
+                          "Database Cleaned",
+                          `Successfully cleaned the database:\n\n` +
+                          `- Orphaned observation points deleted: ${summary.orphanedPointsDeleted}\n` +
+                          `- Unfinished observation points deleted: ${summary.unfinishedPointsDeleted || 0}\n` +
+                          `- Orphaned inspection observations deleted: ${summary.orphanedObservationsDeleted}\n` +
+                          `- Observations with invalid section_id deleted: ${summary.invalidSectionObservationsDeleted}\n\n` +
+                          `Total records deleted: ${
+                            summary.orphanedPointsDeleted + 
+                            (summary.unfinishedPointsDeleted || 0) +
+                            summary.orphanedObservationsDeleted + 
+                            summary.invalidSectionObservationsDeleted
+                          }`,
+                          [{ text: "OK" }]
+                        );
+                      } catch (error) {
+                        console.error('Error cleaning database:', error);
+                        Alert.alert(
+                          "Error",
+                          "Failed to clean database: " + error.message
+                        );
+                      }
+                    }
+                  }
+                ]
+              );
+            }
+          )}
         </View>
         
         {/* Account Actions Section */}
