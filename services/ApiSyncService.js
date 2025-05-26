@@ -2,43 +2,22 @@
  * API Sync Service
  * Handles synchronization of local data with the Django API
  */
-import { Platform, Alert } from 'react-native';
-import * as SecureStore from 'expo-secure-store';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Alert } from 'react-native';
 import config from '../config/env';
-import AuthService from './AuthService';
+import apiAuthService from './ApiAuthService';
 import databaseService from './DatabaseService';
-
-// API base URL - replace with your actual Django API URL in production
-// For development, use your computer's local network IP address
-// For example: 'http://192.168.1.100:8001'
-// Or use ngrok for testing: 'https://your-ngrok-url.ngrok.io'
-// Config on .env file
-const API_BASE_URL = config.api.baseUrl;
 
 // API endpoints
 const ENDPOINTS = config.api.endpoints;
 
-// Secure storage keys
-const STORAGE_KEYS = {
-  ACCESS_TOKEN: "access_token",
-  REFRESH_TOKEN: "refresh_token",
-  USER_CREDENTIALS: "user_credentials",
-  LAST_SYNC_TIME: "last_sync_time"
-};
-
 class ApiSyncService {
   constructor() {
-    this.accessToken = null;
-    this.refreshToken = null;
-    this.userId = null;
     this.lastSyncStats = null;
     this.isInitialized = false;
-    this.isOnline = true; // Assume online by default
   }
 
   /**
-   * Initialize the API service
+   * Initialize the API sync service
    * @returns {Promise<void>}
    */
   async initialize() {
@@ -48,283 +27,14 @@ class ApiSyncService {
       // Initialize the database service
       await databaseService.initialize();
 
-      // Try to load tokens from storage
-      await this.loadTokensFromStorage();
+      // Initialize the auth service
+      await apiAuthService.initialize();
 
       this.isInitialized = true;
       console.log('API Sync Service initialized');
     } catch (error) {
       console.error('API Sync Service initialization error:', error);
       throw error;
-    }
-  }
-
-  /**
-   * Load tokens from storage
-   * @returns {Promise<void>}
-   */
-  async loadTokensFromStorage() {
-    try {
-      // Try to get tokens from AsyncStorage first
-      try {
-        const accessToken = await AsyncStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
-        const refreshToken = await AsyncStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
-        
-        if (accessToken && refreshToken) {
-          this.accessToken = accessToken;
-          this.refreshToken = refreshToken;
-          
-          // Verify the access token
-          const isValid = await this.verifyToken();
-          
-          if (!isValid) {
-            // Try to refresh the token
-            await this.refreshAccessToken();
-          }
-          
-          return;
-        }
-      } catch (asyncError) {
-        console.log('Error loading tokens from AsyncStorage:', asyncError);
-      }
-      
-      // If AsyncStorage fails or tokens not found, try SecureStore as fallback
-      try {
-        this.accessToken = await SecureStore.getItemAsync(STORAGE_KEYS.ACCESS_TOKEN);
-        this.refreshToken = await SecureStore.getItemAsync(STORAGE_KEYS.REFRESH_TOKEN);
-        
-        if (this.accessToken && this.refreshToken) {
-          // Verify the access token
-          const isValid = await this.verifyToken();
-          
-          if (!isValid) {
-            // Try to refresh the token
-            await this.refreshAccessToken();
-          }
-        }
-      } catch (secureError) {
-        console.log('Error loading tokens from SecureStore:', secureError);
-      }
-    } catch (error) {
-      console.error('Error loading tokens from storage:', error);
-      // Clear tokens if there was an error
-      this.accessToken = null;
-      this.refreshToken = null;
-    }
-  }
-
-  /**
-   * Save tokens to storage
-   * @param {string} accessToken - JWT access token
-   * @param {string} refreshToken - JWT refresh token
-   * @returns {Promise<void>}
-   */
-  async saveTokensToStorage(accessToken, refreshToken) {
-    try {
-      // Save to AsyncStorage
-      try {
-        await AsyncStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, accessToken);
-        await AsyncStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, refreshToken);
-      } catch (asyncError) {
-        console.log('Error saving tokens to AsyncStorage:', asyncError);
-      }
-      
-      // Also try to save to SecureStore as fallback
-      try {
-        await SecureStore.setItemAsync(STORAGE_KEYS.ACCESS_TOKEN, accessToken);
-        await SecureStore.setItemAsync(STORAGE_KEYS.REFRESH_TOKEN, refreshToken);
-      } catch (secureError) {
-        console.log('Error saving tokens to SecureStore:', secureError);
-      }
-      
-      this.accessToken = accessToken;
-      this.refreshToken = refreshToken;
-    } catch (error) {
-      console.error('Error saving tokens to storage:', error);
-      // Don't throw the error, just log it
-      console.log('Will continue without saving tokens to storage');
-    }
-  }
-
-  /**
-   * Clear tokens from storage
-   * @returns {Promise<void>}
-   */
-  async clearTokensFromStorage() {
-    try {
-      // Clear from AsyncStorage
-      try {
-        await AsyncStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
-        await AsyncStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
-      } catch (asyncError) {
-        console.log('Error clearing tokens from AsyncStorage:', asyncError);
-      }
-      
-      // Also try to clear from SecureStore
-      try {
-        await SecureStore.deleteItemAsync(STORAGE_KEYS.ACCESS_TOKEN);
-        await SecureStore.deleteItemAsync(STORAGE_KEYS.REFRESH_TOKEN);
-      } catch (secureError) {
-        console.log('Error clearing tokens from SecureStore:', secureError);
-      }
-      
-      this.accessToken = null;
-      this.refreshToken = null;
-    } catch (error) {
-      console.error('Error clearing tokens from storage:', error);
-      // Don't throw the error, just log it
-      console.log('Will continue without clearing tokens from storage');
-    }
-  }
-
-  /**
-   * Save user credentials to storage
-   * @param {Object} credentials - User credentials
-   * @returns {Promise<void>}
-   */
-  async saveCredentialsToStorage(credentials) {
-    try {
-      // Save to AsyncStorage
-      try {
-        await AsyncStorage.setItem(STORAGE_KEYS.USER_CREDENTIALS, JSON.stringify(credentials));
-      } catch (asyncError) {
-        console.log('Error saving credentials to AsyncStorage:', asyncError);
-      }
-      
-      // Also try to save to SecureStore as fallback
-      try {
-        await SecureStore.setItemAsync(STORAGE_KEYS.USER_CREDENTIALS, JSON.stringify(credentials));
-      } catch (secureError) {
-        console.log('Error saving credentials to SecureStore:', secureError);
-      }
-    } catch (error) {
-      console.error('Error saving credentials to storage:', error);
-      // Don't throw the error, just log it
-      console.log('Will continue without saving credentials to storage');
-    }
-  }
-
-  /**
-   * Get stored credentials from storage
-   * @returns {Promise<Object|null>} Credentials or null
-   */
-  async getStoredCredentials() {
-    try {
-      // Try to get credentials from AsyncStorage first
-      try {
-        const credentialsJson = await AsyncStorage.getItem(STORAGE_KEYS.USER_CREDENTIALS);
-        
-        if (credentialsJson) {
-          return JSON.parse(credentialsJson);
-        }
-      } catch (asyncError) {
-        console.log('Error getting credentials from AsyncStorage:', asyncError);
-      }
-      
-      // If AsyncStorage fails or credentials not found, try SecureStore as fallback
-      try {
-        const credentialsJson = await SecureStore.getItemAsync(STORAGE_KEYS.USER_CREDENTIALS);
-        
-        if (credentialsJson) {
-          return JSON.parse(credentialsJson);
-        }
-      } catch (secureError) {
-        console.log('Error getting credentials from SecureStore:', secureError);
-      }
-      
-      return null;
-    } catch (error) {
-      console.error('Error getting credentials from storage:', error);
-      return null;
-    }
-  }
-
-  /**
-   * Clear credentials from storage
-   * @returns {Promise<void>}
-   */
-  async clearCredentialsFromStorage() {
-    try {
-      // Clear from AsyncStorage
-      try {
-        await AsyncStorage.removeItem(STORAGE_KEYS.USER_CREDENTIALS);
-      } catch (asyncError) {
-        console.log('Error clearing credentials from AsyncStorage:', asyncError);
-      }
-      
-      // Also try to clear from SecureStore
-      try {
-        await SecureStore.deleteItemAsync(STORAGE_KEYS.USER_CREDENTIALS);
-      } catch (secureError) {
-        console.log('Error clearing credentials from SecureStore:', secureError);
-      }
-    } catch (error) {
-      console.error('Error clearing credentials from storage:', error);
-      // Don't throw the error, just log it
-      console.log('Will continue without clearing credentials from storage');
-    }
-  }
-
-  /**
-   * Save the last sync time
-   * @returns {Promise<void>}
-   */
-  async saveLastSyncTime() {
-    try {
-      const now = new Date().toISOString();
-      
-      // Save to AsyncStorage
-      try {
-        await AsyncStorage.setItem(STORAGE_KEYS.LAST_SYNC_TIME, now);
-      } catch (asyncError) {
-        console.log('Error saving last sync time to AsyncStorage:', asyncError);
-      }
-      
-      // Also try to save to SecureStore as fallback
-      try {
-        await SecureStore.setItemAsync(STORAGE_KEYS.LAST_SYNC_TIME, now);
-      } catch (secureError) {
-        console.log('Error saving last sync time to SecureStore:', secureError);
-      }
-    } catch (error) {
-      console.error('Error saving last sync time:', error);
-      // Don't throw the error, just log it
-      console.log('Will continue without saving last sync time');
-    }
-  }
-
-  /**
-   * Get the last sync time
-   * @returns {Promise<string|null>} Last sync time or null
-   */
-  async getLastSyncTime() {
-    try {
-      // Try to get last sync time from AsyncStorage first
-      try {
-        const lastSyncTime = await AsyncStorage.getItem(STORAGE_KEYS.LAST_SYNC_TIME);
-        
-        if (lastSyncTime) {
-          return lastSyncTime;
-        }
-      } catch (asyncError) {
-        console.log('Error getting last sync time from AsyncStorage:', asyncError);
-      }
-      
-      // If AsyncStorage fails or last sync time not found, try SecureStore as fallback
-      try {
-        const lastSyncTime = await SecureStore.getItemAsync(STORAGE_KEYS.LAST_SYNC_TIME);
-        
-        if (lastSyncTime) {
-          return lastSyncTime;
-        }
-      } catch (secureError) {
-        console.log('Error getting last sync time from SecureStore:', secureError);
-      }
-      
-      return null;
-    } catch (error) {
-      console.error('Error getting last sync time:', error);
-      return null;
     }
   }
 
@@ -337,436 +47,58 @@ class ApiSyncService {
   }
 
   /**
-   * Verify the access token
-   * @returns {Promise<boolean>} Whether the token is valid
-   */
-  async verifyToken() {
-    if (!this.accessToken) {
-      console.log('No access token to verify');
-      return false;
-    }
-
-    try {
-      console.log('Attempting to verify token with:', `${API_BASE_URL}${ENDPOINTS.userInfo}`);
-
-      // Instead of using a dedicated token verification endpoint, we'll try to get the user info
-      // If the token is valid, this should succeed
-      const response = await fetch(`${API_BASE_URL}${ENDPOINTS.userInfo}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'Authorization': `JWT ${this.accessToken}`,
-        },
-      });
-
-      console.log('Token verification response status:', response.status);
-
-      // Get the response text first to see what's coming back
-      const responseText = await response.text();
-      console.log('Token verification response text:', responseText);
-
-      // Try to parse as JSON if possible
-      let data = {};
-
-      try {
-        if (responseText) {
-          data = JSON.parse(responseText);
-        }
-      } catch (parseError) {
-        console.error('Error parsing token verification response JSON:', parseError);
-      }
-
-      if (!response.ok) {
-        console.error('Token verification failed with status:', response.status);
-        console.error('Response data:', data);
-        return false;
-      }
-
-      console.log('Token verification successful');
-      return true;
-    } catch (error) {
-      console.error('Token verification error:', error);
-      return false;
-    }
-  }
-
-  /**
-   * Refresh the access token
-   * @returns {Promise<boolean>} Whether the token was refreshed successfully
-   */
-  async refreshAccessToken() {
-    if (!this.refreshToken) return false;
-
-    try {
-      console.log('Attempting to refresh token with:', `${API_BASE_URL}${ENDPOINTS.tokenRefresh}`);
-
-      const response = await fetch(`${API_BASE_URL}${ENDPOINTS.tokenRefresh}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: JSON.stringify({ refresh_token: this.refreshToken }),
-      });
-
-      console.log('Token refresh response status:', response.status);
-
-      // Get the response text first to see what's coming back
-      const responseText = await response.text();
-      console.log('Token refresh response text:', responseText);
-
-      // Try to parse as JSON if possible
-      let data = {};
-
-      try {
-        if (responseText) {
-          data = JSON.parse(responseText);
-        }
-      } catch (parseError) {
-        console.error('Error parsing refresh token response JSON:', parseError);
-        throw new Error('Failed to parse refresh token response');
-      }
-
-      if (!response.ok) {
-        console.error('Token refresh failed with status:', response.status);
-        console.error('Response data:', data);
-        throw new Error(data.detail || 'Failed to refresh token');
-      }
-
-      if (!data.access_token) {
-        console.error('Token refresh response missing access token:', data);
-        throw new Error('Refresh token response missing access token');
-      }
-
-      console.log('Token refresh successful, new access token received');
-
-      // Save the new access token and refresh token (if provided)
-      const newRefreshToken = data.refresh_token || this.refreshToken;
-      await this.saveTokensToStorage(data.access_token, newRefreshToken);
-
-      return true;
-    } catch (error) {
-      console.error('Token refresh error:', error);
-
-      // Clear tokens if refresh failed
-      await this.clearTokensFromStorage();
-
-      return false;
-    }
-  }
-
-  /**
-   * Authenticate with the Django API
-   * @param {Object} credentials - User credentials
-   * @param {string} credentials.username - Username
-   * @param {string} credentials.password - Password
-   * @returns {Promise<Object>} Authentication result
-   */
-  async authenticate(credentials) {
-    try {
-      // Check if we're online
-      if (!this.isOnline) {
-        // Try to authenticate locally
-        const localAuth = await AuthService.signIn(credentials);
-
-        if (localAuth) {
-          // Save credentials for later API authentication
-          await this.saveCredentialsToStorage(credentials);
-
-          return {
-            success: true,
-            message: 'Authenticated locally (offline mode)',
-            user: localAuth.user,
-          };
-        }
-
-        throw new Error('Local authentication failed');
-      }
-
-      // Get device info
-      const deviceInfo = Platform.OS === 'ios'
-        ? `iOS ${Platform.Version}`
-        : `Android ${Platform.Version}`;
-
-      // Online authentication with the API
-      console.log('Attempting to authenticate with API:', `${API_BASE_URL}${ENDPOINTS.login}`);
-      console.log('Credentials:', JSON.stringify({
-        phone_number: credentials.username, // Using username as phone_number
-        password: '********', // Masked for security
-        device_info: deviceInfo
-      }));
-
-      // The Django API expects phone_number instead of username
-      const response = await fetch(`${API_BASE_URL}${ENDPOINTS.login}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: JSON.stringify({
-          phone_number: credentials.username, // Using username as phone_number
-          password: credentials.password,
-          device_info: deviceInfo
-        }),
-      });
-
-      console.log('Authentication response status:', response.status);
-
-      // Get the response text first to see what's coming back
-      const responseText = await response.text();
-      console.log('Authentication response text:', responseText);
-
-      // Try to parse as JSON if possible
-      let errorData = {};
-      let data = {};
-
-      try {
-        if (responseText) {
-          data = JSON.parse(responseText);
-        }
-      } catch (parseError) {
-        console.error('Error parsing response JSON:', parseError);
-      }
-
-      if (!response.ok) {
-        console.error('Authentication failed with status:', response.status);
-        console.error('Response data:', data);
-
-        // Try to extract error details
-        if (data.detail) {
-          throw new Error(data.detail);
-        } else if (data.non_field_errors) {
-          throw new Error(data.non_field_errors.join(', '));
-        } else if (data.phone_number) {
-          throw new Error(`Phone number: ${data.phone_number.join(', ')}`);
-        } else if (data.password) {
-          throw new Error(`Password: ${data.password.join(', ')}`);
-        } else {
-          throw new Error(`Authentication failed with status ${response.status}`);
-        }
-      }
-
-      // If we got here, the response was OK
-      console.log('Authentication successful, tokens received');
-
-      // Save tokens
-      await this.saveTokensToStorage(data.access_token, data.refresh_token);
-
-      // Save credentials for later use
-      await this.saveCredentialsToStorage(credentials);
-
-      // Try to authenticate locally as well
-      try {
-        await AuthService.signIn(credentials);
-      } catch (localAuthError) {
-        // If local auth fails, try to create the user locally
-        try {
-          await AuthService.signUp({
-            username: credentials.username,
-            password: credentials.password,
-            email: data.user?.email || `${credentials.username}@example.com`,
-            name: data.user?.name || credentials.username
-          });
-
-          // Try to sign in again
-          await AuthService.signIn(credentials);
-        } catch (localSignUpError) {
-          console.error('Local sign up error:', localSignUpError);
-          // Continue anyway, since API auth succeeded
-        }
-      }
-
-      return {
-        success: true,
-        message: 'Authenticated with API',
-        tokens: {
-          access: data.access_token,
-          refresh: data.refresh_token,
-        },
-        user: data.user
-      };
-    } catch (error) {
-      console.error('API authentication error:', error);
-
-      // If API auth fails, try local auth as fallback
-      try {
-        const localAuth = await AuthService.signIn(credentials);
-
-        if (localAuth) {
-          // Save credentials for later API authentication
-          await this.saveCredentialsToStorage(credentials);
-
-          return {
-            success: true,
-            message: 'Authenticated locally (API auth failed)',
-            user: localAuth.user,
-          };
-        }
-      } catch (localAuthError) {
-        console.error('Local authentication error:', localAuthError);
-      }
-
-      throw error;
-    }
-  }
-
-  /**
-   * Sign out
-   * @returns {Promise<void>}
-   */
-  async signOut() {
-    try {
-      // Get the refresh token before clearing it
-      const refreshToken = this.refreshToken;
-      
-      // Clear tokens
-      await this.clearTokensFromStorage();
-
-      // Clear credentials
-      await this.clearCredentialsFromStorage();
-
-      // Sign out locally
-      const credentials = await this.getStoredCredentials();
-      if (credentials) {
-        await AuthService.signOut(credentials.sessionToken, refreshToken);
-      }
-    } catch (error) {
-      console.error('Sign out error:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Check if the user is authenticated
-   * @param {boolean} skipTokenVerification - Whether to skip token verification (to prevent infinite loops)
-   * @returns {Promise<boolean>} Whether the user is authenticated
-   */
-  async isAuthenticated(skipTokenVerification = false) {
-    // Check if we have tokens
-    if (this.accessToken && this.refreshToken) {
-      // If we're skipping token verification, just return true
-      if (skipTokenVerification) {
-        return true;
-      }
-
-      // Verify the access token only once
-      const isValid = await this.verifyToken();
-
-      if (isValid) {
-        return true;
-      }
-
-      // Try to refresh the token only once
-      return await this.refreshAccessToken();
-    }
-
-    // Check if we have stored credentials
-    const credentials = await this.getStoredCredentials();
-
-    if (credentials) {
-      // If we're skipping token verification, just return true
-      if (skipTokenVerification) {
-        return true;
-      }
-
-      // Try to authenticate with the stored credentials only once
-      try {
-        await this.authenticate(credentials);
-        return true;
-      } catch (error) {
-        console.error('Authentication with stored credentials failed:', error);
-      }
-    }
-
-    return false;
-  }
-
-  /**
-   * Set the online status
+   * Set the online status (delegates to ApiAuthService)
    * @param {boolean} isOnline - Whether the app is online
    */
   setOnlineStatus(isOnline) {
-    this.isOnline = isOnline;
+    apiAuthService.setOnlineStatus(isOnline);
   }
 
   /**
-   * Check if the API is reachable
+   * Check if the user is authenticated (delegates to ApiAuthService)
+   * @param {boolean} skipTokenVerification - Whether to skip token verification
+   * @returns {Promise<boolean>} Whether the user is authenticated
+   */
+  async isAuthenticated(skipTokenVerification = false) {
+    return await apiAuthService.isAuthenticated(skipTokenVerification);
+  }
+
+  /**
+   * Authenticate with the Django API (delegates to ApiAuthService)
+   * @param {Object} credentials - User credentials
+   * @returns {Promise<Object>} Authentication result
+   */
+  async authenticate(credentials) {
+    return await apiAuthService.authenticate(credentials);
+  }
+
+  /**
+   * Sign out (delegates to ApiAuthService)
+   * @returns {Promise<void>}
+   */
+  async signOut() {
+    return await apiAuthService.signOut();
+  }
+
+  /**
+   * Get the last sync time (delegates to ApiAuthService)
+   * @returns {Promise<string|null>} Last sync time or null
+   */
+  async getLastSyncTime() {
+    return await apiAuthService.getLastSyncTime();
+  }
+
+  /**
+   * Check if the API is reachable (delegates to ApiAuthService)
    * @returns {Promise<boolean>} Whether the API is reachable
    */
   async isApiReachable() {
-    try {
-      console.log('Checking if API is reachable:', API_BASE_URL);
-
-      // Try to make a simple request to the API
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
-
-      // Try a few different endpoints to see if any of them are reachable
-      let response;
-
-      try {
-        // First try the root URL
-        response = await fetch(`${API_BASE_URL}`, {
-          method: 'GET',
-          signal: controller.signal
-        });
-
-        console.log('API root URL response status:', response.status);
-
-        if (response.status !== 0) {
-          clearTimeout(timeoutId);
-          return true;
-        }
-      } catch (rootError) {
-        console.error('Error checking API root URL:', rootError);
-      }
-
-      try {
-        // Then try the accounts endpoint
-        response = await fetch(`${API_BASE_URL}/api/accounts/`, {
-          method: 'GET',
-          signal: controller.signal
-        });
-
-        console.log('API accounts endpoint response status:', response.status);
-
-        if (response.status !== 0) {
-          clearTimeout(timeoutId);
-          return true;
-        }
-      } catch (accountsError) {
-        console.error('Error checking API accounts endpoint:', accountsError);
-      }
-
-      try {
-        // Finally try the JWT verify endpoint
-        response = await fetch(`${API_BASE_URL}${ENDPOINTS.jwtVerify}`, {
-          method: 'GET',
-          signal: controller.signal
-        });
-
-        console.log('API JWT verify endpoint response status:', response.status);
-
-        clearTimeout(timeoutId);
-
-        // Even if we get a 405 Method Not Allowed, it means the server is reachable
-        return response.status !== 0;
-      } catch (jwtError) {
-        console.error('Error checking API JWT verify endpoint:', jwtError);
-      }
-
-      clearTimeout(timeoutId);
-      return false;
-    } catch (error) {
-      console.error('API reachability check error:', error);
-      return false;
-    }
+    return await apiAuthService.isApiReachable();
   }
 
   /**
    * Perform a full sync with the Django API
-   * Thijust s method is used by the sync-records.jsx page
+   * This method is used by the sync-records.jsx page
    * @returns {Promise<Object>} Sync result
    */
   async performFullSync() {
@@ -775,19 +107,19 @@ class ApiSyncService {
       await this.initialize();
 
       // Check if we're online
-      if (!this.isOnline) {
+      if (!apiAuthService.isOnline) {
         throw new Error('Cannot sync while offline');
       }
 
       // Check if we're authenticated, but skip token verification to prevent continuous token refresh
-      const isAuth = await this.isAuthenticated(true);
+      const isAuth = await apiAuthService.isAuthenticated(true);
 
       if (!isAuth) {
         // We need to re-authenticate
-        const credentials = await this.getStoredCredentials();
+        const credentials = await apiAuthService.getStoredCredentials();
 
         if (credentials) {
-          const authResult = await this.authenticate(credentials);
+          const authResult = await apiAuthService.authenticate(credentials);
           if (!authResult.success) {
             // Authentication failed, return a special error object
             return { authRequired: true, message: 'Authentication failed' };
@@ -798,30 +130,59 @@ class ApiSyncService {
         }
       }
 
-      // Mock sync result for now
-      const result = {
-        success: true,
-        results: {
-          farms: { created: 0, updated: 0, deleted: 0 },
-          boundary_points: { created: 0, updated: 0, deleted: 0 },
-          observation_points: { created: 0, updated: 0, deleted: 0 },
-          inspection_suggestions: { created: 0, updated: 0, deleted: 0 },
-          inspection_observations: { created: 0, updated: 0, deleted: 0 }
-        }
+      console.log('Starting full sync with Django API...');
+
+      // Prepare data for sync
+      const [
+        farms,
+        boundaryPoints,
+        observationPoints,
+        inspectionSuggestions,
+        inspectionObservations
+      ] = await Promise.all([
+        this.prepareFarmsForSync(),
+        this.prepareBoundaryPointsForSync(),
+        this.prepareObservationPointsForSync(),
+        this.prepareInspectionSuggestionsForSync(),
+        this.prepareInspectionObservationsForSync()
+      ]);
+
+      console.log('Data prepared for sync:', {
+        farms: farms.length,
+        boundaryPoints: boundaryPoints.length,
+        observationPoints: observationPoints.length,
+        inspectionSuggestions: inspectionSuggestions.length,
+        inspectionObservations: inspectionObservations.length
+      });
+
+      // Sync data with the API
+      const syncData = {
+        farms,
+        boundary_points: boundaryPoints,
+        observation_points: observationPoints,
+        inspection_suggestions: inspectionSuggestions,
+        inspection_observations: inspectionObservations
       };
+
+      const result = await apiAuthService.makeAuthenticatedRequest(ENDPOINTS.syncData, {
+        method: 'POST',
+        body: JSON.stringify(syncData)
+      });
+
+      console.log('Sync API response:', result);
 
       // Store the sync stats
       this.lastSyncStats = {
-        farms: result.results?.farms?.created || 0,
-        boundaryPoints: result.results?.boundary_points?.created || 0,
-        observationPoints: result.results?.observation_points?.created || 0,
-        inspectionSuggestions: result.results?.inspection_suggestions?.created || 0,
-        inspectionObservations: result.results?.inspection_observations?.created || 0,
+        farms: result.results?.farms?.length || 0,
+        boundaryPoints: result.results?.boundary_points?.length || 0,
+        observationPoints: result.results?.observation_points?.length || 0,
+        inspectionSuggestions: result.results?.inspection_suggestions?.length || 0,
+        inspectionObservations: result.results?.inspection_observations?.length || 0,
         timestamp: new Date().toISOString(),
       };
 
       // Save the last sync time
-      await this.saveLastSyncTime();
+      await apiAuthService.saveLastSyncTime();
 
       console.log('Sync stats:', this.lastSyncStats);
       console.log('Sync completed successfully:', result);
@@ -848,7 +209,28 @@ class ApiSyncService {
    * @returns {Promise<Array>} Farms to sync
    */
   async prepareFarmsForSync() {
-    return [];
+    try {
+      await databaseService.initialize();
+      
+      // Get all farms from local database
+      const farms = await databaseService.getAll('farms', '', [], 'ORDER BY created_at DESC');
+      
+      console.log(`Found ${farms.length} farms to sync`);
+      
+      // Transform farms for API - Django expects 'id' not 'local_id'
+      return farms.map(farm => ({
+        id: farm.id,  // Django expects 'id'
+        name: farm.name,
+        size: farm.size,
+        plant_type: farm.plant_type,
+        location: farm.location || null,
+        created_at: farm.created_at,
+        updated_at: farm.updated_at || farm.created_at
+      }));
+    } catch (error) {
+      console.error('Error preparing farms for sync:', error);
+      return [];
+    }
   }
 
   /**
@@ -856,7 +238,28 @@ class ApiSyncService {
    * @returns {Promise<Array>} Boundary points to sync
    */
   async prepareBoundaryPointsForSync() {
-    return [];
+    try {
+      await databaseService.initialize();
+      
+      // Get all boundary points from local database
+      const boundaryPoints = await databaseService.getAll('boundary_points', '', [], 'ORDER BY farm_id, timestamp');
+      
+      console.log(`Found ${boundaryPoints.length} boundary points to sync`);
+      
+      // Transform boundary points for API - Django expects 'id' and 'farm_id'
+      return boundaryPoints.map(point => ({
+        id: point.id,  // Django expects 'id'
+        farm_id: point.farm_id,
+        latitude: point.latitude,
+        longitude: point.longitude,
+        description: point.description,
+        photo_uri: point.photo_uri,
+        timestamp: point.timestamp
+      }));
+    } catch (error) {
+      console.error('Error preparing boundary points for sync:', error);
+      return [];
+    }
   }
 
   /**
@@ -864,7 +267,33 @@ class ApiSyncService {
    * @returns {Promise<Array>} Observation points to sync
    */
   async prepareObservationPointsForSync() {
-    return [];
+    try {
+      await databaseService.initialize();
+      
+      // Get all observation points from local database
+      const observationPoints = await databaseService.getAll('observation_points', '', [], 'ORDER BY farm_id, segment');
+      
+      console.log(`Found ${observationPoints.length} observation points to sync`);
+      
+      // Transform observation points for API - Django expects 'id' and 'farm_id'
+      return observationPoints.map(point => ({
+        id: point.id,  // Django expects 'id'
+        farm_id: point.farm_id,
+        latitude: point.latitude,
+        longitude: point.longitude,
+        segment: point.segment,
+        observation_id: point.observation_id,
+        observation_status: point.observation_status,
+        name: point.name,
+        inspection_suggestion_id: point.inspection_suggestion_id,
+        confidence_level: point.confidence_level,
+        target_entity: point.target_entity,
+        created_at: point.created_at
+      }));
+    } catch (error) {
+      console.error('Error preparing observation points for sync:', error);
+      return [];
+    }
   }
 
   /**
@@ -872,7 +301,32 @@ class ApiSyncService {
    * @returns {Promise<Array>} Inspection suggestions to sync
    */
   async prepareInspectionSuggestionsForSync() {
-    return [];
+    try {
+      await databaseService.initialize();
+      
+      // Get all inspection suggestions from local database
+      const suggestions = await databaseService.getAll('inspection_suggestions', '', [], 'ORDER BY created_at DESC');
+      
+      console.log(`Found ${suggestions.length} inspection suggestions to sync`);
+      
+      // Transform inspection suggestions for API - Django expects 'id' and 'property_location'
+      return suggestions.map(suggestion => ({
+        id: suggestion.id,  // Django expects 'id'
+        property_location: suggestion.farm_id,  // Django expects 'property_location' not 'farm_id'
+        target_entity: suggestion.target_entity,
+        confidence_level: suggestion.confidence_level,
+        suggestion_text: suggestion.suggestion_text,
+        priority: suggestion.priority,
+        status: suggestion.status,
+        area_size: 0,  // Default value as Django expects this
+        density_of_plant: 0,  // Default value as Django expects this
+        created_at: suggestion.created_at,
+        updated_at: suggestion.updated_at
+      }));
+    } catch (error) {
+      console.error('Error preparing inspection suggestions for sync:', error);
+      return [];
+    }
   }
 
   /**
@@ -880,7 +334,192 @@ class ApiSyncService {
    * @returns {Promise<Array>} Inspection observations to sync
    */
   async prepareInspectionObservationsForSync() {
-    return [];
+    try {
+      await databaseService.initialize();
+      
+      // Get all inspection observations from local database
+      const observations = await databaseService.getAll('inspection_observations', '', [], 'ORDER BY created_at DESC');
+      
+      console.log(`Found ${observations.length} inspection observations to sync`);
+      
+      // Transform inspection observations for API - Django expects specific field names
+      return observations.map(observation => ({
+        id: observation.id,  // Django expects 'id'
+        farm: observation.farm_id,  // Django expects 'farm' not 'farm_id'
+        inspection: observation.inspection_suggestion_id,  // Django expects 'inspection'
+        date: observation.created_at,  // Django expects 'date'
+        confidence: observation.confidence_level || '',
+        plant_per_section: observation.plant_per_section || '',
+        status: observation.status || '',
+        target_entity: observation.target_entity,
+        severity: observation.severity || null,
+        observation_text: observation.observation_text,
+        farm_name: observation.farm_name,
+        farm_size: observation.farm_size,
+        farm_location: observation.farm_location,
+        photo_uri: observation.photo_uri,
+        created_at: observation.created_at,
+        updated_at: observation.updated_at
+      }));
+    } catch (error) {
+      console.error('Error preparing inspection observations for sync:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Sync individual farm data
+   * @param {number} farmId - Farm ID to sync
+   * @returns {Promise<Object>} Sync result for the farm
+   */
+  async syncFarmData(farmId) {
+    try {
+      await this.initialize();
+
+      // Check authentication
+      const isAuth = await apiAuthService.isAuthenticated(true);
+      if (!isAuth) {
+        throw new Error('Authentication required');
+      }
+
+      console.log(`Starting sync for farm ID: ${farmId}`);
+
+      // Get farm-specific data
+      const farm = await databaseService.getById('farms', 'id', farmId);
+      if (!farm) {
+        throw new Error(`Farm with ID ${farmId} not found`);
+      }
+
+      // Get boundary points for this farm
+      const boundaryPoints = await databaseService.getAll('boundary_points', 'farm_id = ?', [farmId]);
+      
+      // Get observation points for this farm
+      const observationPoints = await databaseService.getAll('observation_points', 'farm_id = ?', [farmId]);
+      
+      // Get inspection suggestions for this farm
+      const inspectionSuggestions = await databaseService.getAll('inspection_suggestions', 'farm_id = ?', [farmId]);
+      
+      // Get inspection observations for this farm
+      const inspectionObservations = await databaseService.getAll('inspection_observations', 'farm_id = ?', [farmId]);
+
+      // Prepare sync data with correct field mappings for Django
+      const syncData = {
+        farms: [{
+          id: farm.id,  // Django expects 'id'
+          name: farm.name,
+          size: farm.size,
+          plant_type: farm.plant_type,
+          location: farm.location || null,
+          created_at: farm.created_at,
+          updated_at: farm.updated_at || farm.created_at
+        }],
+        boundary_points: boundaryPoints.map(point => ({
+          id: point.id,  // Django expects 'id'
+          farm_id: point.farm_id,
+          latitude: point.latitude,
+          longitude: point.longitude,
+          description: point.description,
+          photo_uri: point.photo_uri,
+          timestamp: point.timestamp
+        })),
+        observation_points: observationPoints.map(point => ({
+          id: point.id,  // Django expects 'id'
+          farm_id: point.farm_id,
+          latitude: point.latitude,
+          longitude: point.longitude,
+          segment: point.segment,
+          observation_id: point.observation_id,
+          observation_status: point.observation_status,
+          name: point.name,
+          inspection_suggestion_id: point.inspection_suggestion_id,
+          confidence_level: point.confidence_level,
+          target_entity: point.target_entity,
+          created_at: point.created_at
+        })),
+        inspection_suggestions: inspectionSuggestions.map(suggestion => ({
+          id: suggestion.id,  // Django expects 'id'
+          property_location: suggestion.farm_id,  // Django expects 'property_location'
+          target_entity: suggestion.target_entity,
+          confidence_level: suggestion.confidence_level,
+          suggestion_text: suggestion.suggestion_text,
+          priority: suggestion.priority,
+          status: suggestion.status,
+          area_size: 0,
+          density_of_plant: 0,
+          created_at: suggestion.created_at,
+          updated_at: suggestion.updated_at
+        })),
+        inspection_observations: inspectionObservations.map(observation => ({
+          id: observation.id,  // Django expects 'id'
+          farm: observation.farm_id,  // Django expects 'farm'
+          inspection: observation.inspection_suggestion_id,  // Django expects 'inspection'
+          date: observation.created_at,
+          confidence: observation.confidence_level || '',
+          plant_per_section: observation.plant_per_section || '',
+          status: observation.status || '',
+          target_entity: observation.target_entity,
+          severity: observation.severity || null,
+          observation_text: observation.observation_text,
+          farm_name: observation.farm_name,
+          farm_size: observation.farm_size,
+          farm_location: observation.farm_location,
+          photo_uri: observation.photo_uri,
+          created_at: observation.created_at,
+          updated_at: observation.updated_at
+        }))
+      };
+
+      console.log(`Farm ${farmId} sync data prepared:`, {
+        farms: syncData.farms.length,
+        boundaryPoints: syncData.boundary_points.length,
+        observationPoints: syncData.observation_points.length,
+        inspectionSuggestions: syncData.inspection_suggestions.length,
+        inspectionObservations: syncData.inspection_observations.length
+      });
+
+      // Send to API
+      const result = await apiAuthService.makeAuthenticatedRequest(ENDPOINTS.syncData, {
+        method: 'POST',
+        body: JSON.stringify(syncData)
+      });
+
+      console.log(`Farm ${farmId} sync completed:`, result);
+      return result;
+
+    } catch (error) {
+      console.error(`Error syncing farm ${farmId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get sync status
+   * @returns {Promise<Object>} Sync status information
+   */
+  async getSyncStatus() {
+    try {
+      await this.initialize();
+
+      const lastSyncTime = await apiAuthService.getLastSyncTime();
+      const isAuthenticated = await apiAuthService.isAuthenticated(true);
+      const isApiReachable = await apiAuthService.isApiReachable();
+
+      return {
+        lastSyncTime,
+        isAuthenticated,
+        isApiReachable,
+        lastSyncStats: this.lastSyncStats
+      };
+    } catch (error) {
+      console.error('Error getting sync status:', error);
+      return {
+        lastSyncTime: null,
+        isAuthenticated: false,
+        isApiReachable: false,
+        lastSyncStats: null,
+        error: error.message
+      };
+    }
   }
 }
 
