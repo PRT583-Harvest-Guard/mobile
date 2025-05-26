@@ -72,9 +72,26 @@ const DrawMapScreen = () => {
         await boundaryStore.loadExistingPoints(farmData.id);
         
         // Convert existing points to markers
-        if (boundaryStore.photos.length > 0) {
-          const existingMarkers = boundaryStore.photos.map((point, index) => ({
-            id: index.toString(),
+        // Check both existingPoints (from database) and photos (from current session)
+        const existingPoints = boundaryStore.existingPoints || [];
+        const sessionPhotos = boundaryStore.photos || [];
+        
+        if (existingPoints.length > 0) {
+          const existingMarkers = existingPoints.map((point, index) => ({
+            id: `existing_${point.id || index}`,
+            coordinate: {
+              latitude: point.latitude,
+              longitude: point.longitude,
+            },
+            description: point.description || `Point ${index + 1}`
+          }));
+          
+          setMarkers(existingMarkers);
+          console.log(`Loaded ${existingMarkers.length} existing boundary points`);
+        } else if (sessionPhotos.length > 0) {
+          // Fallback to session photos if no existing points in database
+          const sessionMarkers = sessionPhotos.map((point, index) => ({
+            id: `session_${index}`,
             coordinate: {
               latitude: point.location.latitude,
               longitude: point.location.longitude,
@@ -82,7 +99,10 @@ const DrawMapScreen = () => {
             description: point.description || `Point ${index + 1}`
           }));
           
-          setMarkers(existingMarkers);
+          setMarkers(sessionMarkers);
+          console.log(`Loaded ${sessionMarkers.length} session boundary points`);
+        } else {
+          console.log('No existing boundary points found');
         }
       } catch (error) {
         console.error('Error loading data:', error);

@@ -88,7 +88,21 @@ const useBoundaryStore = create((set, get) => ({
     try {
       const points = await getBoundaryData(farmId);
       if (points && Array.isArray(points)) {
-        set({ existingPoints: points });
+        // Convert database points to the format expected by the photos array
+        const photosFormat = points.map(point => ({
+          uri: point.photo_uri || '',
+          location: {
+            latitude: point.latitude,
+            longitude: point.longitude,
+          },
+          timestamp: point.timestamp,
+          description: point.description || '',
+        }));
+        
+        set({ 
+          existingPoints: points,
+          photos: photosFormat, // Sync with photos array for compatibility
+        });
       }
     } catch (error) {
       console.error('Error loading existing points:', error);

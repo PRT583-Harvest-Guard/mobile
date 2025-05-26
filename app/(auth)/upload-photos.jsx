@@ -1,35 +1,25 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState } from "react";
 import {
   SafeAreaView,
   ScrollView,
   View,
   Text,
   Alert,
-  FlatList,
   TouchableOpacity,
-  Switch,
 } from "react-native";
-import * as Location from "expo-location";
 import { router, useLocalSearchParams, Link } from "expo-router";
 import {
-  getBoundaryData,
-  saveBoundaryPoint,
-  deleteBoundaryPoint,
   getFarms,
-  updateBoundaryPoint,
-  deleteAllBoundaryPoints,
-  saveBoundaryData,
 } from "@/services/BoundaryService";
 import PageHeader from "@/components/PageHeader";
 import { Feather } from "@expo/vector-icons";
-import { PhotoCapture, CustomButton } from "@/components";
 import useBoundaryStore from "@/store/boundaryStore";
 
 export default function UploadBoundaryScreen() {
   const { farmId } = useLocalSearchParams();
   const [farmData, setFarmData] = useState(null);
   const boundaryStore = useBoundaryStore();
-  const drawOnMap = true
+  const [drawOnMap, setDrawOnMap] = useState(false);
 
   useEffect(() => {
     const loadData = async () => {
@@ -50,33 +40,11 @@ export default function UploadBoundaryScreen() {
     loadData();
   }, [farmId]);
 
-  const handleSave = async () => {
-    const points = boundaryStore.photos;
-    if (points.length < 3) {
-      Alert.alert("Error", "Cannot form a boundary with less than three points");
-      return;
-    }
-
-    try {
-      await saveBoundaryData(farmId, points.map(p => ({
-        photoUri: p.uri,
-        latitude: p.location.latitude,
-        longitude: p.location.longitude,
-        description: p.description || "",
-      })));
-      Alert.alert("Success", "Boundary points saved successfully");
-      router.back();
-    } catch (error) {
-      console.error(error);
-      Alert.alert("Error", "Failed to save boundary points");
-    }
-  };
-
   return (
     <SafeAreaView className="flex-1 bg-white">
       <View className="bg-primary py-4 px-2 rounded-b-xl shadow-sm">
         <PageHeader
-          title={farmData ? `Boundary: ${farmData.name}` : "Upload Boundary Photos"}
+          title={farmData ? `Boundary: ${farmData.name}` : "Draw Farm Boundary"}
           textColor="white"
           showBackButton={true}
           handleBackPress={() => router.back()}
@@ -100,7 +68,7 @@ export default function UploadBoundaryScreen() {
         </Link>
         <Text className="text-sm text-[#999] mr-1"> &gt; </Text>
         
-        <Text className="text-sm text-secondary font-pbold">Upload Boundary</Text>
+        <Text className="text-sm text-secondary font-pbold">Draw Boundary</Text>
       </View>
 
       <ScrollView className="flex-1 p-4" contentContainerStyle={{ paddingBottom: 30 }}>
@@ -119,56 +87,37 @@ export default function UploadBoundaryScreen() {
         )}
 
         <View className="w-full mb-5">
-          <Text className="text-lg font-pbold mb-4 text-center text-[#333]">Choose how to add boundary points:</Text>
+          <Text className="text-lg font-pbold mb-4 text-center text-[#333]">Draw Farm Boundary</Text>
           
           <View className="mb-5 bg-[#f5f5f5] rounded-lg p-4 items-center">
-            <Text className="text-lg font-pbold text-[#333] mb-3">
-              {drawOnMap ? 'Draw on Map' : 'Photo Capture'}
+            <Text className="text-base text-[#666] mb-4 text-center">
+              Use the map drawing tool to define your farm boundaries by placing points on the map.
             </Text>
-            <View className="flex-row items-center justify-center">
-              <Text className="text-sm text-[#555] mx-2">Mark boundary points on the map using the draw tool </Text>
-            </View>
-          </View>
-          
-          {!drawOnMap ? (
-            <View className="mb-5">
-              {boundaryStore.photos.length > 0 && (
-                <Text className="text-lg font-pbold mb-2 text-center text-[#333]">
-                  {/* Existing Boundary Points: {boundaryStore.photos.length} */}
-                </Text>
-              )}
-              <View className="h-[500px]">
-                <PhotoCapture
-                  photos={boundaryStore.photos}
-                  onCapture={(newPhotos) => boundaryStore.setPhotos(newPhotos)}
-                  title="Capture boundary points"
-                  titleStyles="text-black"
-                  farmId={farmId}
-                />
-              </View>
-            </View>
-          ) : (
+            
             <TouchableOpacity 
-              className="flex-row items-center justify-center bg-primary py-4 px-5 rounded-lg mt-4"
+              className="flex-row items-center justify-center bg-primary py-4 px-5 rounded-lg w-full"
               onPress={() => router.push({
                 pathname: "/draw-map",
                 params: { farmId }
               })}
             >
-              <Feather name="map" size={24} color="#fff" className="mr-2" />
+              <Feather name="map" size={24} color="#fff" style={{ marginRight: 8 }} />
               <Text className="text-white text-base font-pbold">Open Map Drawing Tool</Text>
             </TouchableOpacity>
+          </View>
+          
+          {(boundaryStore.existingPoints.length > 0 || boundaryStore.photos.length > 0) && (
+            <View className="bg-[#e8f5e8] rounded-lg p-4 items-center">
+              <Feather name="check-circle" size={24} color="#1B4D3E" style={{ marginBottom: 8 }} />
+              <Text className="text-base text-[#1B4D3E] font-pbold text-center">
+                {boundaryStore.existingPoints.length || boundaryStore.photos.length} boundary points saved
+              </Text>
+              <Text className="text-sm text-[#555] text-center mt-2">
+                You can modify your boundary by opening the map drawing tool again.
+              </Text>
+            </View>
           )}
         </View>
-        
-        {boundaryStore.photos.length >= 3 && (
-          <CustomButton
-            title="Save Boundary Points"
-            handlePress={handleSave}
-            containerStyles="mt-5 mb-5 bg-primary"
-            visible={false}
-          />
-        )}
       </ScrollView>
     </SafeAreaView>
   );
