@@ -6,6 +6,7 @@ import { Alert } from 'react-native';
 import config from '../config/env';
 import apiAuthService from './ApiAuthService';
 import databaseService from './DatabaseService';
+import AuthService from './AuthService';
 
 // API endpoints
 const ENDPOINTS = config.api.endpoints;
@@ -35,6 +36,36 @@ class ApiSyncService {
     } catch (error) {
       console.error('API Sync Service initialization error:', error);
       throw error;
+    }
+  }
+
+  /**
+   * Get the current local user ID from the stored credentials
+   * @returns {Promise<number|null>} Local user ID or null
+   */
+  async getCurrentLocalUserId() {
+    try {
+      // Get stored credentials from the auth service
+      const credentials = await apiAuthService.getStoredCredentials();
+      
+      if (!credentials || !credentials.username) {
+        console.log('No stored credentials available to get local user ID');
+        return null;
+      }
+
+      // Find the user in the local database by username
+      const user = await AuthService.findUserByUsername(credentials.username);
+      
+      if (user && user.id) {
+        console.log('Current local user ID:', user.id);
+        return user.id;
+      }
+
+      console.log('No local user found for username:', credentials.username);
+      return null;
+    } catch (error) {
+      console.error('Error getting current local user ID:', error);
+      return null;
     }
   }
 
@@ -205,17 +236,45 @@ class ApiSyncService {
   }
 
   /**
-   * Prepare farms for sync
+   * Prepare farms for sync (only for current local user)
    * @returns {Promise<Array>} Farms to sync
    */
   async prepareFarmsForSync() {
     try {
       await databaseService.initialize();
       
-      // Get all farms from local database
-      const farms = await databaseService.getAll('farms', '', [], 'ORDER BY created_at DESC');
+      // Get the current local user ID
+      const currentLocalUserId = await this.getCurrentLocalUserId();
       
-      console.log(`Found ${farms.length} farms to sync`);
+      let farms;
+      
+      if (currentLocalUserId) {
+        // Get farms filtered by current local user ID
+        console.log(`Getting farms for local user ID: ${currentLocalUserId}`);
+        
+        try {
+          // Try to get farms filtered by user_id
+          farms = await databaseService.getAll('farms', 'user_id = ?', [currentLocalUserId], 'ORDER BY created_at DESC');
+        } catch (error) {
+          // If there's an error with the user_id filter (e.g., column doesn't exist yet),
+          // fall back to getting all farms
+          if (error.message && (
+              error.message.includes('no such column: user_id') || 
+              error.message.includes('user_id')
+          )) {
+            console.warn('user_id column not available, getting all farms');
+            farms = await databaseService.getAll('farms', '', [], 'ORDER BY created_at DESC');
+          } else {
+            throw error;
+          }
+        }
+      } else {
+        // If we can't get the local user ID, get all farms (fallback)
+        console.warn('No current local user ID available, getting all farms');
+        farms = await databaseService.getAll('farms', '', [], 'ORDER BY created_at DESC');
+      }
+      
+      console.log(`Found ${farms.length} farms to sync for local user ${currentLocalUserId || 'unknown'}`);
       
       // Transform farms for API - Django expects 'id' not 'local_id'
       return farms.map(farm => ({
@@ -234,17 +293,50 @@ class ApiSyncService {
   }
 
   /**
-   * Prepare boundary points for sync
+   * Prepare boundary points for sync (only for current local user's farms)
    * @returns {Promise<Array>} Boundary points to sync
    */
   async prepareBoundaryPointsForSync() {
     try {
       await databaseService.initialize();
       
-      // Get all boundary points from local database
-      const boundaryPoints = await databaseService.getAll('boundary_points', '', [], 'ORDER BY farm_id, timestamp');
+      // Get the current local user ID
+      const currentLocalUserId = await this.getCurrentLocalUserId();
       
-      console.log(`Found ${boundaryPoints.length} boundary points to sync`);
+      let boundaryPoints;
+      
+      if (currentLocalUserId) {
+        // Get boundary points for farms owned by the current local user
+        console.log(`Getting boundary points for local user ID: ${currentLocalUserId}`);
+        
+        try {
+          // Join with farms table to filter by user_id
+          const query = `
+            SELECT bp.* FROM boundary_points bp
+            INNER JOIN farms f ON bp.farm_id = f.id
+            WHERE f.user_id = ?
+            ORDER BY bp.farm_id, bp.timestamp
+          `;
+          boundaryPoints = await databaseService.query(query, [currentLocalUserId]);
+        } catch (error) {
+          // If there's an error with the user_id filter, fall back to getting all boundary points
+          if (error.message && (
+              error.message.includes('no such column: user_id') || 
+              error.message.includes('user_id')
+          )) {
+            console.warn('user_id column not available, getting all boundary points');
+            boundaryPoints = await databaseService.getAll('boundary_points', '', [], 'ORDER BY farm_id, timestamp');
+          } else {
+            throw error;
+          }
+        }
+      } else {
+        // If we can't get the local user ID, get all boundary points (fallback)
+        console.warn('No current local user ID available, getting all boundary points');
+        boundaryPoints = await databaseService.getAll('boundary_points', '', [], 'ORDER BY farm_id, timestamp');
+      }
+      
+      console.log(`Found ${boundaryPoints.length} boundary points to sync for local user ${currentLocalUserId || 'unknown'}`);
       
       // Transform boundary points for API - Django expects 'id' and 'farm_id'
       return boundaryPoints.map(point => ({
@@ -263,17 +355,50 @@ class ApiSyncService {
   }
 
   /**
-   * Prepare observation points for sync
+   * Prepare observation points for sync (only for current local user's farms)
    * @returns {Promise<Array>} Observation points to sync
    */
   async prepareObservationPointsForSync() {
     try {
       await databaseService.initialize();
       
-      // Get all observation points from local database
-      const observationPoints = await databaseService.getAll('observation_points', '', [], 'ORDER BY farm_id, segment');
+      // Get the current local user ID
+      const currentLocalUserId = await this.getCurrentLocalUserId();
       
-      console.log(`Found ${observationPoints.length} observation points to sync`);
+      let observationPoints;
+      
+      if (currentLocalUserId) {
+        // Get observation points for farms owned by the current local user
+        console.log(`Getting observation points for local user ID: ${currentLocalUserId}`);
+        
+        try {
+          // Join with farms table to filter by user_id
+          const query = `
+            SELECT op.* FROM observation_points op
+            INNER JOIN farms f ON op.farm_id = f.id
+            WHERE f.user_id = ?
+            ORDER BY op.farm_id, op.segment
+          `;
+          observationPoints = await databaseService.query(query, [currentLocalUserId]);
+        } catch (error) {
+          // If there's an error with the user_id filter, fall back to getting all observation points
+          if (error.message && (
+              error.message.includes('no such column: user_id') || 
+              error.message.includes('user_id')
+          )) {
+            console.warn('user_id column not available, getting all observation points');
+            observationPoints = await databaseService.getAll('observation_points', '', [], 'ORDER BY farm_id, segment');
+          } else {
+            throw error;
+          }
+        }
+      } else {
+        // If we can't get the local user ID, get all observation points (fallback)
+        console.warn('No current local user ID available, getting all observation points');
+        observationPoints = await databaseService.getAll('observation_points', '', [], 'ORDER BY farm_id, segment');
+      }
+      
+      console.log(`Found ${observationPoints.length} observation points to sync for local user ${currentLocalUserId || 'unknown'}`);
       
       // Transform observation points for API - Django expects 'id' and 'farm_id'
       return observationPoints.map(point => ({
@@ -297,29 +422,62 @@ class ApiSyncService {
   }
 
   /**
-   * Prepare inspection suggestions for sync
+   * Prepare inspection suggestions for sync (only for current local user's farms)
    * @returns {Promise<Array>} Inspection suggestions to sync
    */
   async prepareInspectionSuggestionsForSync() {
     try {
       await databaseService.initialize();
       
-      // Get all inspection suggestions from local database
-      const suggestions = await databaseService.getAll('inspection_suggestions', '', [], 'ORDER BY created_at DESC');
+      // Get the current local user ID
+      const currentLocalUserId = await this.getCurrentLocalUserId();
       
-      console.log(`Found ${suggestions.length} inspection suggestions to sync`);
+      let suggestions;
+      
+      if (currentLocalUserId) {
+        // Get inspection suggestions for farms owned by the current local user
+        console.log(`Getting inspection suggestions for local user ID: ${currentLocalUserId}`);
+        
+        try {
+          // Join with farms table to filter by user_id - changed 'is' to 'ins' to avoid SQL reserved keyword
+          const query = `
+            SELECT ins.* FROM inspection_suggestions ins
+            INNER JOIN farms f ON ins.property_location = f.id
+            WHERE f.user_id = ?
+            ORDER BY ins.created_at DESC
+          `;
+          suggestions = await databaseService.query(query, [currentLocalUserId]);
+        } catch (error) {
+          // If there's an error with the user_id filter, fall back to getting all suggestions
+          if (error.message && (
+              error.message.includes('no such column: user_id') || 
+              error.message.includes('user_id')
+          )) {
+            console.warn('user_id column not available, getting all inspection suggestions');
+            suggestions = await databaseService.getAll('inspection_suggestions', '', [], 'ORDER BY created_at DESC');
+          } else {
+            throw error;
+          }
+        }
+      } else {
+        // If we can't get the local user ID, get all suggestions (fallback)
+        console.warn('No current local user ID available, getting all inspection suggestions');
+        suggestions = await databaseService.getAll('inspection_suggestions', '', [], 'ORDER BY created_at DESC');
+      }
+      
+      console.log(`Found ${suggestions.length} inspection suggestions to sync for local user ${currentLocalUserId || 'unknown'}`);
       
       // Transform inspection suggestions for API - Django expects 'id' and 'property_location'
       return suggestions.map(suggestion => ({
         id: suggestion.id,  // Django expects 'id'
-        property_location: suggestion.farm_id,  // Django expects 'property_location' not 'farm_id'
+        property_location: suggestion.property_location,  // Django expects 'property_location'
         target_entity: suggestion.target_entity,
         confidence_level: suggestion.confidence_level,
         suggestion_text: suggestion.suggestion_text,
         priority: suggestion.priority,
         status: suggestion.status,
-        area_size: 0,  // Default value as Django expects this
-        density_of_plant: 0,  // Default value as Django expects this
+        area_size: suggestion.area_size || 0,  // Default value as Django expects this
+        density_of_plant: suggestion.density_of_plant || 0,  // Default value as Django expects this
         created_at: suggestion.created_at,
         updated_at: suggestion.updated_at
       }));
@@ -330,25 +488,58 @@ class ApiSyncService {
   }
 
   /**
-   * Prepare inspection observations for sync
+   * Prepare inspection observations for sync (only for current local user's farms)
    * @returns {Promise<Array>} Inspection observations to sync
    */
   async prepareInspectionObservationsForSync() {
     try {
       await databaseService.initialize();
       
-      // Get all inspection observations from local database
-      const observations = await databaseService.getAll('inspection_observations', '', [], 'ORDER BY created_at DESC');
+      // Get the current local user ID
+      const currentLocalUserId = await this.getCurrentLocalUserId();
       
-      console.log(`Found ${observations.length} inspection observations to sync`);
+      let observations;
+      
+      if (currentLocalUserId) {
+        // Get inspection observations for farms owned by the current local user
+        console.log(`Getting inspection observations for local user ID: ${currentLocalUserId}`);
+        
+        try {
+          // Join with farms table to filter by user_id
+          const query = `
+            SELECT io.* FROM inspection_observations io
+            INNER JOIN farms f ON io.farm_id = f.id
+            WHERE f.user_id = ?
+            ORDER BY io.created_at DESC
+          `;
+          observations = await databaseService.query(query, [currentLocalUserId]);
+        } catch (error) {
+          // If there's an error with the user_id filter, fall back to getting all observations
+          if (error.message && (
+              error.message.includes('no such column: user_id') || 
+              error.message.includes('user_id')
+          )) {
+            console.warn('user_id column not available, getting all inspection observations');
+            observations = await databaseService.getAll('inspection_observations', '', [], 'ORDER BY created_at DESC');
+          } else {
+            throw error;
+          }
+        }
+      } else {
+        // If we can't get the local user ID, get all observations (fallback)
+        console.warn('No current local user ID available, getting all inspection observations');
+        observations = await databaseService.getAll('inspection_observations', '', [], 'ORDER BY created_at DESC');
+      }
+      
+      console.log(`Found ${observations.length} inspection observations to sync for local user ${currentLocalUserId || 'unknown'}`);
       
       // Transform inspection observations for API - Django expects specific field names
       return observations.map(observation => ({
         id: observation.id,  // Django expects 'id'
         farm: observation.farm_id,  // Django expects 'farm' not 'farm_id'
-        inspection: observation.inspection_suggestion_id,  // Django expects 'inspection'
-        date: observation.created_at,  // Django expects 'date'
-        confidence: observation.confidence_level || '',
+        inspection: observation.inspection_id,  // Django expects 'inspection'
+        date: observation.date,  // Django expects 'date'
+        confidence: observation.confidence || '',
         plant_per_section: observation.plant_per_section || '',
         status: observation.status || '',
         target_entity: observation.target_entity,
@@ -390,6 +581,12 @@ class ApiSyncService {
         throw new Error(`Farm with ID ${farmId} not found`);
       }
 
+      // Verify that the farm belongs to the current local user
+      const currentLocalUserId = await this.getCurrentLocalUserId();
+      if (currentLocalUserId && farm.user_id && farm.user_id !== currentLocalUserId) {
+        throw new Error(`Farm ${farmId} does not belong to the current user`);
+      }
+
       // Get boundary points for this farm
       const boundaryPoints = await databaseService.getAll('boundary_points', 'farm_id = ?', [farmId]);
       
@@ -397,7 +594,7 @@ class ApiSyncService {
       const observationPoints = await databaseService.getAll('observation_points', 'farm_id = ?', [farmId]);
       
       // Get inspection suggestions for this farm
-      const inspectionSuggestions = await databaseService.getAll('inspection_suggestions', 'farm_id = ?', [farmId]);
+      const inspectionSuggestions = await databaseService.getAll('inspection_suggestions', 'property_location = ?', [farmId]);
       
       // Get inspection observations for this farm
       const inspectionObservations = await databaseService.getAll('inspection_observations', 'farm_id = ?', [farmId]);
@@ -438,23 +635,23 @@ class ApiSyncService {
         })),
         inspection_suggestions: inspectionSuggestions.map(suggestion => ({
           id: suggestion.id,  // Django expects 'id'
-          property_location: suggestion.farm_id,  // Django expects 'property_location'
+          property_location: suggestion.property_location,  // Django expects 'property_location'
           target_entity: suggestion.target_entity,
           confidence_level: suggestion.confidence_level,
           suggestion_text: suggestion.suggestion_text,
           priority: suggestion.priority,
           status: suggestion.status,
-          area_size: 0,
-          density_of_plant: 0,
+          area_size: suggestion.area_size || 0,
+          density_of_plant: suggestion.density_of_plant || 0,
           created_at: suggestion.created_at,
           updated_at: suggestion.updated_at
         })),
         inspection_observations: inspectionObservations.map(observation => ({
           id: observation.id,  // Django expects 'id'
           farm: observation.farm_id,  // Django expects 'farm'
-          inspection: observation.inspection_suggestion_id,  // Django expects 'inspection'
-          date: observation.created_at,
-          confidence: observation.confidence_level || '',
+          inspection: observation.inspection_id,  // Django expects 'inspection'
+          date: observation.date,
+          confidence: observation.confidence || '',
           plant_per_section: observation.plant_per_section || '',
           status: observation.status || '',
           target_entity: observation.target_entity,
