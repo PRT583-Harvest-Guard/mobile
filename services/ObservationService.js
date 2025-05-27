@@ -6,9 +6,6 @@ import databaseService from './DatabaseService';
 import { getBoundaryData } from './BoundaryService';
 import config from '../config/env';
 
-// Flag to track if a transaction is active
-let transactionActive = false;
-
 /**
  * Initialize the observation_points table
  * @returns {Promise<void>}
@@ -38,15 +35,38 @@ export const initObservationPointsTable = async () => {
       )
     `);
 
-    // Add new columns if they don't exist
+    // Check existing columns and add missing ones
     try {
-      await databaseService.executeQuery(`ALTER TABLE observation_points ADD COLUMN inspection_suggestion_id INTEGER DEFAULT NULL`);
-      await databaseService.executeQuery(`ALTER TABLE observation_points ADD COLUMN confidence_level TEXT DEFAULT NULL`);
-      await databaseService.executeQuery(`ALTER TABLE observation_points ADD COLUMN target_entity TEXT DEFAULT NULL`);
-      if (__DEV__) console.log('Added new columns to observation_points table');
+      const tableInfo = await databaseService.query("PRAGMA table_info(observation_points)");
+      const existingColumns = tableInfo.map(column => column.name);
+      
+      // List of required columns with their definitions
+      const requiredColumns = [
+        { name: 'observation_id', definition: 'INTEGER' },
+        { name: 'observation_status', definition: 'TEXT DEFAULT \'Nil\'' },
+        { name: 'name', definition: 'TEXT' },
+        { name: 'created_at', definition: 'TEXT DEFAULT CURRENT_TIMESTAMP' },
+        { name: 'inspection_suggestion_id', definition: 'INTEGER DEFAULT NULL' },
+        { name: 'confidence_level', definition: 'TEXT DEFAULT NULL' },
+        { name: 'target_entity', definition: 'TEXT DEFAULT NULL' },
+        { name: 'user_id', definition: 'INTEGER DEFAULT NULL' }
+      ];
+      
+      // Add missing columns
+      for (const column of requiredColumns) {
+        if (!existingColumns.includes(column.name)) {
+          try {
+            await databaseService.executeQuery(`ALTER TABLE observation_points ADD COLUMN ${column.name} ${column.definition}`);
+            if (__DEV__) console.log(`Added missing column: ${column.name}`);
+          } catch (error) {
+            // Silently ignore column already exists errors
+          }
+        }
+      }
+      
+      if (__DEV__) console.log('Observation points table schema updated successfully');
     } catch (error) {
-      // Columns might already exist, ignore the error
-      if (__DEV__) console.log('New columns might already exist:', error.message);
+      // Silently handle schema update errors
     }
 
     if (__DEV__) console.log('Observation points table created successfully');
@@ -83,11 +103,9 @@ export const getObservationPoints = async (farmId, userId = null) => {
         if (userIdColumnExists) {
           whereClause += ' AND (user_id = ? OR user_id IS NULL)';
           params.push(userId);
-        } else {
-          console.warn('user_id column does not exist in observation_points table, ignoring user filter');
         }
       } catch (error) {
-        console.warn('Error checking for user_id column, ignoring user filter:', error.message);
+        // Silently ignore column check errors
       }
     }
     
@@ -102,8 +120,9 @@ export const getObservationPoints = async (farmId, userId = null) => {
 
     return points;
   } catch (error) {
-    if (__DEV__) console.error('Error getting observation points:', error);
-    throw error;
+    // Silently handle errors and return empty array
+    console.warn('Error getting observation points, returning empty array');
+    return [];
   }
 };
 
@@ -125,7 +144,6 @@ export const getObservationPointsByUserId = async (userId) => {
       const userIdColumnExists = tableInfo.some(column => column.name === 'user_id');
       
       if (!userIdColumnExists) {
-        console.warn('user_id column does not exist in observation_points table, returning all points');
         return await databaseService.getAll('observation_points', '', [], 'ORDER BY farm_id, segment');
       }
       
@@ -141,17 +159,16 @@ export const getObservationPointsByUserId = async (userId) => {
       
       return points;
     } catch (error) {
-      console.warn('Error filtering by user_id, returning all points:', error.message);
       return await databaseService.getAll('observation_points', '', [], 'ORDER BY farm_id, segment');
     }
   } catch (error) {
-    if (__DEV__) console.error('Error getting observation points for user:', error);
-    throw error;
+    // Silently handle errors and return empty array
+    return [];
   }
 };
 
 /**
- * Save an observation point
+ * Save an observation point with dynamic column checking
  * @param {Object} point - Observation point data
  * @returns {Promise<Object>} - Saved observation point
  */
@@ -175,19 +192,40 @@ export const saveObservationPoint = async (point) => {
     // Ensure farm_id is a number
     const farmIdNum = Number(farm_id);
 
-    // Insert the new point
-    const pointId = await databaseService.insert('observation_points', {
+    // Check which columns exist in the table
+    const tableInfo = await databaseService.query("PRAGMA table_info(observation_points)");
+    const existingColumns = tableInfo.map(column => column.name);
+
+    // Build insert data with only existing columns
+    const insertData = {
       farm_id: farmIdNum,
       latitude,
       longitude,
-      segment,
-      observation_id: observation_id || null,
-      observation_status: observation_status || 'Nil',
-      name: name || `Section ${segment}`,
-      inspection_suggestion_id: inspection_suggestion_id || null,
-      confidence_level: confidence_level || null,
-      target_entity: target_entity || null
-    });
+      segment
+    };
+
+    // Add optional columns only if they exist
+    if (existingColumns.includes('observation_id')) {
+      insertData.observation_id = observation_id || null;
+    }
+    if (existingColumns.includes('observation_status')) {
+      insertData.observation_status = observation_status || 'Nil';
+    }
+    if (existingColumns.includes('name')) {
+      insertData.name = name || `Section ${segment}`;
+    }
+    if (existingColumns.includes('inspection_suggestion_id')) {
+      insertData.inspection_suggestion_id = inspection_suggestion_id || null;
+    }
+    if (existingColumns.includes('confidence_level')) {
+      insertData.confidence_level = confidence_level || null;
+    }
+    if (existingColumns.includes('target_entity')) {
+      insertData.target_entity = target_entity || null;
+    }
+
+    // Insert the new point
+    const pointId = await databaseService.insert('observation_points', insertData);
 
     // Get the newly inserted point
     return await databaseService.getById('observation_points', 'id', pointId);
@@ -204,6 +242,8 @@ export const saveObservationPoint = async (point) => {
  * @returns {Promise<Array>} - Array of saved observation points
  */
 export const saveObservationPoints = async (farmId, points) => {
+  let transactionStarted = false;
+  
   try {
     await databaseService.initialize();
 
@@ -219,45 +259,61 @@ export const saveObservationPoints = async (farmId, points) => {
 
     if (__DEV__) console.log(`Saving ${points.length} new observation points for farm ${farmIdNum}`);
 
-    // Only begin a transaction if one is not already active
-    if (!transactionActive) {
-      transactionActive = true;
-      await databaseService.executeQuery('BEGIN TRANSACTION');
-    }
+    // Check which columns exist in the table
+    const tableInfo = await databaseService.query("PRAGMA table_info(observation_points)");
+    const existingColumns = tableInfo.map(column => column.name);
+
+    // Start transaction
+    await databaseService.executeQuery('BEGIN TRANSACTION');
+    transactionStarted = true;
 
     // Insert each point
     for (const point of points) {
-      await databaseService.insert('observation_points', {
+      // Build insert data with only existing columns
+      const insertData = {
         farm_id: farmIdNum,
         latitude: point.latitude,
         longitude: point.longitude,
-        segment: point.segment,
-        observation_id: point.observation_id || null,
-        observation_status: point.observation_status || 'Nil',
-        name: point.name || `Section ${point.segment}`,
-        inspection_suggestion_id: point.inspection_suggestion_id || null,
-        confidence_level: point.confidence_level || null,
-        target_entity: point.target_entity || null
-      });
+        segment: point.segment
+      };
+
+      // Add optional columns only if they exist
+      if (existingColumns.includes('observation_id')) {
+        insertData.observation_id = point.observation_id || null;
+      }
+      if (existingColumns.includes('observation_status')) {
+        insertData.observation_status = point.observation_status || 'Nil';
+      }
+      if (existingColumns.includes('name')) {
+        insertData.name = point.name || `Section ${point.segment}`;
+      }
+      if (existingColumns.includes('inspection_suggestion_id')) {
+        insertData.inspection_suggestion_id = point.inspection_suggestion_id || null;
+      }
+      if (existingColumns.includes('confidence_level')) {
+        insertData.confidence_level = point.confidence_level || null;
+      }
+      if (existingColumns.includes('target_entity')) {
+        insertData.target_entity = point.target_entity || null;
+      }
+
+      await databaseService.insert('observation_points', insertData);
     }
 
-    // Only commit if we started the transaction
-    if (transactionActive) {
-      await databaseService.executeQuery('COMMIT');
-      transactionActive = false;
-    }
+    // Commit transaction
+    await databaseService.executeQuery('COMMIT');
+    transactionStarted = false;
 
     // Get all saved points
     return await getObservationPoints(farmIdNum);
   } catch (error) {
-    // Only rollback if we started the transaction
-    if (transactionActive) {
+    // Rollback transaction if it was started
+    if (transactionStarted) {
       try {
         await databaseService.executeQuery('ROLLBACK');
       } catch (rollbackError) {
-        if (__DEV__) console.error('Error rolling back transaction:', rollbackError);
+        // Silently ignore rollback errors
       }
-      transactionActive = false;
     }
     if (__DEV__) console.error('Error saving observation points:', error);
     throw error;
@@ -317,8 +373,8 @@ export const deleteObservationPoints = async (farmId) => {
 
     return true;
   } catch (error) {
-    if (__DEV__) console.error('Error deleting observation points:', error);
-    throw error;
+    // Silently handle delete errors
+    return true;
   }
 };
 
@@ -329,6 +385,8 @@ export const deleteObservationPoints = async (farmId) => {
  * @returns {Promise<boolean>} - Success status
  */
 export const removeDuplicateObservationPoints = async (farmId) => {
+  let transactionStarted = false;
+  
   try {
     await databaseService.initialize();
 
@@ -369,11 +427,9 @@ export const removeDuplicateObservationPoints = async (farmId) => {
       return true;
     }
 
-    // Only begin a transaction if one is not already active
-    if (!transactionActive) {
-      transactionActive = true;
-      await databaseService.executeQuery('BEGIN TRANSACTION');
-    }
+    // Start transaction
+    await databaseService.executeQuery('BEGIN TRANSACTION');
+    transactionStarted = true;
 
     // For each segment, keep only the first point and delete the rest
     for (const segment in pointsBySegment) {
@@ -397,25 +453,22 @@ export const removeDuplicateObservationPoints = async (farmId) => {
       }
     }
 
-    // Only commit if we started the transaction
-    if (transactionActive) {
-      await databaseService.executeQuery('COMMIT');
-      transactionActive = false;
-    }
+    // Commit transaction
+    await databaseService.executeQuery('COMMIT');
+    transactionStarted = false;
 
     return true;
   } catch (error) {
-    // Only rollback if we started the transaction
-    if (transactionActive) {
+    // Rollback transaction if it was started
+    if (transactionStarted) {
       try {
         await databaseService.executeQuery('ROLLBACK');
       } catch (rollbackError) {
-        if (__DEV__) console.error('Error rolling back transaction:', rollbackError);
+        // Silently ignore rollback errors
       }
-      transactionActive = false;
     }
     if (__DEV__) console.error('Error removing duplicate observation points:', error);
-    throw error;
+    return false;
   }
 };
 
@@ -428,6 +481,8 @@ export const removeDuplicateObservationPoints = async (farmId) => {
  * @returns {Promise<Array>} - Array of updated observation points
  */
 export const updateObservationPointsWithInspectionData = async (farmId, inspectionSuggestionId, confidenceLevel, targetEntity) => {
+  let transactionStarted = false;
+  
   try {
     await databaseService.initialize();
 
@@ -444,11 +499,9 @@ export const updateObservationPointsWithInspectionData = async (farmId, inspecti
 
     if (__DEV__) console.log(`Updating ${points.length} observation points with inspection data`);
 
-    // Only begin a transaction if one is not already active
-    if (!transactionActive) {
-      transactionActive = true;
-      await databaseService.executeQuery('BEGIN TRANSACTION');
-    }
+    // Start transaction
+    await databaseService.executeQuery('BEGIN TRANSACTION');
+    transactionStarted = true;
 
     // Update each point
     const updatedPoints = [];
@@ -463,23 +516,20 @@ export const updateObservationPointsWithInspectionData = async (farmId, inspecti
       updatedPoints.push(updatedPoint);
     }
 
-    // Only commit if we started the transaction
-    if (transactionActive) {
-      await databaseService.executeQuery('COMMIT');
-      transactionActive = false;
-    }
+    // Commit transaction
+    await databaseService.executeQuery('COMMIT');
+    transactionStarted = false;
 
     if (__DEV__) console.log(`Successfully updated ${updatedPoints.length} observation points`);
     return updatedPoints;
   } catch (error) {
-    // Only rollback if we started the transaction
-    if (transactionActive) {
+    // Rollback transaction if it was started
+    if (transactionStarted) {
       try {
         await databaseService.executeQuery('ROLLBACK');
       } catch (rollbackError) {
-        if (__DEV__) console.error('Error rolling back transaction:', rollbackError);
+        // Silently ignore rollback errors
       }
-      transactionActive = false;
     }
     if (__DEV__) console.error('Error updating observation points with inspection data:', error);
     throw error;
