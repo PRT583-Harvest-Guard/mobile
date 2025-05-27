@@ -5,8 +5,8 @@ import { LogBox, ScrollView, Text, View } from "react-native";
 import { Logo, CustomButton } from '@/components';
 import { useGlobalContext } from "@/context/GlobalProvider";
 
-// LogBox.ignoreLogs(['Warning: ...']);
-// LogBox.ignoreAllLogs();
+LogBox.ignoreLogs(['Warning: ...']);
+LogBox.ignoreAllLogs();
 
 function App() {
   const { isLoggedIn, isLoading } = useGlobalContext();

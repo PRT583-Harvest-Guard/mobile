@@ -26,7 +26,7 @@ class DatabaseService {
 
       // Create tables if they don't exist
       await this.createTables();
-      
+
       // Run migrations
       await this.runMigrations();
 
@@ -37,7 +37,7 @@ class DatabaseService {
       throw error;
     }
   }
-  
+
   /**
    * Run database migrations
    * @returns {Promise<void>}
@@ -45,41 +45,41 @@ class DatabaseService {
   async runMigrations() {
     try {
       console.log('Running database migrations...');
-      
+
       // Check if user_id column exists in farms table
       const farmsTableInfo = await this.db.getAllAsync("PRAGMA table_info(farms)");
       const userIdColumnExists = farmsTableInfo.some(column => column.name === 'user_id');
-      
+
       if (!userIdColumnExists) {
         console.log('Adding user_id column to farms table...');
-        
+
         // Add user_id column to farms table
         await this.db.execAsync(`
           ALTER TABLE farms ADD COLUMN user_id INTEGER;
         `);
-        
+
         // Set default user_id to 1 for existing farms
         await this.db.execAsync(`
           UPDATE farms SET user_id = 1 WHERE user_id IS NULL;
         `);
-        
+
         console.log('Migration completed: Added user_id column to farms table');
       } else {
         console.log('user_id column already exists in farms table');
       }
-      
+
       // Check if photo_uri column exists in boundary_points table
       const boundaryPointsTableInfo = await this.db.getAllAsync("PRAGMA table_info(boundary_points)");
       const photoUriColumnExists = boundaryPointsTableInfo.some(column => column.name === 'photo_uri');
-      
+
       if (!photoUriColumnExists) {
         console.log('Adding photo_uri column to boundary_points table...');
-        
+
         // Add photo_uri column to boundary_points table
         await this.db.execAsync(`
           ALTER TABLE boundary_points ADD COLUMN photo_uri TEXT;
         `);
-        
+
         console.log('Migration completed: Added photo_uri column to boundary_points table');
       } else {
         console.log('photo_uri column already exists in boundary_points table');
@@ -147,6 +147,10 @@ class DatabaseService {
         )
       `);
 
+      // await this.db.execAsync(`
+      //   DROP TABLE IF EXISTS observation_points;
+      // `);
+
       // Create observation_points table
       await this.db.execAsync(`
         CREATE TABLE IF NOT EXISTS observation_points (
@@ -160,6 +164,7 @@ class DatabaseService {
           inspection_suggestion_id INTEGER,
           confidence_level TEXT,
           target_entity TEXT,
+          observation_id INTEGER,
           created_at TEXT DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (farm_id) REFERENCES farms(id) ON DELETE CASCADE
         )
@@ -197,7 +202,7 @@ class DatabaseService {
           FOREIGN KEY (farm_id) REFERENCES farms(id) ON DELETE CASCADE
         )
       `);
-      
+
       // Create feature_flags table
       await this.db.execAsync(`
         CREATE TABLE IF NOT EXISTS feature_flags (
@@ -208,12 +213,33 @@ class DatabaseService {
           created_at TEXT DEFAULT CURRENT_TIMESTAMP
         )
       `);
-      
+
       // Insert default feature flags if they don't exist
       await this.db.execAsync(`
         INSERT OR IGNORE INTO feature_flags (name, enabled, description)
         VALUES ('delete_farm', 0, 'Allow farmers to delete their farms and all associated data')
       `);
+
+      // await this.db.execAsync(`
+      //   DROP TABLE IF EXISTS observations;
+      // `);
+
+      await this.db.execAsync(`
+      CREATE TABLE IF NOT EXISTS observations (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        farm_id INTEGER NOT NULL,
+        observation_point_id INTEGER NOT NULL,
+        identifier TEXT,
+        detection BOOLEAN DEFAULT 0,
+        severity INTEGER DEFAULT 0,
+        notes TEXT,
+        picture_uri TEXT,
+        observation_id INTEGER,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (farm_id) REFERENCES farms(id) ON DELETE CASCADE,
+        FOREIGN KEY (observation_point_id) REFERENCES observation_points(id) ON DELETE CASCADE
+      )
+    `);
 
       console.log('Database tables created successfully');
     } catch (error) {

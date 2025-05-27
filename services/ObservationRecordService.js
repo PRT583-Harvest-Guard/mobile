@@ -22,6 +22,8 @@ export const initObservationsTable = async () => {
         detection BOOLEAN DEFAULT 0,
         severity INTEGER DEFAULT 0,
         notes TEXT,
+        picture_uri TEXT,
+        observation_id INTEGER,
         created_at TEXT DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (farm_id) REFERENCES farms(id) ON DELETE CASCADE,
         FOREIGN KEY (observation_point_id) REFERENCES observation_points(id) ON DELETE CASCADE

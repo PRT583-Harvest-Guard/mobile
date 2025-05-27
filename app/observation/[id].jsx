@@ -296,7 +296,7 @@ const ObservationDetailsScreen = () => {
             </Text>
           </View>
           
-          <View style={styles.statusContainer}>
+          {/* <View style={styles.statusContainer}>
             <Text style={styles.statusLabel}>Observation Status:</Text>
             <View style={styles.statusOptions}>
               {statusOptions.map((status) => (
@@ -319,7 +319,7 @@ const ObservationDetailsScreen = () => {
                 </TouchableOpacity>
               ))}
             </View>
-          </View>
+          </View> */}
           
           {selectedStatus === 'Nil' ? (
             <TouchableOpacity 

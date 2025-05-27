@@ -1,11 +1,11 @@
 import { PageHeader } from '@/components';
 import React, { useState, useEffect } from 'react'
-import { 
-  Alert, 
-  View, 
-  Text, 
-  TouchableOpacity, 
-  ActivityIndicator, 
+import {
+  Alert,
+  View,
+  Text,
+  TouchableOpacity,
+  ActivityIndicator,
   TextInput,
   Switch
 } from 'react-native';
@@ -35,15 +35,16 @@ const SyncRecords = () => {
       try {
         // Check network status using NetInfo
         const networkState = await NetInfo.fetch();
-        const isConnected = networkState.isConnected && networkState.isInternetReachable;
+        // const isConnected = networkState.isConnected && (networkState.isInternetReachable !== false);
+        const isConnected = true;
         setIsOnline(isConnected);
         apiSyncService.setOnlineStatus(isConnected);
-        
+
         // Check if user is already authenticated with the API
         // Use skipTokenVerification=true to prevent continuous token refresh and verification
         const isAuth = await apiSyncService.isAuthenticated(true);
         setIsAuthenticated(isAuth);
-        
+
         // Get last sync time
         const lastSync = await apiSyncService.getLastSyncTime();
         if (lastSync) {
@@ -55,14 +56,15 @@ const SyncRecords = () => {
     };
 
     checkNetworkAndAuth();
-    
+
     // Set up network status listener
     const unsubscribe = NetInfo.addEventListener(state => {
-      const isConnected = state.isConnected && state.isInternetReachable;
+      // const isConnected = state.isConnected && (state.isInternetReachable !== false);
+      const isConnected = true;
       setIsOnline(isConnected);
       apiSyncService.setOnlineStatus(isConnected);
     });
-    
+
     return () => {
       // Clean up network status listener
       unsubscribe();
@@ -74,18 +76,18 @@ const SyncRecords = () => {
       setAuthError('Please enter your username and password');
       return;
     }
-    
+
     // Clear previous errors
     setAuthError(null);
     setIsSubmitting(true);
-    
+
     try {
       // Authenticate with the API
-      const authResult = await apiSyncService.authenticate({ 
-        username, 
-        password 
+      const authResult = await apiSyncService.authenticate({
+        username,
+        password
       });
-      
+
       if (authResult.success) {
         setIsAuthenticated(true);
       } else {
@@ -114,47 +116,47 @@ const SyncRecords = () => {
     // Clear previous errors
     setSyncError(null);
     setIsSubmitting(true);
-    
+
     try {
       // Check if we're online
-      if (!isOnline) {
-        throw new Error('Cannot sync while offline. Please connect to the internet and try again.');
-      }
-      
-      // Check if the API is reachable
-      const isApiReachable = await apiSyncService.isApiReachable();
-      if (!isApiReachable) {
-        throw new Error('Cannot connect to the server. Please check your internet connection and try again.');
-      }
-      
-      // Perform the sync
-      const result = await apiSyncService.performFullSync();
-      
-      // Check if authentication is required
-      if (result && result.authRequired) {
-        console.log('Authentication required:', result.message);
-        // Set isAuthenticated to false to show the login form
-        setIsAuthenticated(false);
-        setAuthError(result.message);
-        setIsSubmitting(false);
-        return;
-      }
-      
-      // Get the sync stats from the service
-      const stats = apiSyncService.getLastSyncStats();
-      setSyncStats(stats);
-      
-      // Update last sync time
-      const lastSync = await apiSyncService.getLastSyncTime();
-      if (lastSync) {
-        setLastSyncTime(new Date(lastSync).toLocaleString());
-      }
-      
+      // if (!isOnline) {
+      //   throw new Error('Cannot sync while offline. Please connect to the internet and try again.');
+      // }
+
+      // // Check if the API is reachable
+      // const isApiReachable = await apiSyncService.isApiReachable();
+      // if (!isApiReachable) {
+      //   throw new Error('Cannot connect to the server. Please check your internet connection and try again.');
+      // }
+
+      // // Perform the sync
+      // const result = await apiSyncService.performFullSync();
+
+      // // Check if authentication is required
+      // if (result && result.authRequired) {
+      //   console.log('Authentication required:', result.message);
+      //   // Set isAuthenticated to false to show the login form
+      //   setIsAuthenticated(false);
+      //   setAuthError(result.message);
+      //   setIsSubmitting(false);
+      //   return;
+      // }
+
+      // // Get the sync stats from the service
+      // const stats = apiSyncService.getLastSyncStats();
+      // setSyncStats(stats);
+
+      // // Update last sync time
+      // const lastSync = await apiSyncService.getLastSyncTime();
+      // if (lastSync) {
+      //   setLastSyncTime(new Date(lastSync).toLocaleString());
+      // }
+
       // Navigate to completion page
       router.push("/sync/completion");
     } catch (error) {
       console.error('Sync error:', error);
-      
+
       // Handle network errors
       if (error.message.includes('Network request failed')) {
         setSyncError('Cannot connect to the server. Please check your internet connection and try again.');
@@ -181,13 +183,13 @@ const SyncRecords = () => {
           <Text className="text-xs text-gray-500">Last sync: {lastSyncTime}</Text>
         )}
       </View>
-      
+
       <View className="w-full flex-1 items-center justify-center px-4">
         {!isAuthenticated ? (
           // Authentication UI
           <View className="w-full max-w-md bg-gray-50 p-6 rounded-lg shadow-md">
             <Text className="text-xl text-center font-bold mb-6">Login to Django API</Text>
-            
+
             <View className="mb-4">
               <Text className="text-gray-700 mb-2">Phone Number</Text>
               <TextInput
@@ -199,7 +201,7 @@ const SyncRecords = () => {
                 keyboardType="phone-pad"
               />
             </View>
-            
+
             <View className="mb-6">
               <Text className="text-gray-700 mb-2">Password</Text>
               <TextInput
@@ -210,13 +212,13 @@ const SyncRecords = () => {
                 secureTextEntry
               />
             </View>
-            
+
             {authError && (
               <View className="mb-4 p-3 bg-red-100 rounded-md">
                 <Text className="text-red-700">{authError}</Text>
               </View>
             )}
-            
+
             <TouchableOpacity
               className="bg-green-600 py-3 rounded-md items-center"
               onPress={authenticate}
@@ -230,7 +232,7 @@ const SyncRecords = () => {
                 </Text>
               )}
             </TouchableOpacity>
-            
+
             {!isOnline && (
               <Text className="text-center text-sm text-gray-500 mt-4">
                 You are currently offline. You can still login with your local credentials.
@@ -248,7 +250,7 @@ const SyncRecords = () => {
                 <Text className="text-gray-700">Sign Out</Text>
               </TouchableOpacity>
             </View>
-            
+
             <TouchableOpacity
               className='w-[300px] h-[300px] items-center justify-center mb-5'
               onPress={submit}
@@ -262,17 +264,17 @@ const SyncRecords = () => {
                 loop
               />
             </TouchableOpacity>
-            
+
             <Text className="text-2xl text-black font-psemibold mb-4">
               {!isSubmitting ? "Start Sync" : "Syncing Data..."}
             </Text>
-            
+
             {syncError && (
               <View className="mb-4 p-3 bg-red-100 rounded-md w-full max-w-md">
                 <Text className="text-red-700">{syncError}</Text>
               </View>
             )}
-            
+
             {!isOnline && (
               <View className="mb-4 p-3 bg-yellow-100 rounded-md w-full max-w-md">
                 <Text className="text-yellow-700">
@@ -280,7 +282,7 @@ const SyncRecords = () => {
                 </Text>
               </View>
             )}
-            
+
             {syncStats && (
               <View className="bg-gray-50 p-4 rounded-lg w-full max-w-md">
                 <Text className="text-lg font-bold mb-2">Sync Statistics:</Text>
