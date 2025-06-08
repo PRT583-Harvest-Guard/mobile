@@ -442,6 +442,7 @@ const ObservationDetailsScreen = () => {
                   value={identifier}
                   onChangeText={setIdentifier}
                   placeholder="Enter identifier"
+                  placeholderTextColor='#999'
                 />
               </View>
               

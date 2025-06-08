@@ -24,7 +24,7 @@ const SyncRecords = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [syncStats, setSyncStats] = useState(null);
-  const [isOnline, setIsOnline] = useState(true);
+  const [isOnline, setIsOnline] = useState(false);
   const [authError, setAuthError] = useState(null);
   const [syncError, setSyncError] = useState(null);
   const [lastSyncTime, setLastSyncTime] = useState(null);
@@ -35,8 +35,8 @@ const SyncRecords = () => {
       try {
         // Check network status using NetInfo
         const networkState = await NetInfo.fetch();
-        // const isConnected = networkState.isConnected && (networkState.isInternetReachable !== false);
-        const isConnected = true;
+        const isConnected = networkState.isConnected && (networkState.isInternetReachable !== false);
+        // const isConnected = true;
         setIsOnline(isConnected);
         apiSyncService.setOnlineStatus(isConnected);
 
@@ -59,8 +59,7 @@ const SyncRecords = () => {
 
     // Set up network status listener
     const unsubscribe = NetInfo.addEventListener(state => {
-      // const isConnected = state.isConnected && (state.isInternetReachable !== false);
-      const isConnected = true;
+      const isConnected = state.isConnected && (state.isInternetReachable !== false);
       setIsOnline(isConnected);
       apiSyncService.setOnlineStatus(isConnected);
     });
@@ -119,38 +118,38 @@ const SyncRecords = () => {
 
     try {
       // Check if we're online
-      // if (!isOnline) {
-      //   throw new Error('Cannot sync while offline. Please connect to the internet and try again.');
-      // }
+      if (!isOnline) {
+        throw new Error('Cannot sync while offline. Please connect to the internet and try again.');
+      }
 
-      // // Check if the API is reachable
-      // const isApiReachable = await apiSyncService.isApiReachable();
-      // if (!isApiReachable) {
-      //   throw new Error('Cannot connect to the server. Please check your internet connection and try again.');
-      // }
+      // Check if the API is reachable
+      const isApiReachable = await apiSyncService.isApiReachable();
+      if (!isApiReachable) {
+        throw new Error('Cannot connect to the server. Please check your internet connection and try again.');
+      }
 
-      // // Perform the sync
-      // const result = await apiSyncService.performFullSync();
+      // Perform the sync
+      const result = await apiSyncService.performFullSync();
 
-      // // Check if authentication is required
-      // if (result && result.authRequired) {
-      //   console.log('Authentication required:', result.message);
-      //   // Set isAuthenticated to false to show the login form
-      //   setIsAuthenticated(false);
-      //   setAuthError(result.message);
-      //   setIsSubmitting(false);
-      //   return;
-      // }
+      // Check if authentication is required
+      if (result && result.authRequired) {
+        console.log('Authentication required:', result.message);
+        // Set isAuthenticated to false to show the login form
+        setIsAuthenticated(false);
+        setAuthError(result.message);
+        setIsSubmitting(false);
+        return;
+      }
 
-      // // Get the sync stats from the service
-      // const stats = apiSyncService.getLastSyncStats();
-      // setSyncStats(stats);
+      // Get the sync stats from the service
+      const stats = apiSyncService.getLastSyncStats();
+      setSyncStats(stats);
 
-      // // Update last sync time
-      // const lastSync = await apiSyncService.getLastSyncTime();
-      // if (lastSync) {
-      //   setLastSyncTime(new Date(lastSync).toLocaleString());
-      // }
+      // Update last sync time
+      const lastSync = await apiSyncService.getLastSyncTime();
+      if (lastSync) {
+        setLastSyncTime(new Date(lastSync).toLocaleString());
+      }
 
       // Navigate to completion page
       router.push("/sync/completion");

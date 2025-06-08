@@ -241,6 +241,22 @@ class DatabaseService {
       )
     `);
 
+    await this.db.execAsync(`
+        CREATE TABLE IF NOT EXISTS InspectionObservations (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          date TEXT NOT NULL,
+          inspection_id INTEGER,
+          confidence TEXT NOT NULL,
+          section_id INTEGER,
+          farm_id INTEGER,
+          user_id INTEGER,
+          plant_per_section TEXT,
+          status TEXT NOT NULL,
+          created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+          updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
       console.log('Database tables created successfully');
     } catch (error) {
       console.error('Error creating database tables:', error);

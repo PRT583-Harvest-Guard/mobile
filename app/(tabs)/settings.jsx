@@ -17,6 +17,7 @@ import { PageHeader } from '@/components';
 import AuthService from '@/services/AuthService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { showErrorToast, showSuccessToast, showInfoToast } from '@/utils/toastUtils';
+import IconPrimary from "@/assets/images/icon-primary.png"
 
 const Settings = () => {
   const { setIsLoggedIn } = useGlobalContext();
@@ -234,7 +235,7 @@ const Settings = () => {
         {/* App Info */}
         <View className="items-center mt-4 mb-8 pt-4 border-t border-[#e0e0e0]">
           <Image 
-            source={require('@/assets/images/icon-primary.png')} 
+            source={IconPrimary} 
             className="w-[60px] h-[60px] mb-2"
             resizeMode="contain"
           />
@@ -264,7 +265,7 @@ const Settings = () => {
             
             <View className="p-5 items-center">
               <Image 
-                source={require('@/assets/images/icon-primary.png')}
+                source={IconPrimary}
                 className="w-20 h-20 mb-4"
                 resizeMode="contain"
               />
@@ -347,7 +348,7 @@ const Settings = () => {
             
             <View className="p-5 items-center">
               <Image 
-                source={require('@/assets/images/icon-primary.png')}
+                source={IconPrimary}
                 className="w-20 h-20 mb-4"
                 resizeMode="contain"
               />

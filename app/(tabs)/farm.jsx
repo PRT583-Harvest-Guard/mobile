@@ -149,7 +149,7 @@ const FarmScreen = () => {
                         await loadFarms();
                         
                         // Navigate to home page to refresh the state there
-                        router.push('/(tabs)/home');
+                        // router.push('/(tabs)/home');
                       }
                     }
                   ]

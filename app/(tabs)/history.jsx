@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { 
-  View, 
-  Text, 
-  TouchableOpacity, 
-  FlatList, 
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  FlatList,
   ActivityIndicator,
   Alert
 } from 'react-native';
@@ -12,7 +12,7 @@ import { RecordCard, PageHeader, DropDownField } from '@/components';
 import { Feather } from '@expo/vector-icons';
 import { Link, useFocusEffect, router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { 
+import {
   getInspectionObservations,
   getPendingInspectionObservations,
   getCompletedInspectionObservations,
@@ -65,17 +65,17 @@ function History() {
             onPress: async () => {
               try {
                 setIsDeleting(true);
-                
+
                 console.log('Starting deletion of all inspection suggestions and observations...');
-                
+
                 // Initialize the database service
                 await databaseService.initialize();
-                
+
                 // Get all inspection observations
                 console.log('Getting all inspection observations...');
                 const observations = await getInspectionObservations();
                 console.log(`Found ${observations.length} inspection observations`);
-                
+
                 // Delete all inspection observations
                 console.log('Deleting all inspection observations...');
                 for (const observation of observations) {
@@ -86,12 +86,12 @@ function History() {
                     console.error(`Error deleting observation with ID ${observation.id}:`, error);
                   }
                 }
-                
+
                 // Get all inspection suggestions
                 console.log('Getting all inspection suggestions...');
                 const suggestions = await getInspectionSuggestions();
                 console.log(`Found ${suggestions.length} inspection suggestions`);
-                
+
                 // Delete all inspection suggestions
                 console.log('Deleting all inspection suggestions...');
                 for (const suggestion of suggestions) {
@@ -102,7 +102,7 @@ function History() {
                     console.error(`Error deleting suggestion with ID ${suggestion.id}:`, error);
                   }
                 }
-                
+
                 // Try to clear the tables using SQL-like queries
                 try {
                   await databaseService.executeQuery('DELETE FROM InspectionObservations');
@@ -111,12 +111,12 @@ function History() {
                 } catch (error) {
                   console.error('Error clearing database tables:', error);
                 }
-                
+
                 console.log('All inspection suggestions and observations have been deleted');
-                
+
                 // Reload the data
                 await loadData();
-                
+
                 Alert.alert(
                   "Deletion Complete",
                   "All inspection suggestions and observations have been deleted."
@@ -145,13 +145,13 @@ function History() {
   const loadData = async () => {
     try {
       setLoading(true);
-      
+
       console.log('Loading inspection history data...');
-      
+
       // Initialize the tables if needed
       await initInspectionObservationTable();
       await initInspectionSuggestionTable();
-      
+
       // Get the current user ID from AsyncStorage
       let userId = null;
       try {
@@ -169,45 +169,45 @@ function History() {
         console.warn('Using default user ID 1');
         userId = 1; // Default user ID if error
       }
-      
+
       // Get farms for the current user
       const farmsData = await getFarms(userId);
       console.log('Loaded farms for user:', farmsData.length);
       setFarms(farmsData);
-      
+
       // Load inspection observations for the current user
       const pendingObservations = await getPendingInspectionObservations(userId);
       const completedObservations = await getCompletedInspectionObservations(userId);
-      
+
       console.log('Loaded pending observations:', pendingObservations.length);
       console.log('Loaded completed observations:', completedObservations.length);
-      
+
       // Load inspection suggestions
       const suggestions = await getInspectionSuggestions();
       console.log('Loaded suggestions:', suggestions.length);
-      
+
       // Create a map of suggestions by ID for quick lookup
       const suggestionsMap = {};
       suggestions.forEach(suggestion => {
         suggestionsMap[suggestion.id] = suggestion;
       });
-      
+
       // Format the data for display by combining observation and suggestion data
       const formatObservation = async (observation) => {
         console.log('Formatting observation:', observation.id);
-        
+
         // Get farm details
         const farm = farms.find(f => f.id === observation.farm_id);
-        
+
         // Get suggestion details
         const suggestion = suggestionsMap[observation.inspection_id] || {};
-        
+
         // Get boundary points (observation points) for the farm
         const boundaryPoints = await getBoundaryData(observation.farm_id);
-        
+
         // Count the number of sections (boundary points)
         const sectionCount = boundaryPoints.length;
-        
+
         return {
           id: observation.id,
           Date: new Date(observation.date).toLocaleDateString(),
@@ -227,33 +227,33 @@ function History() {
           SuggestionId: observation.inspection_id
         };
       };
-      
+
       // Process observations in parallel
       const pendingPromises = pendingObservations.map(formatObservation);
       const completedPromises = completedObservations.map(formatObservation);
-      
+
       let formattedPending = await Promise.all(pendingPromises);
       let formattedCompleted = await Promise.all(completedPromises);
-      
+
       // Make sure all observations with "Completed" status are in the completed list
       // and all other observations are in the pending list
       const allObservations = [...formattedPending, ...formattedCompleted];
-      
+
       // Filter observations based on status
-      formattedCompleted = allObservations.filter(obs => 
+      formattedCompleted = allObservations.filter(obs =>
         obs.Status === 'Completed' || obs.Status === 'completed'
       );
-      
-      formattedPending = allObservations.filter(obs => 
+
+      formattedPending = allObservations.filter(obs =>
         obs.Status !== 'Completed' && obs.Status !== 'completed'
       );
-      
+
       console.log('Formatted pending observations:', formattedPending.length);
       console.log('Formatted completed observations:', formattedCompleted.length);
-      
+
       setUnfinishedList(formattedPending);
       setFinishedList(formattedCompleted);
-      
+
       setLoading(false);
     } catch (error) {
       console.error('Error loading inspection history:', error);
@@ -261,17 +261,17 @@ function History() {
       setLoading(false);
     }
   };
-  
+
   // Call loadData when the component mounts
   useEffect(() => {
     loadData();
   }, []);
-  
+
   // Also load data when the screen comes into focus
   useFocusEffect(
     React.useCallback(() => {
       console.log('History screen focused, reloading data...');
-      
+
       // Reset all state to ensure fresh data
       setUnfinishedList([]);
       setFinishedList([]);
@@ -280,7 +280,7 @@ function History() {
       setFarmObservationPoints([]);
       setShowFarmObservations(false);
       setLoading(true);
-      
+
       // Load all data from scratch
       loadData().then(() => {
         // Check if we have a selectedFarmId parameter from navigation
@@ -288,20 +288,20 @@ function History() {
         if (params && params.selectedFarmId) {
           const farmId = Number(params.selectedFarmId);
           console.log('Found selectedFarmId parameter:', farmId);
-          
+
           // Find the farm with this ID
           const farm = farms.find(f => f.id === farmId);
           if (farm) {
             console.log('Auto-selecting farm:', farm.name);
-            
+
             // Simulate selecting this farm from the dropdown
             setSelectedFarm(farm);
             setLoading(true);
-            
+
             // Get the current user ID from AsyncStorage
             AsyncStorage.getItem('user').then(userJson => {
               let userId = 1; // Default user ID
-              
+
               if (userJson) {
                 try {
                   const user = JSON.parse(userJson);
@@ -312,12 +312,12 @@ function History() {
                   console.error('Error parsing user JSON:', error);
                 }
               }
-              
+
               // Get observation points for the selected farm and user
               return getObservationPoints(farm.id, userId);
             }).then(observationPoints => {
               console.log(`Loaded ${observationPoints.length} observation points for farm ${farm.name}`);
-              
+
               // Format observation points for display
               const formattedPoints = observationPoints.map(point => {
                 return {
@@ -335,20 +335,20 @@ function History() {
                   SuggestionId: point.inspection_suggestion_id
                 };
               });
-              
+
               // Filter observation points based on status
-              const completedPoints = formattedPoints.filter(point => 
+              const completedPoints = formattedPoints.filter(point =>
                 point.Status === 'Completed' || point.Status === 'completed'
               );
-              
-              const pendingPoints = formattedPoints.filter(point => 
+
+              const pendingPoints = formattedPoints.filter(point =>
                 point.Status !== 'Completed' && point.Status !== 'completed'
               );
-              
+
               // Store both sets of points
               setCompletedFarmPoints(completedPoints);
               setPendingFarmPoints(pendingPoints);
-              
+
               // Update the farm observation points based on which tab is active
               setFarmObservationPoints(isShowUnfinishedList ? pendingPoints : completedPoints);
               setShowFarmObservations(true);
@@ -360,7 +360,7 @@ function History() {
           }
         }
       });
-      
+
       return () => {
         // Cleanup function when screen goes out of focus
         console.log('History screen unfocused');
@@ -372,11 +372,11 @@ function History() {
     <View className="flex-1 justify-center items-center py-10">
       <Feather name="clipboard" size={48} color="#ccc" />
       <Text className="mt-4 text-base text-[#999] text-center">
-        {isShowUnfinishedList 
-          ? "No unfinished inspections found" 
+        {isShowUnfinishedList
+          ? "No unfinished inspections found"
           : "No completed inspections found"}
       </Text>
-      <TouchableOpacity 
+      <TouchableOpacity
         className="flex-row items-center bg-[#f0f0f0] p-3 rounded-lg mt-4"
         onPress={() => loadData()}
         disabled={isDeleting}
@@ -392,14 +392,14 @@ function History() {
       <View className="bg-primary py-4 px-2 rounded-b-xl shadow-sm flex-row justify-between items-center">
         <PageHeader title="Inspection History" textColor="white" showBackButton={false} />
         <View className="flex-row items-center">
-          <TouchableOpacity 
+          <TouchableOpacity
             className="p-2 mr-2"
             onPress={() => loadData()}
             disabled={isDeleting}
           >
             <Feather name="refresh-cw" size={24} color="white" />
           </TouchableOpacity>
-          <TouchableOpacity 
+          <TouchableOpacity
             className={`p-2 mr-2 bg-red/20 rounded-lg ${isDeleting ? 'opacity-50' : ''}`}
             onPress={deleteAllSuggestions}
             disabled={isDeleting}
@@ -408,16 +408,16 @@ function History() {
           </TouchableOpacity>
         </View>
       </View>
-      
+
       <View className="flex-row items-center px-4 py-3 bg-[#f5f5f5] border-b border-[#e0e0e0] flex-wrap">
         <Link href="/(tabs)/home" className="mr-1">
           <Text className="text-sm text-primary font-medium">Home</Text>
         </Link>
         <Text className="text-sm text-[#999] mr-1"> &gt; </Text>
-        
+
         <Text className="text-sm text-secondary font-pbold">Inspection History</Text>
       </View>
-      
+
       {/* Farm Dropdown */}
       <View className="p-4 bg-white border-b border-[#e0e0e0]">
         <DropDownField
@@ -425,124 +425,128 @@ function History() {
           data={farms.map(farm => farm.name)}
           disabled={farms.length === 0}
           onSelect={async (selectedItem, index) => {
-              const farm = farms[index];
-              setSelectedFarm(farm);
-              setLoading(true);
-              
+            const farm = farms[index];
+            setSelectedFarm(farm);
+            setLoading(true);
+
+            try {
+              // Get the current user ID from AsyncStorage
+              let userId = null;
               try {
-                // Get the current user ID from AsyncStorage
-                let userId = null;
-                try {
-                  const userJson = await AsyncStorage.getItem('user');
-                  if (userJson) {
-                    const user = JSON.parse(userJson);
-                    userId = user.id;
-                    console.log('Using user ID from AsyncStorage for observation points:', userId);
-                  } else {
-                    console.warn('No user found in AsyncStorage, using default user ID 1 for observation points');
-                    userId = 1; // Default user ID if not found
-                  }
-                } catch (error) {
-                  console.error('Error getting user from AsyncStorage for observation points:', error);
-                  console.warn('Using default user ID 1 for observation points');
-                  userId = 1; // Default user ID if error
+                const userJson = await AsyncStorage.getItem('user');
+                if (userJson) {
+                  const user = JSON.parse(userJson);
+                  userId = user.id;
+                  console.log('Using user ID from AsyncStorage for observation points:', userId);
+                } else {
+                  console.warn('No user found in AsyncStorage, using default user ID 1 for observation points');
+                  userId = 1; // Default user ID if not found
                 }
-                
-                // Get observation points for the selected farm and user
-                const observationPoints = await getObservationPoints(farm.id, userId);
-                console.log(`Loaded ${observationPoints.length} observation points for farm ${farm.name} and user ${userId}`);
-                
-                // Format observation points for display
-                const formattedPoints = await Promise.all(observationPoints.map(async point => {
-                  return {
-                    id: point.id,
-                    Date: new Date().toLocaleDateString(),
-                    Category: point.target_entity || 'Unknown',
-                    ConfidenceLevel: point.confidence_level || 'Unknown',
-                    InspectionSections: 1,
-                    InspectedPlantsPerSection: 0,
-                    Finished: point.observation_status === 'completed' || point.observation_status === 'Completed' ? 1 : 0,
-                    FarmId: farm.id,
-                    Status: point.observation_status || 'Nil',
-                    FarmName: farm.name,
-                    FarmSize: farm.size,
-                    SuggestionId: point.inspection_suggestion_id
-                  };
-                }));
-                
-                // Filter observation points based on status
-                const completedPoints = formattedPoints.filter(point => 
-                  point.Status === 'Completed' || point.Status === 'completed'
-                );
-                
-                const pendingPoints = formattedPoints.filter(point => 
-                  point.Status !== 'Completed' && point.Status !== 'completed'
-                );
-                
-                // Store both sets of points
-                setCompletedFarmPoints(completedPoints);
-                setPendingFarmPoints(pendingPoints);
-                
-                // Update the farm observation points based on which tab is active
-                setFarmObservationPoints(isShowUnfinishedList ? pendingPoints : completedPoints);
-                setShowFarmObservations(true);
               } catch (error) {
-                console.error('Error loading farm observation points:', error);
-                Alert.alert('Error', 'Failed to load farm observation points: ' + error.message);
-              } finally {
-                setLoading(false);
+                console.error('Error getting user from AsyncStorage for observation points:', error);
+                console.warn('Using default user ID 1 for observation points');
+                userId = 1; // Default user ID if error
               }
+
+              // Get observation points for the selected farm and user
+              const observationPoints = await getObservationPoints(farm.id, userId);
+              console.log(`Loaded ${observationPoints.length} observation points for farm ${farm.name} and user ${userId}`);
+
+              // Format observation points for display
+              const formattedPoints = await Promise.all(observationPoints.map(async point => {
+                return {
+                  id: point.id,
+                  Date: new Date().toLocaleDateString(),
+                  Category: point.target_entity || 'Unknown',
+                  ConfidenceLevel: point.confidence_level || 'Unknown',
+                  InspectionSections: 1,
+                  InspectedPlantsPerSection: 0,
+                  Finished: point.observation_status === 'completed' || point.observation_status === 'Completed' ? 1 : 0,
+                  FarmId: farm.id,
+                  Status: point.observation_status || 'Nil',
+                  FarmName: farm.name,
+                  FarmSize: farm.size,
+                  SuggestionId: point.inspection_suggestion_id
+                };
+              }));
+
+              // Filter observation points based on status
+              const completedPoints = formattedPoints.filter(point =>
+                point.Status === 'Completed' || point.Status === 'completed'
+              );
+
+              const pendingPoints = formattedPoints.filter(point =>
+                point.Status !== 'Completed' && point.Status !== 'completed'
+              );
+
+              // Store both sets of points
+              setCompletedFarmPoints(completedPoints);
+              setPendingFarmPoints(pendingPoints);
+
+              // Update the farm observation points based on which tab is active
+              setFarmObservationPoints(isShowUnfinishedList ? pendingPoints : completedPoints);
+              setShowFarmObservations(true);
+            } catch (error) {
+              console.error('Error loading farm observation points:', error);
+              Alert.alert('Error', 'Failed to load farm observation points: ' + error.message);
+            } finally {
+              setLoading(false);
+            }
+          }}
+          selectedVal={selectedFarm?.name}
+        />
+
+        {showFarmObservations && (
+          <TouchableOpacity
+            className="flex-row items-center mt-3 p-2"
+            onPress={() => {
+              setShowFarmObservations(false);
+              setSelectedFarm(null);
             }}
-            selectedVal={selectedFarm?.name}
-          />
-          
-          {showFarmObservations && (
-            <TouchableOpacity 
-              className="flex-row items-center mt-3 p-2"
-              onPress={() => {
-                setShowFarmObservations(false);
-                setSelectedFarm(null);
-              }}
-            >
-              <Feather name="arrow-left" size={20} color="#1B4D3E" />
-              <Text className="ml-2 text-primary text-base font-medium">Back to Inspection History</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-      
+          >
+            <Feather name="arrow-left" size={20} color="#1B4D3E" />
+            <Text className="ml-2 text-primary text-base font-medium">Back to Inspection History</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+
       <View className="flex-1 p-4">
         {/* Tab Selection */}
-        <View className="flex-row bg-white rounded-xl p-1 mb-4 shadow-sm">
-          <TouchableOpacity
-            className={`flex-1 py-3 items-center rounded-lg ${isShowUnfinishedList ? 'bg-secondary' : ''}`}
-            onPress={() => {
-              setIsShowUnfinishedList(true);
-              // Update farm observation points if they exist
-              if (selectedFarm && showFarmObservations) {
-                setFarmObservationPoints(pendingFarmPoints);
-              }
-            }}
-          >
-            <Text className={`text-base font-medium ${isShowUnfinishedList ? 'text-white font-pbold' : 'text-[#666]'}`}>
-              Unfinished ({showFarmObservations ? pendingFarmPoints.length : unfinishedList.length})
-            </Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity
-            className={`flex-1 py-3 items-center rounded-lg ${!isShowUnfinishedList ? 'bg-secondary' : ''}`}
-            onPress={() => {
-              setIsShowUnfinishedList(false);
-              // Update farm observation points if they exist
-              if (selectedFarm && showFarmObservations) {
-                setFarmObservationPoints(completedFarmPoints);
-              }
-            }}
-          >
-            <Text className={`text-base font-medium ${!isShowUnfinishedList ? 'text-white font-pbold' : 'text-[#666]'}`}>
-              Completed ({showFarmObservations ? completedFarmPoints.length : finishedList.length})
-            </Text>
-          </TouchableOpacity>
-        </View>
+        {showFarmObservations && (
+          <>
+            <View className="flex-row bg-white rounded-xl p-1 mb-4 shadow-sm">
+              <TouchableOpacity
+                className={`flex-1 py-3 items-center rounded-lg ${isShowUnfinishedList ? 'bg-secondary' : ''}`}
+                onPress={() => {
+                  setIsShowUnfinishedList(true);
+                  // Update farm observation points if they exist
+                  if (selectedFarm && showFarmObservations) {
+                    setFarmObservationPoints(pendingFarmPoints);
+                  }
+                }}
+              >
+                <Text className={`text-base font-medium ${isShowUnfinishedList ? 'text-white font-pbold' : 'text-[#666]'}`}>
+                  Unfinished ({showFarmObservations ? pendingFarmPoints.length : unfinishedList.length})
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                className={`flex-1 py-3 items-center rounded-lg ${!isShowUnfinishedList ? 'bg-secondary' : ''}`}
+                onPress={() => {
+                  setIsShowUnfinishedList(false);
+                  // Update farm observation points if they exist
+                  if (selectedFarm && showFarmObservations) {
+                    setFarmObservationPoints(completedFarmPoints);
+                  }
+                }}
+              >
+                <Text className={`text-base font-medium ${!isShowUnfinishedList ? 'text-white font-pbold' : 'text-[#666]'}`}>
+                  Completed ({showFarmObservations ? completedFarmPoints.length : finishedList.length})
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </>
+        )}
 
         {/* Loading State */}
         {loading || isDeleting ? (
@@ -559,7 +563,7 @@ function History() {
             <Text className="mt-4 text-base text-[#999] text-center">
               No farms available. Please add a farm first.
             </Text>
-            <TouchableOpacity 
+            <TouchableOpacity
               className="flex-row items-center bg-[#f0f0f0] p-3 rounded-lg mt-4"
               onPress={() => loadData()}
               disabled={isDeleting}
@@ -621,7 +625,7 @@ function History() {
                 } catch (error) {
                   userId = 1; // Default user ID if error
                 }
-                
+
                 // Get observation points for the selected farm and user
                 const points = await getObservationPoints(selectedFarm.id, userId);
                 const formattedPoints = points.map(point => ({
@@ -638,20 +642,20 @@ function History() {
                   FarmSize: selectedFarm.size,
                   SuggestionId: point.inspection_suggestion_id
                 }));
-                
+
                 // Filter observation points based on status
-                const completedPoints = formattedPoints.filter(point => 
+                const completedPoints = formattedPoints.filter(point =>
                   point.Status === 'Completed' || point.Status === 'completed'
                 );
-                
-                const pendingPoints = formattedPoints.filter(point => 
+
+                const pendingPoints = formattedPoints.filter(point =>
                   point.Status !== 'Completed' && point.Status !== 'completed'
                 );
-                
+
                 // Store both sets of points
                 setCompletedFarmPoints(completedPoints);
                 setPendingFarmPoints(pendingPoints);
-                
+
                 // Update the farm observation points based on which tab is active
                 setFarmObservationPoints(isShowUnfinishedList ? pendingPoints : completedPoints);
               }

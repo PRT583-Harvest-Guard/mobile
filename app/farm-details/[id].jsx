@@ -138,7 +138,7 @@ const FarmDetailsScreen = () => {
     
     // If we already have observation points, don't save new ones
     if (observationPoints.length > 0) {
-      console.log('Using existing observation points from database');
+      // console.log('Using existing observation points from database');
       return;
     }
     

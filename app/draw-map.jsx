@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  TouchableOpacity, 
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
   Alert,
   ActivityIndicator,
   Dimensions
@@ -19,6 +19,24 @@ import { deleteObservationPoints } from '@/services/ObservationService';
 import useBoundaryStore from '@/store/boundaryStore';
 import { showSuccessToast, showErrorToast } from '@/utils/toastUtils';
 
+const sortMarkersClockwise = (markers) => {
+  if (markers.length < 3) return markers;
+
+  const centroid = markers.reduce(
+    (acc, m) => ({
+      latitude: acc.latitude + m.coordinate.latitude / markers.length,
+      longitude: acc.longitude + m.coordinate.longitude / markers.length,
+    }),
+    { latitude: 0, longitude: 0 }
+  )
+
+  return [...markers].sort((a, b) => {
+    const angleA = Math.atan2(a.coordinate.latitude - centroid.latitude, a.coordinate.longitude - centroid.longitude);
+    const angleB = Math.atan2(b.coordinate.latitude - centroid.latitude, b.coordinate.longitude - centroid.longitude);
+    return angleA - angleB;
+  });
+}
+
 const DrawMapScreen = () => {
   const { farmId } = useLocalSearchParams();
   const [farm, setFarm] = useState(null);
@@ -32,23 +50,23 @@ const DrawMapScreen = () => {
     const loadData = async () => {
       try {
         setLoading(true);
-        
+
         // Load farm data
         const farms = await getFarms();
         const farmData = farms.find(f => f.id === Number(farmId) || f.id === farmId);
-        
+
         if (!farmData) {
           Alert.alert('Error', 'Farm not found');
           router.back();
           return;
         }
-        
+
         setFarm(farmData);
         boundaryStore.setFarmId(farmData.id);
-        
+
         // Get current location
         const { status } = await Location.requestForegroundPermissionsAsync();
-        
+
         if (status !== 'granted') {
           Alert.alert('Permission Denied', 'Location permission is required to use this feature');
           // Set default region (Australia)
@@ -67,10 +85,10 @@ const DrawMapScreen = () => {
             longitudeDelta: 0.01,
           });
         }
-        
+
         // Load existing boundary points
         await boundaryStore.loadExistingPoints(farmData.id);
-        
+
         // Convert existing points to markers
         if (boundaryStore.photos.length > 0) {
           const existingMarkers = boundaryStore.photos.map((point, index) => ({
@@ -81,7 +99,7 @@ const DrawMapScreen = () => {
             },
             description: point.description || `Point ${index + 1}`
           }));
-          
+
           setMarkers(existingMarkers);
         }
       } catch (error) {
@@ -91,13 +109,13 @@ const DrawMapScreen = () => {
         setLoading(false);
       }
     };
-    
+
     loadData();
   }, [farmId]);
 
   const handleMapPress = (event) => {
     const { coordinate } = event.nativeEvent;
-    
+
     // Add new marker
     setMarkers(prevMarkers => [
       ...prevMarkers,
@@ -107,16 +125,23 @@ const DrawMapScreen = () => {
         description: `Point ${prevMarkers.length + 1}`
       }
     ]);
+    if (mapRef.current) {
+      mapRef.current.animateToRegion({
+        ...coordinate,
+        latitudeDelta: 0.01,
+        longitudeDelta: 0.01,
+      }, 500);
+    }
   };
 
   const handleMarkerDrag = (event, markerId) => {
     const { coordinate } = event.nativeEvent;
-    
+
     // Update marker position
-    setMarkers(prevMarkers => 
-      prevMarkers.map(marker => 
-        marker.id === markerId 
-          ? { ...marker, coordinate } 
+    setMarkers(prevMarkers =>
+      prevMarkers.map(marker =>
+        marker.id === markerId
+          ? { ...marker, coordinate }
           : marker
       )
     );
@@ -124,7 +149,7 @@ const DrawMapScreen = () => {
 
   const handleDeleteMarker = (markerId) => {
     // Remove marker
-    setMarkers(prevMarkers => 
+    setMarkers(prevMarkers =>
       prevMarkers.filter(marker => marker.id !== markerId)
     );
   };
@@ -135,19 +160,19 @@ const DrawMapScreen = () => {
         Alert.alert('Error', 'At least 3 points are required to form a boundary');
         return;
       }
-      
+
       // Convert markers to boundary points format
       const boundaryPoints = markers.map(marker => ({
         latitude: marker.coordinate.latitude,
         longitude: marker.coordinate.longitude,
         description: marker.description,
       }));
-      
+
       // Save boundary points
       await saveBoundaryData(farmId, boundaryPoints);
-      
+
       Alert.alert(
-        'Success', 
+        'Success',
         'Boundary points saved successfully',
         [
           {
@@ -178,21 +203,21 @@ const DrawMapScreen = () => {
             try {
               // Clear markers from state
               setMarkers([]);
-              
+
               // Delete boundary points from database
               await deleteAllBoundaryPoints(farmId);
-              
+
               // Delete observation points for this farm
               await deleteObservationPoints(farmId);
-              
+
               // Clear boundary store
               boundaryStore.clearPoints();
-              
+
               // Use toast notification instead of Alert
               showSuccessToast('All boundary and observation points have been cleared');
-              
+
               // Navigate back to the farm page
-              router.push('/(tabs)/farm');
+              // router.push('/(tabs)/farm');
             } catch (error) {
               console.error('Error clearing boundary points:', error);
               showErrorToast('Failed to clear boundary and observation points from database');
@@ -207,8 +232,8 @@ const DrawMapScreen = () => {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.headerContainer}>
-          <PageHeader 
-            title="Draw Farm Boundary" 
+          <PageHeader
+            title="Draw Farm Boundary"
             showBackButton={true}
             handleBackPress={() => router.back()}
             textColor="white"
@@ -222,45 +247,59 @@ const DrawMapScreen = () => {
     );
   }
 
+  console.log(markers);
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.headerContainer}>
-        <PageHeader 
+        <PageHeader
           title={farm ? `Draw Boundary: ${farm.name}` : "Draw Farm Boundary"}
           showBackButton={true}
           handleBackPress={() => router.back()}
           textColor="white"
         />
       </View>
-      
+
       <View style={styles.breadcrumbContainer}>
         <Link href="/(tabs)/home" style={styles.breadcrumbLink}>
           <Text style={styles.breadcrumbText}>Home</Text>
         </Link>
         <Text style={styles.breadcrumbSeparator}> &gt; </Text>
-        
+
         <Link href="/(tabs)/farm" style={styles.breadcrumbLink}>
           <Text style={styles.breadcrumbText}>Farm</Text>
         </Link>
         <Text style={styles.breadcrumbSeparator}> &gt; </Text>
-        
+
         <Link href={`/farm-details/${farmId}`} style={styles.breadcrumbLink}>
           <Text style={styles.breadcrumbText}>Farm Details</Text>
         </Link>
         <Text style={styles.breadcrumbSeparator}> &gt; </Text>
-        
+
         <Text style={styles.breadcrumbActiveText}>Draw Boundary</Text>
       </View>
-      
+
       <View style={styles.content}>
+        <View>
+          <Text className='text-secondary font-psemibold'>
+            Tap on the map to add boundary points
+          </Text>
+
+          <View style={styles.markerCount}>
+            <Text style={styles.markerCountText}>
+              {markers.length} {markers.length === 1 ? 'point' : 'points'} added
+            </Text>
+          </View>
+        </View>
         <View style={styles.mapContainer}>
           <MapView
+            key={markers.map(m => m.id).join(',')}
             ref={mapRef}
             style={styles.map}
             initialRegion={initialRegion}
             onPress={handleMapPress}
           >
-            {markers.map(marker => (
+            {markers.length > 0 && markers.map(marker => (
               <Marker
                 key={marker.id}
                 identifier={marker.id}
@@ -270,40 +309,28 @@ const DrawMapScreen = () => {
                 onDragEnd={(e) => handleMarkerDrag(e, marker.id)}
               />
             ))}
-            
+
             {markers.length >= 3 && (
               <Polygon
-                coordinates={markers.map(marker => marker.coordinate)}
+                coordinates={sortMarkersClockwise(markers).map(marker => marker.coordinate)}
                 fillColor="rgba(233, 118, 43, 0.3)"
                 strokeColor="#E9762B"
                 strokeWidth={2}
               />
             )}
           </MapView>
-          
-          <View style={styles.mapOverlay}>
-            <Text style={styles.instructionText}>
-              Tap on the map to add boundary points
-            </Text>
-            
-            <View style={styles.markerCount}>
-              <Text style={styles.markerCountText}>
-                {markers.length} {markers.length === 1 ? 'point' : 'points'} added
-              </Text>
-            </View>
-          </View>
         </View>
-        
+
         <View style={styles.buttonContainer}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.clearButton}
             onPress={handleClear}
           >
             <Feather name="trash-2" size={20} color="#ff4444" />
             <Text style={styles.clearButtonText}>Clear All</Text>
           </TouchableOpacity>
-          
-          <TouchableOpacity 
+
+          <TouchableOpacity
             style={styles.saveButton}
             onPress={handleSave}
             disabled={markers.length < 3}
@@ -312,17 +339,17 @@ const DrawMapScreen = () => {
             <Text style={styles.saveButtonText}>Save Boundary</Text>
           </TouchableOpacity>
         </View>
-        
+
         {markers.length > 0 && (
           <View style={styles.markerList}>
             <Text style={styles.markerListTitle}>Boundary Points</Text>
-            
+
             {markers.map((marker, index) => (
               <View key={marker.id} style={styles.markerItem}>
                 <Text style={styles.markerItemText}>
                   Point {index + 1}: {marker.coordinate.latitude.toFixed(6)}, {marker.coordinate.longitude.toFixed(6)}
                 </Text>
-                
+
                 <TouchableOpacity
                   style={styles.deleteMarkerButton}
                   onPress={() => handleDeleteMarker(marker.id)}
@@ -431,6 +458,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 4,
+    marginVertical: 4
   },
   markerCountText: {
     fontSize: 12,

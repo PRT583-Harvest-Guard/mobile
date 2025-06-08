@@ -15,6 +15,24 @@ import bboxClip from '@turf/bbox-clip';
 import { randomPoint } from '@turf/random';
 import booleanPointInPolygon from '@turf/boolean-point-in-polygon';
 
+const sortMarkersClockwise = (markers) => {
+  if (markers.length < 3) return markers;
+
+  const centroid = markers.reduce(
+    (acc, m) => ({
+      latitude: acc.latitude + m.latitude / markers.length,
+      longitude: acc.longitude + m.longitude / markers.length,
+    }),
+    { latitude: 0, longitude: 0 }
+  )
+
+  return [...markers].sort((a, b) => {
+    const angleA = Math.atan2(a.latitude - centroid.latitude, a.longitude - centroid.longitude);
+    const angleB = Math.atan2(b.latitude - centroid.latitude, b.longitude - centroid.longitude);
+    return angleA - angleB;
+  });
+}
+
 export default function BoundaryMap({
   points = [], // [{ latitude, longitude }, …]
   observationPoints = [], // Existing observation points from database
@@ -39,8 +57,8 @@ export default function BoundaryMap({
     }
 
     // Filter out invalid points
-    const validPoints = points.filter(p => 
-      p && typeof p.latitude === 'number' && !isNaN(p.latitude) && 
+    const validPoints = points.filter(p =>
+      p && typeof p.latitude === 'number' && !isNaN(p.latitude) &&
       typeof p.longitude === 'number' && !isNaN(p.longitude)
     );
 
@@ -115,7 +133,7 @@ export default function BoundaryMap({
 
           // build the segment polygon for rendering
           segs.push(
-            coords.map(([lng, lat]) => ({ latitude: lat, longitude: lng }))
+            sortMarkersClockwise(coords).map(([lng, lat]) => ({ latitude: lat, longitude: lng }))
           );
         } catch (error) {
           // Silently handle the error
@@ -125,11 +143,11 @@ export default function BoundaryMap({
 
       // If we have existing observation points, use those
       if (observationPoints && Array.isArray(observationPoints) && observationPoints.length > 0) {
-        console.log('Using existing observation points:', observationPoints);
+        // console.log('Using existing observation points:', observationPoints);
         pts = observationPoints
-          .filter(point => 
-            point && 
-            typeof point.latitude === 'number' && !isNaN(point.latitude) && 
+          .filter(point =>
+            point &&
+            typeof point.latitude === 'number' && !isNaN(point.latitude) &&
             typeof point.longitude === 'number' && !isNaN(point.longitude)
           )
           .map(point => ({
@@ -139,7 +157,7 @@ export default function BoundaryMap({
             observation_status: point.observation_status || 'Nil',
             name: point.name || `Section ${point.segment || 1}`
           }));
-      } 
+      }
       // Otherwise, generate points for each segment
       else {
         console.log('Generating new observation points');
@@ -151,18 +169,18 @@ export default function BoundaryMap({
             minX + (i + 1) * sliceWidth,
             maxY
           ];
-          
+
           try {
             const clipped = bboxClip(turfPoly, box);
-            
+
             // Use a deterministic approach for point generation
             // Instead of random points, use the center of the box
             const centerLat = (box[1] + box[3]) / 2;
             const centerLng = (box[0] + box[2]) / 2;
-            
+
             // Check if center point is inside the polygon
             const centerPoint = { type: 'Feature', geometry: { type: 'Point', coordinates: [centerLng, centerLat] } };
-            
+
             if (booleanPointInPolygon(centerPoint, clipped)) {
               pts.push({
                 latitude: centerLat,
@@ -176,18 +194,18 @@ export default function BoundaryMap({
                 // Use a deterministic approach based on attempt number
                 const offsetX = (attempts % 5) * (sliceWidth / 5) - sliceWidth / 2;
                 const offsetY = Math.floor(attempts / 5) * ((maxY - minY) / 5) - (maxY - minY) / 2;
-                
+
                 const testLng = centerLng + offsetX;
                 const testLat = centerLat + offsetY;
-                
-                feature = { 
-                  type: 'Feature', 
-                  geometry: { 
-                    type: 'Point', 
-                    coordinates: [testLng, testLat] 
-                  } 
+
+                feature = {
+                  type: 'Feature',
+                  geometry: {
+                    type: 'Point',
+                    coordinates: [testLng, testLat]
+                  }
                 };
-                
+
                 attempts++;
               } while (
                 attempts < 25 && // 5x5 grid of test points
@@ -211,9 +229,9 @@ export default function BoundaryMap({
 
       // Only call onMarkerUpdated if we're generating new points (not using existing ones)
       // and we haven't called it yet for this set of points
-      if (onMarkerUpdated && typeof onMarkerUpdated === 'function' && 
-          pts.length > 0 && !hasCalledMarkerUpdate.current && 
-          (!observationPoints || !Array.isArray(observationPoints) || observationPoints.length === 0)) {
+      if (onMarkerUpdated && typeof onMarkerUpdated === 'function' &&
+        pts.length > 0 && !hasCalledMarkerUpdate.current &&
+        (!observationPoints || !Array.isArray(observationPoints) || observationPoints.length === 0)) {
         hasCalledMarkerUpdate.current = true;
         console.log('Calling onMarkerUpdated with generated points');
         // Use setTimeout to ensure this happens after the component has rendered
@@ -251,8 +269,11 @@ export default function BoundaryMap({
     return null; // not enough pts yet
   }
 
+  console.log(coords);
+
   return (
     <MapView
+      key={markers.map(m => m.id).join(',')}
       ref={mapRef}
       provider={PROVIDER_GOOGLE}
       style={[{ flex: 1 }, style]}
@@ -260,14 +281,14 @@ export default function BoundaryMap({
     >
       {/* Outer boundary */}
       <Polygon
-        coordinates={coords}
-        strokeColor={boundaryColor}
+        coordinates={sortMarkersClockwise(coords)}
+        strokeColor={lineColor}
         strokeWidth={boundaryWidth}
-        fillColor="transparent"
+        fillColor={segmentFill}
       />
 
       {/* Sliced segments */}
-      {segments.map((polyCoords, i) => (
+      {/* {segments.map((polyCoords, i) => (
         <Polygon
           key={`seg-${i}`}
           coordinates={polyCoords}
@@ -275,7 +296,7 @@ export default function BoundaryMap({
           strokeWidth={lineWidth}
           fillColor={segmentFill}
         />
-      ))}
+      ))} */}
 
       {/* One pin per slice */}
       {markers.map((m, i) => (

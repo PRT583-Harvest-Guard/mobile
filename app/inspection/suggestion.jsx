@@ -497,7 +497,7 @@ export default function Suggestion() {
             value={densityOfPlant}
             handleTextChange={setDensityOfPlant}
             keyboardType="numeric"
-            editable={false}
+            // editable={false}
           />
         </View>
       </ScrollView>
