@@ -1,4 +1,4 @@
-import { PageHeader } from '@/components'
+import { PageHeader, Logo } from '@/components'
 import React, { useState } from 'react'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { CustomButton, FormField } from '@/components'
@@ -8,7 +8,8 @@ import { router } from 'expo-router'
 const ChangePassword = () => {
   const [form, setForm] = useState({
     oldPassword: null,
-    newPassword: null
+    newPassword: null,
+    
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -28,14 +29,17 @@ const ChangePassword = () => {
   }
 
   return (
-    <SafeAreaView className='bg-white h-full'>
+    <SafeAreaView className='bg-green-900 h-full'>
       <PageHeader title="Change Password" />
       <View className='w-full h-full items-center justify-center px-4'>
         <View className='w-full flex-1 items-center justify-center'>
+          {/* Logo */}
+          <Logo containerStyles="w-64 h-64 mb-8" />
+          
           {/* Old Password */}
           <FormField
             title="Old Password"
-            titleStyles="text-black"
+            titleStyles="text-white"
             value={form.name}
             handleTextChange={(e) => setForm({ ...form, oldPassword: e })}
             otherStyles="mb-10"
@@ -44,10 +48,18 @@ const ChangePassword = () => {
           {/* New Password */}
           <FormField
             title="New Password"
-            titleStyles="text-black"
+            titleStyles="text-white"
             value={form.name}
             handleTextChange={(e) => setForm({ ...form, newPassword: e })}
             autoComplete="new-password"
+          />
+          {/* New Password */}
+          <FormField
+            title="Confirm Password"
+            titleStyles="text-white"
+            value={form.name}
+            handleTextChange={(e) => setForm({ ...form, ConfirmPassword: e })}
+            autoComplete="confirm-password"
           />
         </View>
         <CustomButton

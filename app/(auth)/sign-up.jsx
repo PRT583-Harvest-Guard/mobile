@@ -1,30 +1,65 @@
 import React, { useState } from "react";
-import { View, Text, ScrollView, Alert, KeyboardAvoidingView, Platform } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { View, Text, ScrollView, KeyboardAvoidingView, Platform } from "react-native";
 import { Logo, FormField, CustomButton } from "@/components";
-import { Link, router } from "expo-router";
+import { Link, router } from 'expo-router';
+import { SafeAreaView } from "react-native-safe-area-context";
+import AuthService from "@/services/AuthService";
+import { showErrorToast, showSuccessToast } from '@/utils/toastUtils';
 
 const SignUp = () => {
   const [form, setForm] = useState({
-    firstName: "",
-    lastName: "",
-    email: "",
     mobile: "",
-    password: ""
+    email: "",
+    password: "",
+    confirmPassword: ""
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const submit = async () => {
-    // if (form.firstName === "" || form.lastName === "" || form.email === "" || form.mobile === "" || form.password === "") {
-    //   Alert.alert("Error", "Please fill in all the fields!");
-    //   return;
-    // }
+    if (form.mobile === "" || form.email === "" || form.password === "" || form.confirmPassword === "") {
+      showErrorToast("Please fill in all the fields!");
+      return;
+    }
+
+    if (form.password !== form.confirmPassword) {
+      showErrorToast("Passwords do not match!");
+      return;
+    }
+
+    if (form.password.length < 6) {
+      showErrorToast("Password must be at least 6 characters long!");
+      return;
+    }
+
     setIsSubmitting(true);
     try {
-      router.push("/(auth)/upload-photos");
+      const userData = {
+        username: form.mobile,
+        email: form.email,
+        password: form.password,
+        name: form.name || form.mobile // Use name if provided, otherwise use mobile
+      };
+
+      const result = await AuthService.signUp(userData);
+      
+      // Show appropriate success message based on the result
+      if (result.message.includes('API and locally')) {
+        showSuccessToast("Account created successfully on API and locally!");
+      } else if (result.message.includes('already exists on API')) {
+        showSuccessToast("Account already exists on API, created locally!");
+      } else {
+        showSuccessToast("Account created successfully! Please sign in.");
+      }
+      
+      router.replace("/(auth)/sign-in");
     } catch (error) {
-      Alert.alert("Error", error.message);
+      // If the error message indicates the user already exists
+      if (error.message.includes('already exists')) {
+        showErrorToast("User with this phone number/email already exists!");
+      } else {
+        showErrorToast(error.message);
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -37,28 +72,23 @@ const SignUp = () => {
         style={{ flex: 1 }}
       >
         <ScrollView
+          contentContainerStyle={{ flexGrow: 1 }}
           showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
         >
           <View className="w-full min-h-[85vh] justify-center px-4">
             <View className="w-full items-center justify-center">
-              <Logo containerStyles="w-48 h-48" />
+              <Logo containerStyles="w-64 h-64" />
             </View>
 
             <FormField
-              title="First Name"
+              title="Mobile Number"
               titleStyles="text-gray-100"
-              value={form.firstName}
-              handleTextChange={(e) => setForm({ ...form, firstName: e })}
-              autoComplete="given-name"
-            />
-
-            <FormField
-              title="Last Name"
-              titleStyles="text-gray-100"
-              value={form.lastName}
-              handleTextChange={(e) => setForm({ ...form, lastName: e })}
-              otherStyles="mt-5"
-              autoComplete="family-name"
+              value={form.mobile}
+              handleTextChange={(e) => setForm({ ...form, mobile: e })}
+              otherStyles="mt-7"
+              keyboardType="phone-pad"
+              autoComplete="tel"
             />
 
             <FormField
@@ -66,19 +96,9 @@ const SignUp = () => {
               titleStyles="text-gray-100"
               value={form.email}
               handleTextChange={(e) => setForm({ ...form, email: e })}
-              otherStyles="mt-5"
+              otherStyles="mt-7"
               keyboardType="email-address"
               autoComplete="email"
-            />
-
-            <FormField
-              title="Mobile Number"
-              titleStyles="text-gray-100"
-              value={form.mobile}
-              handleTextChange={(e) => setForm({ ...form, mobile: e })}
-              otherStyles="mt-5"
-              keyboardType="phone-pad"
-              autoComplete="tel"
             />
 
             <FormField
@@ -86,12 +106,21 @@ const SignUp = () => {
               titleStyles="text-gray-100"
               value={form.password}
               handleTextChange={(e) => setForm({ ...form, password: e })}
-              otherStyles="mt-5"
+              otherStyles="mt-7"
+              autoComplete="new-password"
+            />
+
+            <FormField
+              title="Confirm Password"
+              titleStyles="text-gray-100"
+              value={form.confirmPassword}
+              handleTextChange={(e) => setForm({ ...form, confirmPassword: e })}
+              otherStyles="mt-7"
               autoComplete="new-password"
             />
 
             <CustomButton
-              title="Submit"
+              title="Sign Up"
               handlePress={submit}
               containerStyles="mt-10"
               isLoading={isSubmitting}
@@ -101,8 +130,8 @@ const SignUp = () => {
               <Text className="text-lg text-gray-100 font-pregular">
                 Already have an account?
               </Text>
-              <Link href="/(auth)/sign-in" className="text-lg text-secondary font-pregular">
-                Log In
+              <Link href="/(auth)/sign-in" className='text-lg font-pregular text-secondary'>
+                Sign In
               </Link>
             </View>
           </View>

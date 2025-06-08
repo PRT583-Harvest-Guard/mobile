@@ -7,17 +7,24 @@ const themeColours = {
   error: 'bg-red'
 }
 
-const CustomButton = ({ title, handlePress, containerStyles, textStyles, isLoading, theme }) => {
+const CustomButton = ({ title, handlePress, containerStyles, textStyles, isLoading, disabled, theme, visible = true }) => {
   const bgColour = theme ? themeColours[theme] || themeColours['secondary'] : themeColours['secondary'];
+  const isDisabled = isLoading || disabled;
+  
+  // If not visible, return null to hide the button
+  if (!visible) {
+    return null;
+  }
+  
   return (
     <TouchableOpacity
       onPress={handlePress}
       activeOpacity={0.7}
-      className={`${bgColour} rounded-xl min-h-[60px] items-center justify-center shadow-md ${containerStyles} ${isLoading ? 'opacity-50' : ''}`}
-      disabled={isLoading}
+      className={`${isDisabled ? 'bg-gray-400' : bgColour} rounded-xl min-h-[50px] px-6 items-center justify-center shadow-md ${containerStyles} ${isLoading ? 'opacity-50' : ''}`}
+      disabled={isDisabled}
     >
       <Text
-        className={`text-white font-pbold text-2xl ${textStyles}`}
+        className={`text-white font-pbold text-xl ${textStyles}`}
       >
         {title}
       </Text>
